@@ -56,9 +56,6 @@ cjson_version="1.7.12"
 zeromq_url="https://github.com/zeromq/libzmq/releases/download/v4.3.1/zeromq-${zeromq_version}.tar.gz"
 cjson_url="https://github.com/DaveGamble/cJSON/archive/v${cjson_version}.tar.gz"
 
-# Get the number of cores on the system
-ncores=$(grep -c ^processor /proc/cpuinfo)
-
 if [ ! -d "deps" ] ; then
     mkdir deps
     check_error "Failed to create dependencies directory"
@@ -97,7 +94,7 @@ log_info "Configuring libzmq for building"
 check_error "Configuring libzmq build failed"
 
 log_info "Compiling libzmq library"
-make -j${ncores}
+make -j$(nproc)
 check_error "Failed to compile libzmq"
 
 log_info "Installing libzmq"
@@ -137,7 +134,7 @@ cmake ..
 check_error "Failed to configure cJSON"
 
 log_info "Compiling cJSON library"
-make -j${ncores}
+make -j$(nproc)
 check_error "Failed to compile cJSON library"
 
 log_info "Installing cJSON library"
