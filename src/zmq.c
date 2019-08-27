@@ -50,7 +50,8 @@ typedef struct {
     void* socket;
     pthread_t th;
     pthread_mutex_t mtx_stop;
-    config_value_t* allowed_clients;
+    size_t num_allowed_clients;
+    char** allowed_clients;
     bool stop;
 } zap_ctx_t;
 
@@ -370,6 +371,8 @@ msgbus_ret_t sock_ctx_new(
     *sock_ctx = ctx;
     free(monitor_uri);
 
+    LOG_DEBUG_0("Finished adding monitor for ZMQ socket");
+
     return MSG_SUCCESS;
 
 err:
@@ -397,6 +400,8 @@ void sock_ctx_destroy(zmq_sock_ctx_t* ctx, bool close_socket) {
         free(ctx);
     }
 }
+
+bool verify_key_len(const char* key);
 
 // Macro to make receiving ZAP frames simpler
 #define ZAP_RECV(dest) { \
@@ -434,10 +439,6 @@ void* zap_run(void* vargs) {
     char mechanism[255];
     uint8_t client_public_key[32];
     char encoded_key[41];
-
-
-    config_value_array_t* allowed = zap_ctx->allowed_clients->body.array;
-    size_t num_allowed = zap_ctx->allowed_clients->body.array->length;
 
     LOG_DEBUG_0("ZeroMQ ZAP thread started");
 
@@ -490,27 +491,13 @@ void* zap_run(void* vargs) {
 
         // TODO: This NEEDs to be optimized by using a hashmap rather than
         // traversing an array each time
-        for(int i = 0; i < num_allowed; i++) {
-            config_value_t* client = allowed->get(allowed->array, i);
-            if(client == NULL) {
-                LOG_ERROR("No client at index: %d\n", i);
-                allowed = false;
-                break;
-            }
-            if(client->type != CVT_STRING) {
-                LOG_ERROR_0("All allowed client public keys MUST be strings");
-                accepted = false;
-                msgbus_config_value_destroy(client);
-                break;
-            }
-            strcmp_s(encoded_key, strlen(encoded_key), client->body.string,
-                     &ind);
+        for(int i = 0; i < zap_ctx->num_allowed_clients; i++) {
+            strcmp_s(encoded_key, strlen(encoded_key),
+                    zap_ctx->allowed_clients[i], &ind);
             if(ind == 0) {
                 accepted = true;
-                msgbus_config_value_destroy(client);
                 break;
             }
-            msgbus_config_value_destroy(client);
         }
 
 #ifdef DEBUG
@@ -552,7 +539,10 @@ void zap_destroy(zap_ctx_t* zap_ctx) {
     zmq_close(zap_ctx->socket);
 
     // Destroy config value
-    msgbus_config_value_destroy(zap_ctx->allowed_clients);
+    for(int i = 0; i < zap_ctx->num_allowed_clients; i++) {
+        free(zap_ctx->allowed_clients[i]);
+    }
+    free(zap_ctx->allowed_clients);
 
     // Final free
     free(zap_ctx);
@@ -602,11 +592,53 @@ int zap_initialize(void* zmq_ctx, config_t* config, zap_ctx_t** zap_ctx) {
     }
 
     ctx->socket = socket;
-    ctx->allowed_clients = obj;
+    ctx->allowed_clients = NULL;
     ctx->stop = false;
+
+    // Copy over the allowed cients
+    config_value_array_t* arr = obj->body.array;
+    size_t len = arr->length;
+    ctx->allowed_clients = (char**) malloc(sizeof(char*) * len);
+    if(ctx->allowed_clients == NULL) {
+        LOG_ERROR_0("Out of memory initializing ZAP allowed clients");
+        goto err;
+    }
+    ctx->num_allowed_clients= len;
+    // Initialize all char's
+    for(int i = 0; i < len; i++) {
+        ctx->allowed_clients[i] = (char*) malloc(sizeof(char) * 41);
+        if(ctx->allowed_clients[i] == NULL) {
+            LOG_ERROR_0("Out of memory intiailizing ZAP allowed clients");
+            goto err;
+        }
+    }
+
+    // TODO: Make this a hashmap in the future for efficient key lookup
+    for(int i = 0; i < len; i++) {
+        config_value_t* cvt_key = arr->get(arr->array, i);
+        if(cvt_key == NULL) {
+            LOG_ERROR_0("Failed to get array element");
+            goto err;
+        } else if(cvt_key->type != CVT_STRING) {
+            LOG_ERROR_0("All allowed keys must be strings");
+            msgbus_config_value_destroy(cvt_key);
+            goto err;
+        } else if(!verify_key_len(cvt_key->body.string)) {
+            LOG_ERROR_0("Incorrect key length, must be 40 characters");
+            msgbus_config_value_destroy(cvt_key);
+            goto err;
+        }
+
+        // Copy over the string
+        memcpy_s(ctx->allowed_clients[i], 40, cvt_key->body.string, 40);
+        ctx->allowed_clients[i][40] = '\0';
+        msgbus_config_value_destroy(cvt_key);
+    }
 
     pthread_mutex_init(&ctx->mtx_stop, NULL);
     pthread_create(&ctx->th, NULL, zap_run, (void*) ctx);
+
+    msgbus_config_value_destroy(obj);
 
     *zap_ctx = ctx;
 
@@ -614,8 +646,15 @@ int zap_initialize(void* zmq_ctx, config_t* config, zap_ctx_t** zap_ctx) {
 err:
     if(obj != NULL)
         msgbus_config_value_destroy(obj);
-    if(ctx != NULL)
+    if(ctx != NULL) {
+        if(ctx->allowed_clients != NULL) {
+            for(int i = 0; i < ctx->num_allowed_clients; i++) {
+                free(ctx->allowed_clients[i]);
+            }
+            free(ctx->allowed_clients);
+        }
         free(ctx);
+    }
     if(socket != NULL)
         zmq_close(socket);
     *zap_ctx = NULL;
@@ -623,6 +662,7 @@ err:
 }
 
 // Prototypes
+
 void proto_zmq_destroy(void* ctx);
 
 msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg);
@@ -906,6 +946,8 @@ msgbus_ret_t init_curve_server_socket(
             LOG_ZMQ_ERROR("Failed setting ZMQ_CURVE_SECRETKEY");
             goto err;
         }
+
+        LOG_DEBUG_0("Finished configuring socket for server side auth");
     } else {
         // Returning early here so destroy calls are not executed
         LOG_WARN_0("ZeroMQ TCP socket running without encryption");
@@ -1109,6 +1151,8 @@ msgbus_ret_t proto_zmq_publisher_new(
 
     // Assign publisher context
     *pub_ctx = sock_ctx;
+
+    LOG_DEBUG_0("Publisher successfully initialized");
 
     return MSG_SUCCESS;
 err:
