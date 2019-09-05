@@ -1175,10 +1175,7 @@ msgbus_ret_t proto_zmq_publisher_publish(
     if(!zmq_ctx->is_ipc)
         pthread_mutex_unlock(&zmq_ctx->cfg.tcp.pub_mutex);
 
-    if(ret != MSG_SUCCESS)
-        return MSG_ERR_PUB_FAILED;
-    else
-        return MSG_SUCCESS;
+    return ret;
 }
 
 void proto_zmq_publisher_destroy(void* ctx, void* pub_ctx) {
@@ -1691,11 +1688,7 @@ msgbus_ret_t proto_zmq_request(
         return MSG_ERR_REQ_FAILED;
     }
 
-    msgbus_ret_t ret = send_message(req_ctx->sock_ctx, msg);
-    if(ret != MSG_SUCCESS)
-        return MSG_ERR_REQ_FAILED;
-    else
-        return MSG_SUCCESS;
+    return send_message(req_ctx->sock_ctx, msg);
 }
 
 msgbus_ret_t proto_zmq_response(
@@ -1706,11 +1699,7 @@ msgbus_ret_t proto_zmq_response(
         return MSG_ERR_REQ_FAILED;
     }
 
-    msgbus_ret_t ret = send_message(resp_ctx->sock_ctx, msg);
-    if(ret != MSG_SUCCESS)
-        return MSG_ERR_REQ_FAILED;
-    else
-        return MSG_SUCCESS;
+    return send_message(resp_ctx->sock_ctx, msg);
 }
 
 typedef struct {
@@ -1829,13 +1818,22 @@ msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
 
     return MSG_SUCCESS;
 err:
-    if(parts != NULL)
-        msgbus_msg_envelope_serialize_destroy(parts, num_parts);
+    // If the msgs variable has been initialized, then the serialized parts
+    // will be freed by the zmq_msg_close() call, otherwise, the serialized
+    // parts need to be free'ed manually
     if(msgs != NULL) {
         for(int i = 0; i < num_parts; i++) {
             zmq_msg_close(&msgs[i]);
         }
         free(msgs);
+    } else if(parts != NULL) {
+        msgbus_msg_envelope_serialize_destroy(parts, num_parts);
     }
-    return MSG_ERR_MSG_SEND_FAILED;
+
+    // Check if ZeroMQ received a system interrupt, if it did return the
+    // correct response
+    if(zmq_errno() == EINTR)
+        return MSG_ERR_EINTR;
+    else
+        return MSG_ERR_MSG_SEND_FAILED;
 }
