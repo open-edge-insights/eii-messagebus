@@ -14,7 +14,7 @@ If you wish to compile the Python binding as well, then run the `install.sh`
 script with the `--cython` flag (as shown below).
 
 ```sh
-$ sudo -E ./install --cython
+$ sudo -E ./install.sh --cython
 ```
 
 ## Compilation
