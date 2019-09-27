@@ -27,7 +27,23 @@ from .exc import MessageBusError
 
 # Cython imports
 from .libeismsgbus cimport *
-from cpython cimport bool
+from cpython cimport bool, Py_INCREF, Py_DECREF
+
+
+cdef void free_python_blob(void* vhint) nogil:
+    """Method for freeing a Python blob by decreasing the number of references
+    on it in the Python interpreter.
+
+    This method is called once the message bus is done with the data.
+    """
+    # Explicitly acquiring the GIL here, must be done this way, otherwise
+    # this method cannot be called from the underlying C library
+    with gil:
+        # Decrement the reference count and delete the Python object so it can
+        # be freed by the Python garbage collector.
+        obj = <object> vhint
+        Py_DECREF(obj)
+        del obj
 
 
 cdef void put_bytes_helper(msg_envelope_t* env, data) except *:
@@ -46,10 +62,12 @@ cdef void put_bytes_helper(msg_envelope_t* env, data) except *:
         msgbus_msg_envelope_elem_destroy(body)
         raise MessageBusError('Failed to put blob in message envelope')
 
-    # Setting blob inside of the message envelope to not be owned by the
-    # underlying pointer object, because it is owned by the Python interpreter
-    # and should not be freed by the message bus
-    env.blob.body.blob.shared.owned = <bint> False
+    # Increment the reference count on the underlying Python object for the
+    # blob data being published over the message bus. This will keep the data
+    # from being garbage collected by the interpreter.
+    Py_INCREF(data)
+    env.blob.body.blob.shared.ptr = <void*> data
+    env.blob.body.blob.shared.free = free_python_blob
 
 
 cdef msg_envelope_t* python_to_msg_envelope(data) except *:

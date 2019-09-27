@@ -29,6 +29,8 @@ import eis.msgbus as mb
 ap = argparse.ArgumentParser()
 ap.add_argument('config', help='JSON configuration')
 ap.add_argument('-t', '--topic', default='publish_test', help='Topic')
+ap.add_argument('-p', '--print', default=False, action='store_true',
+                help='Print the received message')
 args = ap.parse_args()
 
 msgbus = None
@@ -48,7 +50,8 @@ try:
     while True:
         msg = subscriber.recv()
         if msg is not None:
-            print(f'[INFO] RECEIVED: {msg}')
+            if args.print:
+                print(f'[INFO] RECEIVED: {msg}')
         else:
             print('[INFO] Receive interrupted')
 except KeyboardInterrupt:
