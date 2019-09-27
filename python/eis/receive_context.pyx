@@ -79,17 +79,23 @@ cdef class ReceiveContext:
         """
         cdef msgbus_ret_t ret
         cdef msg_envelope_t* msg = NULL
+        cdef void* ctx = self.msgbus_ctx
+        cdef recv_ctx_t* recv_ctx = self.recv_ctx
+        cdef int c_timeout = <int> timeout
         data = None
 
         if timeout > -1:
-            ret = msgbus_recv_timedwait(
-                    self.msgbus_ctx, self.recv_ctx, <int> timeout, &msg)
+            with nogil:
+                ret = msgbus_recv_timedwait(
+                        ctx, recv_ctx, c_timeout, &msg)
             if ret == msgbus_ret_t.MSG_RECV_NO_MESSAGE:
                 raise ReceiveTimeout('Timeout')
         elif blocking:
-            ret = msgbus_recv_wait(self.msgbus_ctx, self.recv_ctx, &msg)
+            with nogil:
+                ret = msgbus_recv_wait(ctx, recv_ctx, &msg)
         else:
-            ret = msgbus_recv_nowait(self.msgbus_ctx, self.recv_ctx, &msg)
+            with nogil:
+                ret = msgbus_recv_nowait(ctx, recv_ctx, &msg)
 
         if ret == msgbus_ret_t.MSG_ERR_EINTR:
             return None
