@@ -85,7 +85,7 @@ cdef config_value_t* get_config_value(
         return NULL
 
 
-cdef void free_conf(void* conf):
+cdef void free_conf(void* conf) nogil:
     """Free method for configuration object. Does nothing since the config
     object is a Python dictionary, and therefore garbage collected by the
     Python interpreter.

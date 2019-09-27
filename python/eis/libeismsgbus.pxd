@@ -25,7 +25,7 @@ from libc.stdint cimport *
 cdef extern from "stdbool.h":
     ctypedef bint bool
 
-cdef extern from "eis/msgbus/msgbus.h":
+cdef extern from "eis/msgbus/msgbus.h" nogil:
     ctypedef enum msgbus_ret_t:
         MSG_SUCCESS = 0
         MSG_ERR_PUB_FAILED = 1

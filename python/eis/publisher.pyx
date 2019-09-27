@@ -76,6 +76,8 @@ cdef class Publisher:
         """
         cdef msgbus_ret_t ret
         cdef msg_envelope_t* env = python_to_msg_envelope(message)
+        cdef void* msgbus_ctx = self.msgbus_ctx
+        cdef publisher_ctx_t* pub_ctx = self.pub_ctx
 
         # Check if the message envelope was successfully converted from its
         # Python representation and raise the exception that was raised in the
@@ -83,10 +85,11 @@ cdef class Publisher:
         if env == NULL:
             raise
 
-        # Attempt to publish the message
-        ret = msgbus_publisher_publish(self.msgbus_ctx, self.pub_ctx, env)
-        # Destroy the published message
-        msgbus_msg_envelope_destroy(env)
+        with nogil:
+            # Attempt to publish the message
+            ret = msgbus_publisher_publish(msgbus_ctx, pub_ctx, env)
+            # Destroy the published message
+            msgbus_msg_envelope_destroy(env)
 
         if ret != msgbus_ret_t.MSG_SUCCESS:
             raise MessageBusError('Failed to publish message')
