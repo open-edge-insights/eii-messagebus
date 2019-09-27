@@ -76,6 +76,7 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/safestring-src
 # Include header directories
 include_directories(
     include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../util/cpuid/
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
     ${safestring_SOURCE_DIR}/include)
@@ -84,7 +85,9 @@ include_directories(
 file(GLOB SOURCES "src/*.c")
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
-add_library(eismsgbus SHARED ${SOURCES})
+add_library(eismsgbus SHARED
+    ${SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../util/cpuid/cpuid-check.c")
 target_link_libraries(eismsgbus
     PUBLIC
         pthread
