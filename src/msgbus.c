@@ -33,6 +33,10 @@
 #include "eis/msgbus/protocol.h"
 #include "eis/msgbus/logger.h"
 #include "eis/msgbus/zmq.h"
+#include "cpuid-check.h"
+
+#define INTEL_VENDOR "GenuineIntel"
+#define INTEL_VENDOR_LENGTH 12
 
 config_t* msgbus_config_new(
         void* cfg, void (*free_fn)(void*),
@@ -189,6 +193,23 @@ void msgbus_config_destroy(config_t* config) {
 }
 
 void* msgbus_initialize(config_t* config) {
+    LOG_DEBUG_0("Checking if vendor is Intel");
+    char* vendor = get_vendor();
+    if(vendor == NULL) {
+        LOG_ERROR_0("Failed to get vendor");
+        return NULL;
+    }
+
+    int ind_vendor;
+    strcmp_s(vendor, INTEL_VENDOR_LENGTH, INTEL_VENDOR, &ind_vendor);
+    if(ind_vendor != 0) {
+        LOG_ERROR("EIS can only be used on Intel HW, you are running on %s",
+        vendor);
+        return NULL;
+    }
+
+    LOG_DEBUG("Running on %s", vendor);
+
     LOG_DEBUG_0("Initilizing message bus");
     protocol_t* proto = NULL;
     config_value_t* value = config->get_config_value(config->cfg, "type");
