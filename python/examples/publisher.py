@@ -29,6 +29,10 @@ import eis.msgbus as mb
 ap = argparse.ArgumentParser()
 ap.add_argument('config', help='JSON configuration')
 ap.add_argument('-t', '--topic', default='publish_test', help='Topic')
+ap.add_argument('-b', '--blob_size', type=int, default=10,
+                help='Number of bytes for the blob')
+ap.add_argument('-i', '--interval', type=float, default=1,
+                help='Interval between each publication')
 args = ap.parse_args()
 
 msgbus = None
@@ -46,8 +50,9 @@ try:
 
     print('[INFO] Running...')
     while True:
-        publisher.publish(({'hello': 123}, b'HELLO',))
-        time.sleep(1)
+        blob = b'\x22' * args.blob_size
+        publisher.publish(({'hello': 123}, blob,))
+        time.sleep(args.interval)
 except KeyboardInterrupt:
     print('[INFO] Quitting...')
 finally:
