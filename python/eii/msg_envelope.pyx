@@ -28,6 +28,7 @@ from .exc import MessageBusError
 # Cython imports
 from .libeismsgbus cimport *
 from cpython cimport bool, Py_INCREF, Py_DECREF
+from libc.stdint cimport int64_t
 
 
 cdef void free_python_blob(void* vhint) nogil:
@@ -144,7 +145,7 @@ cdef msg_envelope_t* python_to_msg_envelope(data) except *:
                 bv = bytes(v, 'utf-8')
                 body = msgbus_msg_envelope_new_string(bv)
             elif isinstance(v, int):
-                body = msgbus_msg_envelope_new_integer(<int> v)
+                body = msgbus_msg_envelope_new_integer(<int64_t> v)
             elif isinstance(v, float):
                 body = msgbus_msg_envelope_new_floating(<double> v)
             elif isinstance(v, bool):
