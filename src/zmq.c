@@ -24,6 +24,7 @@
  */
 
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
@@ -34,11 +35,15 @@
 #include "eis/msgbus/zmq.h"
 #include "eis/msgbus/logger.h"
 
-#define SOCKET_DIR  "socket_dir"
-#define PORT        "port"
-#define HOST        "host"
-#define ZAP_URI     "inproc://zeromq.zap.01"
-#define ZAP_CURVE   "CURVE"
+#define SOCKET_DIR    "socket_dir"
+#define PORT          "port"
+#define HOST          "host"
+#define ZAP_URI       "inproc://zeromq.zap.01"
+#define ZAP_CURVE     "CURVE"
+#define IPC_PREFIX    "ipc://"
+#define IPC_PREFIX_LEN 6
+#define TCP_PREFIX     "tcp://"
+#define TCP_PREFIX_LEN 6
 
 #define LOG_ZMQ_ERROR(msg) \
     LOG_ERROR(msg ": [%d] %s", zmq_errno(), zmq_strerror(zmq_errno()));
@@ -90,7 +95,7 @@ typedef struct {
             config_value_t* pub_host;
             int64_t pub_port;
             void* pub_socket;
-            pthread_mutex_t pub_mutex;
+            pthread_mutex_t* pub_mutex;
             config_value_t* pub_config;
             zap_ctx_t* zap;
         } tcp;
@@ -135,6 +140,56 @@ char* generate_random_str(int len) {
 }
 
 /**
+ * Secure helper function for concatinating a list of c-strings.
+ */
+char* concat_s(size_t dst_len, int num_strs, ...) {
+    char* dst = (char*) malloc(sizeof(char) * dst_len);
+    if(dst == NULL) {
+        LOG_ERROR_0("Failed to initialize dest for string concat");
+        return NULL;
+    }
+
+    va_list ap;
+    size_t curr_len = 0;
+    int ret = 0;
+
+    va_start(ap, num_strs);
+
+    // First element must be copied into dest
+    char* src = va_arg(ap, char*);
+    size_t src_len = strlen(src);
+    ret = strncpy_s(dst, dst_len, src, src_len);
+    if(ret != 0) {
+        LOG_ERROR("Concatincation failed (errno: %d)", ret);
+        free(dst);
+        va_end(ap);
+        return NULL;
+    }
+    curr_len += src_len;
+
+    for(int i = 1; i < num_strs; i++) {
+        src = va_arg(ap, char*);
+        src_len = strlen(src);
+        LOG_DEBUG("%s", src);
+        ret = strncat_s(dst + curr_len, dst_len, src, src_len);
+        if(ret != 0) {
+            LOG_ERROR("Concatincation failed (errno: %d)", ret);
+            free(dst);
+            dst = NULL;
+            break;
+        }
+        curr_len += src_len;
+        dst[curr_len] = '\0';
+    }
+    va_end(ap);
+
+    if(dst == NULL)
+        return NULL;
+    else
+        return dst;
+}
+
+/**
  * Helper function for creating ZeroMQ URI for binding/connecting a given
  * socket.
  */
@@ -143,11 +198,18 @@ char* create_uri(zmq_proto_ctx_t* ctx, const char* name, bool is_publisher) {
     config_value_t* host = NULL;
 
     if(ctx->is_ipc) {
-        size_t len = sizeof(char) *
-            (strlen(ctx->cfg.ipc.socket_dir->body.string) + strlen(name) + 8);
-        uri = (char*) malloc(len);
-        sprintf(uri, "ipc://%1s/%2s",
-                ctx->cfg.ipc.socket_dir->body.string, name);
+        // Temp pointer to the socket directory
+        char* sock_dir = ctx->cfg.ipc.socket_dir->body.string;
+
+        // Get all string portion lengths
+        size_t name_len = strlen(name);
+        size_t socket_dir_len = strlen(sock_dir);
+        size_t total_len = sizeof(char) * (socket_dir_len + name_len + 12);
+
+        uri = concat_s(total_len, 4, IPC_PREFIX, sock_dir, "/", name);
+        if(uri == NULL) {
+            return NULL;
+        }
     } else {
         const char* host_str = NULL;
         int64_t port_int = -1;
@@ -203,13 +265,24 @@ char* create_uri(zmq_proto_ctx_t* ctx, const char* name, bool is_publisher) {
         }
 
         // Get length of string for the port
-        int port_len = snprintf(NULL, 0, "%ld", port_int);
+        // Adding 1 for null termintator
+        int port_len = snprintf(NULL, 0, "%ld", port_int) + 1;
+        char* const port_str = (char*) malloc(sizeof(char) * port_len);
+
+        // This is the only required sprintf, it is the only portable way to
+        // convert an integer to a string
+        snprintf(port_str, port_len, "%ld", port_int);
+
         size_t host_len = strlen(host_str);
+        size_t uri_len = sizeof(char) * (port_len + host_len + 11);
+        uri = concat_s(uri_len, 4, TCP_PREFIX, host_str, ":", port_str);
+        if(uri == NULL) {
+            msgbus_config_value_destroy(host);
+            free(port_str);
+            return NULL;
+        }
 
-        size_t uri_len = sizeof(char) * (port_len + host_len + 8);
-        uri = (char*) malloc(uri_len);
-        sprintf(uri, "tcp://%s:%ld", host_str, port_int);
-
+        free(port_str);
         if(host != NULL)
             msgbus_config_value_destroy(host);
     }
@@ -324,6 +397,7 @@ msgbus_ret_t sock_ctx_new(
     ctx->disconnected = false;
     ctx->name_len = strlen(name) + 1;
     ctx->name = (char*) malloc(sizeof(char) * ctx->name_len);
+    ctx->monitor = NULL;
     if(ctx->name == NULL)
         goto err;
     memcpy_s(ctx->name, ctx->name_len, name, ctx->name_len);
@@ -336,10 +410,19 @@ msgbus_ret_t sock_ctx_new(
     // Generating random part of string in case there are multiple services
     // or publishers with the same name. There can only be one monitor socket
     // per monitor URI
-    char* rand_str = generate_random_str(5);
-    monitor_uri = (char*) malloc(sizeof(char) * (15 + ctx->name_len));
-    sprintf(monitor_uri, "inproc://%1s-%2s", name, rand_str);
-    free(rand_str);
+    const char* rand_str = generate_random_str(5);
+    if(rand_str == NULL) {
+        LOG_ERROR_0("Failed to initialize random string");
+        goto err;
+    }
+
+    size_t total_len = strlen(rand_str) + strlen(name) + 14;
+    monitor_uri = concat_s(total_len, 4, "inproc://", rand_str, "-", name);
+    free((void*) rand_str);
+    if(monitor_uri == NULL) {
+        LOG_ERROR_0("Failed to initialize monotor URI for the new socket");
+        goto err;
+    }
 
     LOG_DEBUG("Creating socket monitor for %s", monitor_uri);
     int rc = zmq_socket_monitor(socket, monitor_uri, ZMQ_EVENT_ALL);
@@ -348,7 +431,6 @@ msgbus_ret_t sock_ctx_new(
         // then it is okay
         if(zmq_errno() != EADDRINUSE) {
             LOG_ZMQ_ERROR("Failed creating socket monitor");
-            free(monitor_uri);
             goto err;
         }
     }
@@ -446,9 +528,13 @@ void* zap_run(void* vargs) {
     // still exit promptly when ZMQ protocol context is destroyed
     while(true) {
         // Check if the thread should stop
-        pthread_mutex_lock(&zap_ctx->mtx_stop);
+        if(pthread_mutex_lock(&zap_ctx->mtx_stop) != 0) {
+            LOG_DEBUG_0("Unable to lock mutex...");
+        }
         keep_running = !zap_ctx->stop;
-        pthread_mutex_unlock(&zap_ctx->mtx_stop);
+        if(pthread_mutex_unlock(&zap_ctx->mtx_stop) != 0) {
+            LOG_DEBUG_0("Unable to unlock mutex...");
+        }
 
         if(!keep_running)
             break;
@@ -524,16 +610,24 @@ void zap_destroy(zap_ctx_t* zap_ctx) {
     LOG_DEBUG_0("Destroying ZAP thread");
 
     // Set stop flag
-    pthread_mutex_lock(&zap_ctx->mtx_stop);
+    if(pthread_mutex_lock(&zap_ctx->mtx_stop) != 0) {
+        LOG_DEBUG_0("Unable to lock mutex");
+    }
+
     zap_ctx->stop = true;
-    pthread_mutex_unlock(&zap_ctx->mtx_stop);
+    if(pthread_mutex_unlock(&zap_ctx->mtx_stop) != 0) {
+        LOG_DEBUG_0("Unable to unlock mutex");
+    }
 
     // Join with the ZAP thread
     LOG_DEBUG_0("Waiting for ZAP thread to join");
     pthread_join(zap_ctx->th, NULL);
 
     // Destroy mutex
-    pthread_mutex_destroy(&zap_ctx->mtx_stop);
+    if(pthread_mutex_destroy(&zap_ctx->mtx_stop) != 0) {
+        LOG_DEBUG_0("Unable to destroy mutex");
+    }
+
 
     // Close ZeroMQ socket
     zmq_close(zap_ctx->socket);
@@ -662,7 +756,6 @@ err:
 }
 
 // Prototypes
-
 void proto_zmq_destroy(void* ctx);
 
 msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg);
@@ -709,8 +802,20 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     zmq_proto_ctx_t* zmq_proto_ctx = (zmq_proto_ctx_t*) malloc(
             sizeof(zmq_proto_ctx_t));
 
+    // Initialize all proto context values
     zmq_proto_ctx->zmq_context = zmq_ctx_new();
     zmq_proto_ctx->config = config;
+    zmq_proto_ctx->is_ipc = false;
+
+    // Initialize IPC configuration values
+    zmq_proto_ctx->cfg.ipc.socket_dir = NULL;
+
+    // Initialize TCP configuration values
+    zmq_proto_ctx->cfg.tcp.pub_host = NULL;
+    zmq_proto_ctx->cfg.tcp.pub_port = 0;
+    zmq_proto_ctx->cfg.tcp.pub_socket = NULL;
+    zmq_proto_ctx->cfg.tcp.pub_config = NULL;
+    zmq_proto_ctx->cfg.tcp.pub_mutex = NULL;
 
     int ind_ipc;
     int ind_tcp;
@@ -744,10 +849,6 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     } else if(ind_tcp == 0) {
         LOG_DEBUG_0("Initializing ZeroMQ for TCP communication");
 
-        // Set IPC flag
-        zmq_proto_ctx->is_ipc = false;
-        zmq_proto_ctx->cfg.tcp.pub_socket = NULL;
-
         int rc = zap_initialize(zmq_proto_ctx->zmq_context, config,
                                 &zmq_proto_ctx->cfg.tcp.zap);
         if(rc == -1) {
@@ -767,8 +868,10 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
             msgbus_config_value_destroy(conf_obj);
             goto err;
         } else {
+            zmq_proto_ctx->cfg.tcp.pub_mutex = (pthread_mutex_t*) malloc(
+                    sizeof(pthread_mutex_t));
             int rc = pthread_mutex_init(
-                    &zmq_proto_ctx->cfg.tcp.pub_mutex, NULL);
+                    zmq_proto_ctx->cfg.tcp.pub_mutex, NULL);
             if(rc != 0) {
                 LOG_ERROR_0("Failed to initialize publish mutex");
                 msgbus_config_value_destroy(conf_obj);
@@ -812,8 +915,6 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
 
             msgbus_config_value_destroy(port);
         }
-
-        // TODO: Add security initialization
     } else {
         LOG_ERROR("Unknown ZeroMQ type: %s, must be %s or %s",
                type, ZMQ_TCP, ZMQ_IPC);
@@ -853,7 +954,9 @@ void proto_zmq_destroy(void* ctx) {
 
     if(!zmq_ctx->is_ipc) {
         if(zmq_ctx->cfg.tcp.pub_host != NULL) {
-            pthread_mutex_lock(&zmq_ctx->cfg.tcp.pub_mutex);
+            if(pthread_mutex_lock(zmq_ctx->cfg.tcp.pub_mutex) != 0) {
+                LOG_DEBUG_0("Unable to lock mutex");
+            }
 
             msgbus_config_value_destroy(zmq_ctx->cfg.tcp.pub_config);
 
@@ -861,8 +964,14 @@ void proto_zmq_destroy(void* ctx) {
             zmq_close(zmq_ctx->cfg.tcp.pub_socket);
             zmq_ctx->cfg.tcp.pub_socket = NULL;
 
-            pthread_mutex_unlock(&zmq_ctx->cfg.tcp.pub_mutex);
-            pthread_mutex_destroy(&zmq_ctx->cfg.tcp.pub_mutex);
+            if(pthread_mutex_unlock(zmq_ctx->cfg.tcp.pub_mutex) != 0) {
+                LOG_DEBUG_0("Unable to unlock mutex");
+            }
+            if(pthread_mutex_destroy(zmq_ctx->cfg.tcp.pub_mutex) != 0) {
+                LOG_DEBUG_0("Unable to destroy mutex");
+            }
+
+            free(zmq_ctx->cfg.tcp.pub_mutex);
 
             msgbus_config_value_destroy(zmq_ctx->cfg.tcp.pub_host);
         }
@@ -877,7 +986,6 @@ void proto_zmq_destroy(void* ctx) {
     }
 
     LOG_DEBUG_0("Destroying zeromq context");
-    // zmq_ctx_destroy(zmq_ctx->zmq_context);
     zmq_ctx_term(zmq_ctx->zmq_context);
 
     // Last free for the zmq protocol structure
@@ -1167,14 +1275,19 @@ msgbus_ret_t proto_zmq_publisher_publish(
 {
     zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
 
-    if(!zmq_ctx->is_ipc)
-        pthread_mutex_lock(&zmq_ctx->cfg.tcp.pub_mutex);
+    if(!zmq_ctx->is_ipc) {
+        if(pthread_mutex_lock(zmq_ctx->cfg.tcp.pub_mutex) != 0) {
+            LOG_DEBUG_0("Unable to lock mutex");
+        }
+    }
 
     msgbus_ret_t ret = send_message((zmq_sock_ctx_t*) pub_ctx, msg);
 
-    if(!zmq_ctx->is_ipc)
-        pthread_mutex_unlock(&zmq_ctx->cfg.tcp.pub_mutex);
-
+    if(!zmq_ctx->is_ipc) {
+        if(pthread_mutex_unlock(zmq_ctx->cfg.tcp.pub_mutex) != 0) {
+            LOG_DEBUG_0("Unable to unlock mutex");
+        }
+    }
     return ret;
 }
 
@@ -1275,11 +1388,13 @@ err:
     if(socket)
         zmq_close(socket);
     if(zmq_recv_ctx) {
-        if(zmq_recv_ctx->sock_ctx != NULL)
+        if(zmq_recv_ctx->sock_ctx != NULL) {
+            zmq_recv_ctx->sock_ctx->socket = NULL;
             sock_ctx_destroy(zmq_recv_ctx->sock_ctx, false);
-        free(zmq_recv_ctx);
+        }
     }
     free(topic_uri);
+    free(zmq_recv_ctx);
     return rc;
 }
 
@@ -1445,8 +1560,10 @@ msgbus_ret_t base_recv(
     msg_envelope_serialized_part_t* parts = NULL;
     msgbus_ret_t ret = msgbus_msg_envelope_serialize_parts_new(
             num_parts, &parts);
-    if(num_parts <= 0) {
+    if(ret != MSG_SUCCESS) {
         LOG_ERROR_0("Error initializing serialized parts");
+        if(parts)
+            free(parts);
         return MSG_ERR_RECV_FAILED;
     }
 
@@ -1467,6 +1584,9 @@ msgbus_ret_t base_recv(
         rc = zmq_msg_recv(part, socket, 0);
         if(rc == -1) {
             LOG_ZMQ_ERROR("Error receiving zmq message body");
+            msgbus_msg_envelope_serialize_destroy(parts, num_parts);
+            zmq_msg_close(part);
+            free(part);
             return MSG_ERR_RECV_FAILED;
         }
 
@@ -1482,6 +1602,8 @@ msgbus_ret_t base_recv(
         if(rc != 0) {
             LOG_ZMQ_ERROR("Error getting ZMQ_RCVMORE sockopt");
             msgbus_msg_envelope_serialize_destroy(parts, num_parts);
+            zmq_msg_close(part);
+            free(part);
             return MSG_ERR_RECV_FAILED;
         }
         part_idx++;
@@ -1719,14 +1841,8 @@ msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
 
     int num_parts = msgbus_msg_envelope_serialize(msg, &parts);
     if(num_parts < 0) {
-        LOG_ERROR_0("Unable to serialize message");
-        goto err;
-    }
-
-    if(num_parts > 255) {
-        LOG_ERROR_0("ZeroMQ does not support more than 255 message parts");
-        msgbus_msg_envelope_serialize_destroy(parts, num_parts);
-        goto err;
+        LOG_ERROR_0("Failed to serialize message envelope");
+        return MSG_ERR_MSG_SEND_FAILED;
     }
 
     // Send message prefix, i.e. the topic or service name
@@ -1764,7 +1880,7 @@ msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
                     "Failed to create ZeroMQ message for message envelope");
             msgbus_msg_envelope_serialize_destroy(parts, num_parts);
             free(msgs);
-            return MSG_ERR_UNKNOWN;
+            return MSG_ERR_MSG_SEND_FAILED;
         }
     }
 
