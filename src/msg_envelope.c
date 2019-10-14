@@ -350,8 +350,6 @@ err:
     }
     if(blob != NULL)
         free(blob);
-    if(elem != NULL)
-        free(elem);
     return NULL;
 }
 
@@ -368,20 +366,23 @@ void msgbus_msg_envelope_elem_destroy(msg_envelope_elem_body_t* body) {
 msgbus_ret_t msgbus_msg_envelope_put(
         msg_envelope_t* env, const char* key, msg_envelope_elem_body_t* data)
 {
-    char* key_cpy = NULL;
+    msgbus_ret_t ret;
 
-    // If the element has a key, make a copy for the envelope to own
-    if(key != NULL) {
+    if(key == NULL) {
+        ret = msg_envelope_put_helper(env, NULL, data);
+    } else {
         size_t len = strlen(key);
+
         // Copying the key value
-        key_cpy = (char*) malloc(sizeof(char) * len + 1);
+        char* key_cpy = (char*) malloc(sizeof(char) * len + 1);
         memcpy_s(key_cpy, len, key, len);
         key_cpy[len] = '\0';
-    }
 
-    msgbus_ret_t ret = msg_envelope_put_helper(env, key_cpy, data);
-    if(ret != MSG_SUCCESS)
-        free(key_cpy);
+        // Put the element into the message envelope
+        ret = msg_envelope_put_helper(env, key_cpy, data);
+        if(ret != MSG_SUCCESS)
+            free(key_cpy);
+    }
 
     return ret;
 }
@@ -550,12 +551,11 @@ int msgbus_msg_envelope_serialize(
         cJSON_Delete(obj);
 
         return num_parts;
-    } else {
-        // This should never be reached, since the content type has to have
-        // been set to one of the values defined in the content_type_t enum
-        LOG_ERROR_0("This should never have happened...");
-        return -1;
     }
+
+    // This is ultimately an error, and this should never be reached.
+    // However, this must be here to avoid a compiler warning
+    return -1;
 }
 
 int parse_json_object(msg_envelope_t* env, const char* key, cJSON* obj) {
@@ -603,14 +603,24 @@ int parse_json_object(msg_envelope_t* env, const char* key, cJSON* obj) {
         data->body.string = (char*) malloc(sizeof(char) * len);
         memcpy_s(data->body.string, len, obj->valuestring, len);
         data->body.string[len - 1] = '\0';
+    } else {
+        LOG_ERROR_0("Unknown JSON type");
+        return -1;
     }
 
-    if(key == NULL)
+    // Verify that the key given to the method is not NULL
+    if(key == NULL) {
         LOG_ERROR_0("Key should not be NULL");
+        if(data != NULL) {
+            msgbus_msg_envelope_elem_destroy(data);
+        }
+        return -1;
+    }
 
     msgbus_ret_t ret = msgbus_msg_envelope_put(env, key, data);
     if(ret != MSG_SUCCESS) {
         LOG_ERROR("Failed to put deserialized JSON: %s (errno: %d)", key, ret);
+        msgbus_msg_envelope_elem_destroy(data);
         return -1;
     }
 
@@ -633,7 +643,12 @@ msgbus_ret_t deserialize_blob(
     if(blob == NULL) return MSG_ERR_NO_MEMORY;
     blob->len = len;
     blob->data = part->bytes;
+    blob->shared = NULL;
     blob->shared = owned_blob_copy(part->shared);
+    if(blob->shared == NULL) {
+        free(blob);
+        return MSG_ERR_NO_MEMORY;
+    }
 
     // Take ownership of the underlying shared pointer to the blob data from
     // the serialized part. This way the data will not be freed until the
@@ -645,7 +660,8 @@ msgbus_ret_t deserialize_blob(
     msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
             sizeof(msg_envelope_elem_body_t));
     if(elem == NULL) {
-        owned_blob_destroy(blob->shared);
+        if(blob->shared)
+            owned_blob_destroy(blob->shared);
         free(blob);
         return MSG_ERR_NO_MEMORY;
     }
@@ -677,9 +693,6 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
         }
 
         ret = deserialize_blob(msg, &parts[0]);
-        if(ret != MSG_SUCCESS) {
-            msgbus_msg_envelope_destroy(msg);
-        }
     } else if(ct == CT_JSON) {
         if(num_parts > 2) {
             LOG_ERROR_0("CT_JSON can only have up to 2 serialized parts");
@@ -704,39 +717,39 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
 
         if(num_parts == 2) {
             ret = deserialize_blob(msg, &parts[1]);
-            if(ret != MSG_SUCCESS) {
-                msgbus_msg_envelope_destroy(msg);
-            }
         }
-    } else {
-        LOG_ERROR_0("This should never have happened...");
-        return MSG_ERR_UNKNOWN;
     }
 
     if(ret == MSG_SUCCESS)
         *env = msg;
     else
         msgbus_msg_envelope_destroy(msg);
+
     return ret;
 }
 
 msgbus_ret_t msgbus_msg_envelope_serialize_parts_new(
         int num_parts, msg_envelope_serialized_part_t** parts)
 {
-    *parts = (msg_envelope_serialized_part_t*) malloc(
-            sizeof(msg_envelope_serialized_part_t) * num_parts);
-    if(parts == NULL) {
+    msg_envelope_serialized_part_t* tmp_parts =
+        (msg_envelope_serialized_part_t*) malloc(
+                sizeof(msg_envelope_serialized_part_t) * num_parts);
+    if(tmp_parts == NULL) {
         LOG_ERROR_0("Failed to initialize serialized parts");
         return MSG_ERR_NO_MEMORY;
     }
 
     // Initialize initial values
     for(int i = 0; i < num_parts; i++) {
-        (*parts)[i].shared = NULL;
-        (*parts)[i].len = 0;
-        (*parts)[i].bytes = NULL;
+        tmp_parts[i].shared = NULL;
+        tmp_parts[i].len = 0;
+        tmp_parts[i].bytes = NULL;
     }
 
+    // Assign user's variable
+    *parts = tmp_parts;
+
+    // Successfully initialized the serialized parts
     return MSG_SUCCESS;
 }
 

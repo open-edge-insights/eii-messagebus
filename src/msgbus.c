@@ -195,10 +195,6 @@ void msgbus_config_destroy(config_t* config) {
 void* msgbus_initialize(config_t* config) {
     LOG_DEBUG_0("Checking if vendor is Intel");
     char* vendor = get_vendor();
-    if(vendor == NULL) {
-        LOG_ERROR_0("Failed to get vendor");
-        return NULL;
-    }
 
     int ind_vendor;
     strcmp_s(vendor, INTEL_VENDOR_LENGTH, INTEL_VENDOR, &ind_vendor);
