@@ -33,7 +33,7 @@ from cpython cimport bool
 
 
 # Forward declaration of the get_array_value method
-cdef extern config_value_t* get_array_value(void* obj, int idx) with gil
+cdef extern config_value_t* get_array_value(const void* obj, int idx) with gil
 
 
 cdef config_value_t* py_to_cvt(object conf_val):
@@ -41,16 +41,17 @@ cdef config_value_t* py_to_cvt(object conf_val):
     """
     cdef config_value_t* value
     if isinstance(conf_val, bool):
-        value = msgbus_config_value_new_boolean(<bint> conf_val)
+        value = config_value_new_boolean(<bint> conf_val)
     elif isinstance(conf_val, str):
         conf_val = bytes(conf_val, 'utf-8')
-        value = msgbus_config_value_new_string(conf_val)
+        value = config_value_new_string(conf_val)
     elif isinstance(conf_val, int):
-        value = msgbus_config_value_new_integer(<int> conf_val)
+        value = config_value_new_integer(<int> conf_val)
     elif isinstance(conf_val, dict):
-        value = msgbus_config_value_new_object(<void*> conf_val, NULL)
+        value = config_value_new_object(
+                <void*> conf_val, get_config_value, NULL)
     elif isinstance(conf_val, (tuple, list,)):
-        value = msgbus_config_value_new_array(
+        value = config_value_new_array(
                 <void*> conf_val, len(conf_val), get_array_value, NULL)
     else:
         # Unknown type for configuration value
@@ -59,7 +60,7 @@ cdef config_value_t* py_to_cvt(object conf_val):
     return value
 
 
-cdef config_value_t* get_array_value(void* obj, int idx) with gil:
+cdef config_value_t* get_array_value(const void* obj, int idx) with gil:
     """Get the value in the array at the given index.
     """
     cdef config_value_t* value
@@ -105,7 +106,7 @@ cdef class MsgbusContext:
         :type: dict
         """
         cdef config_t* conf
-        conf = msgbus_config_new(<void*> config, free_conf, get_config_value)
+        conf = config_new(<void*> config, free_conf, get_config_value)
         self.context =  msgbus_initialize(conf)
         if self.context == NULL:
             raise MessageBusError('Initialization failed')

@@ -56,7 +56,7 @@ setup(
                 ['${CMAKE_CURRENT_SOURCE_DIR}/eis/*.pyx'],
                 include_dirs=['${PROJECT_SOURCE_DIR}/include'],
                 library_dirs=['${PROJECT_BINARY_DIR}/'],
-                libraries=['eismsgbus'])
+                libraries=['eismsgbus', 'eisutils', 'eismsgenv'])
         ],
         build_dir='${CMAKE_CURRENT_BINARY_DIR}/build/cython',
         compiler_directives={'language_level': 3}
