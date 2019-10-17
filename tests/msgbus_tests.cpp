@@ -31,7 +31,7 @@
 #include "eis/msgbus/logger.h"
 #include "eis/msgbus/timeit.h"
 #include "eis/msgbus/zmq.h"
-#include "eis/msgbus/json_config.h"
+#include "eis/utils/json_config.h"
 
 #define PUB_SUB_TOPIC "unittest-pubsub"
 #define SERVICE_NAME  "unittest-service"
@@ -49,9 +49,9 @@ bool g_use_tcp;
  */
 config_t* create_config() {
     if(g_use_tcp)
-        return msgbus_json_config_new(TCP_CONFIG);
+        return json_config_new(TCP_CONFIG);
     else
-        return msgbus_json_config_new(IPC_CONFIG);
+        return json_config_new(IPC_CONFIG);
 }
 
 /**

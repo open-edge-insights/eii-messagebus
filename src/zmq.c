@@ -31,9 +31,9 @@
 
 #include <zmq.h>
 #include <safe_lib.h>
+#include <eis/utils/logger.h>
 
 #include "eis/msgbus/zmq.h"
-#include "eis/msgbus/logger.h"
 
 #define SOCKET_DIR    "socket_dir"
 #define PORT          "port"
@@ -225,7 +225,7 @@ char* create_uri(zmq_proto_ctx_t* ctx, const char* name, bool is_publisher) {
                 return NULL;
             } else if(conf->type != CVT_OBJECT) {
                 LOG_DEBUG("Configuration for '%s' must be an object", name);
-                msgbus_config_value_destroy(conf);
+                config_value_destroy(conf);
                 return NULL;
             }
 
@@ -233,12 +233,12 @@ char* create_uri(zmq_proto_ctx_t* ctx, const char* name, bool is_publisher) {
                     conf->body.object->object, PORT);
             if(port == NULL) {
                 LOG_ERROR("Configuration for '%s' missing '%s'", name, PORT);
-                msgbus_config_value_destroy(conf);
+                config_value_destroy(conf);
                 return NULL;
             } else if(port->type != CVT_INTEGER) {
                 LOG_ERROR_0("Port must be an integer");
-                msgbus_config_value_destroy(port);
-                msgbus_config_value_destroy(conf);
+                config_value_destroy(port);
+                config_value_destroy(conf);
                 return NULL;
             }
 
@@ -246,22 +246,22 @@ char* create_uri(zmq_proto_ctx_t* ctx, const char* name, bool is_publisher) {
                     conf->body.object->object, HOST);
             if(host == NULL) {
                 LOG_ERROR("Configuration for '%s' missing '%s'", name, HOST);
-                msgbus_config_value_destroy(port);
-                msgbus_config_value_destroy(conf);
+                config_value_destroy(port);
+                config_value_destroy(conf);
                 return NULL;
             } else if(host->type != CVT_STRING) {
                 LOG_ERROR_0("Host must be string");
-                msgbus_config_value_destroy(host);
-                msgbus_config_value_destroy(port);
-                msgbus_config_value_destroy(conf);
+                config_value_destroy(host);
+                config_value_destroy(port);
+                config_value_destroy(conf);
                 return NULL;
             }
 
             host_str = host->body.string;
             port_int = port->body.integer;
 
-            msgbus_config_value_destroy(port);
-            msgbus_config_value_destroy(conf);
+            config_value_destroy(port);
+            config_value_destroy(conf);
         }
 
         // Get length of string for the port
@@ -277,14 +277,14 @@ char* create_uri(zmq_proto_ctx_t* ctx, const char* name, bool is_publisher) {
         size_t uri_len = sizeof(char) * (port_len + host_len + 11);
         uri = concat_s(uri_len, 4, TCP_PREFIX, host_str, ":", port_str);
         if(uri == NULL) {
-            msgbus_config_value_destroy(host);
+            config_value_destroy(host);
             free(port_str);
             return NULL;
         }
 
         free(port_str);
         if(host != NULL)
-            msgbus_config_value_destroy(host);
+            config_value_destroy(host);
     }
 
     return uri;
@@ -715,31 +715,31 @@ int zap_initialize(void* zmq_ctx, config_t* config, zap_ctx_t** zap_ctx) {
             goto err;
         } else if(cvt_key->type != CVT_STRING) {
             LOG_ERROR_0("All allowed keys must be strings");
-            msgbus_config_value_destroy(cvt_key);
+            config_value_destroy(cvt_key);
             goto err;
         } else if(!verify_key_len(cvt_key->body.string)) {
             LOG_ERROR_0("Incorrect key length, must be 40 characters");
-            msgbus_config_value_destroy(cvt_key);
+            config_value_destroy(cvt_key);
             goto err;
         }
 
         // Copy over the string
         memcpy_s(ctx->allowed_clients[i], 40, cvt_key->body.string, 40);
         ctx->allowed_clients[i][40] = '\0';
-        msgbus_config_value_destroy(cvt_key);
+        config_value_destroy(cvt_key);
     }
 
     pthread_mutex_init(&ctx->mtx_stop, NULL);
     pthread_create(&ctx->th, NULL, zap_run, (void*) ctx);
 
-    msgbus_config_value_destroy(obj);
+    config_value_destroy(obj);
 
     *zap_ctx = ctx;
 
     return rc;
 err:
     if(obj != NULL)
-        msgbus_config_value_destroy(obj);
+        config_value_destroy(obj);
     if(ctx != NULL) {
         if(ctx->allowed_clients != NULL) {
             for(int i = 0; i < ctx->num_allowed_clients; i++) {
@@ -840,7 +840,7 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
 
         if(value->type != CVT_STRING) {
             LOG_ERROR("Config key '%s' value must be a string", SOCKET_DIR);
-            msgbus_config_value_destroy(value);
+            config_value_destroy(value);
             goto err;
         }
 
@@ -865,7 +865,7 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
         } else if(conf_obj->type != CVT_OBJECT) {
             LOG_ERROR("Configuration for '%s' must be an object",
                       ZMQ_CFG_TCP_PUB);
-            msgbus_config_value_destroy(conf_obj);
+            config_value_destroy(conf_obj);
             goto err;
         } else {
             zmq_proto_ctx->cfg.tcp.pub_mutex = (pthread_mutex_t*) malloc(
@@ -874,7 +874,7 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
                     zmq_proto_ctx->cfg.tcp.pub_mutex, NULL);
             if(rc != 0) {
                 LOG_ERROR_0("Failed to initialize publish mutex");
-                msgbus_config_value_destroy(conf_obj);
+                config_value_destroy(conf_obj);
                 goto err;
             }
 
@@ -883,12 +883,12 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
             if(port == NULL) {
                 LOG_ERROR("Configuration for '%s' missing '%s'",
                           ZMQ_CFG_TCP_PUB, PORT);
-                msgbus_config_value_destroy(conf_obj);
+                config_value_destroy(conf_obj);
                 goto err;
             } else if(port->type != CVT_INTEGER) {
                 LOG_ERROR_0("Port must be an integer");
-                msgbus_config_value_destroy(port);
-                msgbus_config_value_destroy(conf_obj);
+                config_value_destroy(port);
+                config_value_destroy(conf_obj);
                 goto err;
             }
 
@@ -897,14 +897,14 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
             if(host == NULL) {
                 LOG_ERROR("Configuration for '%s' missing '%s'",
                           ZMQ_CFG_TCP_PUB, HOST);
-                msgbus_config_value_destroy(port);
-                msgbus_config_value_destroy(conf_obj);
+                config_value_destroy(port);
+                config_value_destroy(conf_obj);
                 goto err;
             } else if(host->type != CVT_STRING) {
                 LOG_ERROR_0("Host must be string");
-                msgbus_config_value_destroy(host);
-                msgbus_config_value_destroy(port);
-                msgbus_config_value_destroy(conf_obj);
+                config_value_destroy(host);
+                config_value_destroy(port);
+                config_value_destroy(conf_obj);
                 goto err;
             }
 
@@ -913,7 +913,7 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
             zmq_proto_ctx->cfg.tcp.pub_socket = NULL;
             zmq_proto_ctx->cfg.tcp.pub_config = conf_obj;
 
-            msgbus_config_value_destroy(port);
+            config_value_destroy(port);
         }
     } else {
         LOG_ERROR("Unknown ZeroMQ type: %s, must be %s or %s",
@@ -958,7 +958,7 @@ void proto_zmq_destroy(void* ctx) {
                 LOG_DEBUG_0("Unable to lock mutex");
             }
 
-            msgbus_config_value_destroy(zmq_ctx->cfg.tcp.pub_config);
+            config_value_destroy(zmq_ctx->cfg.tcp.pub_config);
 
             // Clean up the socket context object
             zmq_close(zmq_ctx->cfg.tcp.pub_socket);
@@ -973,7 +973,7 @@ void proto_zmq_destroy(void* ctx) {
 
             free(zmq_ctx->cfg.tcp.pub_mutex);
 
-            msgbus_config_value_destroy(zmq_ctx->cfg.tcp.pub_host);
+            config_value_destroy(zmq_ctx->cfg.tcp.pub_host);
         }
 
         // Destroy the ZAP thread if it is running
@@ -982,7 +982,7 @@ void proto_zmq_destroy(void* ctx) {
             zap_destroy(zmq_ctx->cfg.tcp.zap);
         }
     } else {
-        msgbus_config_value_destroy(zmq_ctx->cfg.ipc.socket_dir);
+        config_value_destroy(zmq_ctx->cfg.ipc.socket_dir);
     }
 
     LOG_DEBUG_0("Destroying zeromq context");
@@ -1062,12 +1062,12 @@ msgbus_ret_t init_curve_server_socket(
         return MSG_SUCCESS;
     }
 
-    msgbus_config_value_destroy(secret_cv);
+    config_value_destroy(secret_cv);
 
     return MSG_SUCCESS;
 err:
     if(secret_cv != NULL)
-        msgbus_config_value_destroy(secret_cv);
+        config_value_destroy(secret_cv);
     return MSG_ERR_UNKNOWN;
 }
 
@@ -1158,18 +1158,18 @@ msgbus_ret_t init_curve_client_socket(
     }
 
     // Destroy config values
-    msgbus_config_value_destroy(server_pub_cv);
-    msgbus_config_value_destroy(client_pub_cv);
-    msgbus_config_value_destroy(client_secret_cv);
+    config_value_destroy(server_pub_cv);
+    config_value_destroy(client_pub_cv);
+    config_value_destroy(client_secret_cv);
 
     return MSG_SUCCESS;
 err:
     if(server_pub_cv != NULL)
-        msgbus_config_value_destroy(server_pub_cv);
+        config_value_destroy(server_pub_cv);
     if(client_pub_cv != NULL)
-        msgbus_config_value_destroy(client_pub_cv);
+        config_value_destroy(client_pub_cv);
     if(client_secret_cv != NULL)
-        msgbus_config_value_destroy(client_secret_cv);
+        config_value_destroy(client_secret_cv);
 
     return MSG_ERR_UNKNOWN;
 }
@@ -1365,7 +1365,7 @@ msgbus_ret_t proto_zmq_subscriber_new(
                 zmq_ctx->config->cfg, topic);
         rc = init_curve_client_socket(
                 zmq_recv_ctx->sock_ctx, zmq_ctx->config, cv);
-        msgbus_config_value_destroy(cv);
+        config_value_destroy(cv);
         if(rc != MSG_SUCCESS)
             goto err;
     }
@@ -1691,7 +1691,7 @@ msgbus_ret_t proto_zmq_service_get(
                 zmq_ctx->config->cfg, service_name);
         msgbus_ret_t rc = init_curve_client_socket(
                 zmq_recv_ctx->sock_ctx, zmq_ctx->config, cv);
-        msgbus_config_value_destroy(cv);
+        config_value_destroy(cv);
         if(rc != MSG_SUCCESS)
             goto err;
     }
@@ -1750,7 +1750,7 @@ msgbus_ret_t proto_zmq_service_new(
         config_value_t* cv = zmq_ctx->config->get_config_value(
                 zmq_ctx->config->cfg, service_name);
         msgbus_ret_t rc = init_curve_server_socket(socket, zmq_ctx->config, cv);
-        msgbus_config_value_destroy(cv);
+        config_value_destroy(cv);
         if(rc != MSG_SUCCESS)
             goto err;
     }

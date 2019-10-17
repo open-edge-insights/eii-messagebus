@@ -28,169 +28,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <safe_lib.h>
+#include <eis/utils/logger.h>
 
 #include "eis/msgbus/msgbus.h"
 #include "eis/msgbus/protocol.h"
-#include "eis/msgbus/logger.h"
 #include "eis/msgbus/zmq.h"
 #include "cpuid-check.h"
 
 #define INTEL_VENDOR "GenuineIntel"
 #define INTEL_VENDOR_LENGTH 12
-
-config_t* msgbus_config_new(
-        void* cfg, void (*free_fn)(void*),
-        config_value_t* (*get_config_value)(const void*,const char*)) {
-    if(cfg != NULL && free_fn == NULL) {
-        LOG_ERROR_0("Free method not specified for cfg object");
-        return NULL;
-    } else if(cfg == NULL && free_fn != NULL) {
-        LOG_ERROR_0("Free method specified for NULL cfg");
-        return NULL;
-    }
-
-    config_t* config = (config_t*) malloc(sizeof(config_t));
-    if(config == NULL) {
-        LOG_ERROR_0("config malloc failed");
-        return NULL;
-    }
-
-    config->cfg = cfg;
-    config->free = free_fn;
-    config->get_config_value = get_config_value;
-
-    return config;
-}
-
-config_value_t* msgbus_config_value_new_integer(int64_t value) {
-    config_value_t* cv = (config_value_t*) malloc(sizeof(config_value_t));
-    if(cv == NULL) {
-        LOG_ERROR_0("Out of memory creating config value");
-        return NULL;
-    }
-
-    cv->type = CVT_INTEGER;
-    cv->body.integer = value;
-    return cv;
-}
-
-config_value_t* msgbus_config_value_new_floating(double value) {
-    config_value_t* cv = (config_value_t*) malloc(sizeof(config_value_t));
-    if(cv == NULL) {
-        LOG_ERROR_0("Out of memory creating config value");
-        return NULL;
-    }
-
-    cv->type = CVT_FLOATING;
-    cv->body.floating = value;
-    return cv;
-}
-
-config_value_t* msgbus_config_value_new_string(const char* value) {
-    config_value_t* cv = (config_value_t*) malloc(sizeof(config_value_t));
-    if(cv == NULL) {
-        LOG_ERROR_0("Out of memory creating config value");
-        return NULL;
-    }
-
-    size_t len = strlen(value);
-
-    cv->type = CVT_STRING;
-    cv->body.string = (char*) malloc(sizeof(char) * (len + 1));
-    memcpy_s(cv->body.string, len, value, len);
-    cv->body.string[len] = '\0';
-
-    return cv;
-}
-
-config_value_t* msgbus_config_value_new_boolean(bool value) {
-    config_value_t* cv = (config_value_t*) malloc(sizeof(config_value_t));
-    if(cv == NULL) {
-        LOG_ERROR_0("Out of memory creating config value");
-        return NULL;
-    }
-
-    cv->type = CVT_BOOLEAN;
-    cv->body.boolean = value;
-
-    return cv;
-}
-
-config_value_t* msgbus_config_value_new_object(
-        void* value, void (*free_fn)(void* object))
-{
-    config_value_t* cv = (config_value_t*) malloc(sizeof(config_value_t));
-    if(cv == NULL) {
-        LOG_ERROR_0("Out of memory creating config value");
-        return NULL;
-    }
-
-    cv->type = CVT_OBJECT;
-    cv->body.object = (config_value_object_t*) malloc(
-            sizeof(config_value_object_t));
-    if(cv->body.object == NULL) {
-        LOG_ERROR_0("Out of memory creating config object wrapper");
-        free(cv);
-        return NULL;
-    }
-
-    cv->body.object->object = value;
-    cv->body.object->free = free_fn;
-
-    return cv;
-}
-
-config_value_t* msgbus_config_value_new_array(
-        void* array, size_t length, config_value_t* (get)(void*,int),
-        void (*free_fn)(void*))
-{
-    config_value_t* cv = (config_value_t*) malloc(sizeof(config_value_t));
-    if(cv == NULL) {
-        LOG_ERROR_0("Out of memory creating config value");
-        return NULL;
-    }
-
-    cv->type = CVT_ARRAY;
-    cv->body.array = (config_value_array_t*) malloc(
-            sizeof(config_value_array_t));
-    if(cv->body.array == NULL) {
-        LOG_ERROR_0("Out of memory creating config array wrapper");
-        free(cv);
-        return NULL;
-    }
-
-    cv->body.array->array = array;
-    cv->body.array->length = length;
-    cv->body.array->get = get;
-    cv->body.array->free = free_fn;
-
-    return cv;
-}
-
-void msgbus_config_value_destroy(config_value_t* value) {
-    if(value == NULL) return;
-
-    if(value->type == CVT_OBJECT) {
-        if(value->body.object->free != NULL)
-            value->body.object->free(value->body.object->object);
-        free(value->body.object);
-    } else if(value->type == CVT_ARRAY) {
-        if(value->body.array->free != NULL)
-            value->body.array->free(value->body.array->array);
-        free(value->body.array);
-    } else if(value->type == CVT_STRING) {
-        free(value->body.string);
-    }
-
-    free(value);
-}
-
-void msgbus_config_destroy(config_t* config) {
-    if(config->cfg != NULL) {
-        config->free(config->cfg);
-    }
-    free(config);
-}
 
 void* msgbus_initialize(config_t* config) {
     LOG_DEBUG_0("Checking if vendor is Intel");
@@ -236,7 +82,7 @@ void* msgbus_initialize(config_t* config) {
     }
 
     proto->config = config;
-    msgbus_config_value_destroy(value);
+    config_value_destroy(value);
 
     return (void*) proto;
 err:
@@ -249,7 +95,7 @@ void msgbus_destroy(void* ctx) {
     LOG_DEBUG_0("Destroying message bus");
     protocol_t* proto = (protocol_t*) ctx;
     proto->destroy(proto->proto_ctx);
-    msgbus_config_destroy(proto->config);
+    config_destroy(proto->config);
     free(proto);
     return;
 }
@@ -382,44 +228,4 @@ msgbus_ret_t msgbus_recv_nowait(
         void* ctx, recv_ctx_t* recv_ctx, msg_envelope_t** message) {
     protocol_t* proto = (protocol_t*) ctx;
     return proto->recv_nowait(proto->proto_ctx, recv_ctx->ctx, message);
-}
-
-owned_blob_t* owned_blob_new(
-        void* ptr, void (*free_fn)(void*), const char* data, size_t len)
-{
-    owned_blob_t* shared = (owned_blob_t*) malloc(sizeof(owned_blob_t));
-    if(shared == NULL) {
-        LOG_ERROR_0("Failed to malloc shared blob");
-        return NULL;
-    }
-
-    shared->ptr = ptr;
-    shared->free = free_fn;
-    shared->owned = true;
-    shared->len = len;
-    shared->bytes = data;
-
-    return shared;
-}
-
-owned_blob_t* owned_blob_copy(owned_blob_t* to_copy) {
-    owned_blob_t* shared = (owned_blob_t*) malloc(sizeof(owned_blob_t));
-    if(shared == NULL) {
-        LOG_ERROR_0("Failed to malloc shared blob");
-        return NULL;
-    }
-
-    shared->ptr = to_copy->ptr;
-    shared->free = to_copy->free;
-    shared->len = to_copy->len;
-    shared->bytes = to_copy->bytes;
-    shared->owned = false;  // This is important to note!
-
-    return shared;
-}
-
-void owned_blob_destroy(owned_blob_t* shared) {
-    if(shared->owned)
-        shared->free(shared->ptr);
-    free(shared);
 }

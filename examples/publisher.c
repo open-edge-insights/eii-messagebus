@@ -30,7 +30,7 @@
 
 #include "eis/msgbus/msgbus.h"
 #include "eis/msgbus/logger.h"
-#include "eis/msgbus/json_config.h"
+#include "eis/utils/json_config.h"
 
 #define TOPIC "publish_test"
 
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-    config_t* config = msgbus_json_config_new(argv[1]);
+    config_t* config = json_config_new(argv[1]);
     if(config == NULL) {
         LOG_ERROR_0("Failed to load JSON configuration");
         goto err;

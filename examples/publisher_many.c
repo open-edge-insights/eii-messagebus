@@ -32,7 +32,7 @@
 
 #include "eis/msgbus/msgbus.h"
 #include "eis/msgbus/logger.h"
-#include "eis/msgbus/json_config.h"
+#include "eis/utils/json_config.h"
 
 // Globals
 int g_num_publishers = 0;
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
     g_num_publishers = atoi(argv[2]);
 
     LOG_INFO("Initializing msgbus context with config '%s'", config_file);
-    config_t* config = msgbus_json_config_new(config_file);
+    config_t* config = json_config_new(config_file);
     if(config == NULL) {
         LOG_ERROR_0("Failed to load configuration file");
         return -1;
@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
     g_msgbus_ctx = msgbus_initialize(config);
     if(g_msgbus_ctx == NULL) {
         LOG_ERROR_0("Failed to initialize the message bus context");
-        msgbus_config_destroy(config);
+        config_destroy(config);
         return -1;
     }
 
