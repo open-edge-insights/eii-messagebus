@@ -28,6 +28,9 @@ option(WITH_PYTHON   "Compile with Python bindings" OFF)
 option(WITH_GO       "Install Go bindings with the message bus installation" OFF)
 option(WITH_DOCS     "Generate message bus documentation" OFF)
 
+# Globals
+set(EIS_COMMON_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake")
+
 # Set C standard to C11
 set(CMAKE_C_STANDARD 11)
 
@@ -38,7 +41,7 @@ set(CMAKE_C_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -D_F
 set(CMAKE_SHARED_LINKER_FLAGS "-z noexecstack -z relro -z now")
 
 # Add cmake module path
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "${EIS_COMMON_CMAKE}")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
@@ -52,9 +55,11 @@ endif()
 find_package(ZMQ REQUIRED)
 find_package(Threads REQUIRED)
 find_package(cJSON REQUIRED)
+find_package(EISUtils REQUIRED)
+find_package(EISMsgEnv REQUIRED)
 
 # Include Intel safestring library
-configure_file(${CMAKE_MODULE_PATH}/IntelSafeString.txt.in safestring-download/CMakeLists.txt)
+configure_file(${EIS_COMMON_CMAKE}/IntelSafeString.txt.in safestring-download/CMakeLists.txt)
 execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
                 RESULT_VARIABLE ss_result
                 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/safestring-download)
@@ -77,6 +82,8 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/safestring-src
 include_directories(
     include/
     ${CMAKE_CURRENT_SOURCE_DIR}/../../util/cpuid/
+    ${EISMsgEnv_INCLUDE}
+    ${EISUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
     ${safestring_SOURCE_DIR}/include)
@@ -91,6 +98,8 @@ add_library(eismsgbus SHARED
 target_link_libraries(eismsgbus
     PUBLIC
         pthread
+        ${EISUtils_LIBRARIES}
+        ${EISMsgEnv_LIBRARIES}
     PRIVATE
         ${ZMQ_LIBRARIES}
         ${CJSON_LIBRARIES}
@@ -114,7 +123,7 @@ endif()
 ##
 ## Configure pkg-config file to be installed for the EIS Message Bus
 ##
-set(PKG_CONFIG_IN  "${CMAKE_MODULE_PATH}/libeismsgbus.pc.in")
+set(PKG_CONFIG_IN  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/libeismsgbus.pc.in")
 set(PKG_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/libeismsgbus.pc")
 set(DEST_DIR       "${CMAKE_INSTALL_PREFIX}")
 set(PRIVATE_LIBS   "-lzmq -lcjson")

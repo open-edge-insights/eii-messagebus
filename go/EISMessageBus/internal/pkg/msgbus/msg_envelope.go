@@ -24,11 +24,11 @@ package msgbus
 
 /*
 #cgo CFLAGS: -g -Wall
-#cgo pkg-config: libeismsgbus
+#cgo pkg-config: libeismsgbus libeismsgenv libeisutils
 
 #include <stdlib.h>
 #include <eis/msgbus/msgbus.h>
-#include <eis/msgbus/logger.h>
+#include <eis/utils/logger.h>
 
 // The code below is for helping deal with the eccentricities of cgo
 
