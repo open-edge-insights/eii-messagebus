@@ -1,0 +1,9 @@
+**/*.swp
+**/*.swo
+**/build
+**/.DS_Store
+**/deps
+**/doc
+**/__pycache__
+**/*.so
+compile_commands.json
