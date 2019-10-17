@@ -30,7 +30,7 @@
 
 #include "eis/msgbus/msgbus.h"
 #include "eis/msgbus/logger.h"
-#include "eis/msgbus/json_config.h"
+#include "eis/utils/json_config.h"
 
 #define SERVICE_NAME "echo_service"
 
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
     msg_envelope_serialized_part_t* parts = NULL;
     msg_envelope_t* msg = NULL;
     int num_parts = 0;
-    config_t* config = msgbus_json_config_new(argv[1]);
+    config_t* config = json_config_new(argv[1]);
     if(config == NULL) {
         LOG_ERROR_0("Failed to load JSON configuration");
         goto err;

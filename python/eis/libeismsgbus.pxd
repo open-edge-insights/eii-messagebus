@@ -150,20 +150,21 @@ cdef extern from "eis/msgbus/msgbus.h" nogil:
     ctypedef void (*msgbus_free_fn)(void*)
     ctypedef config_value_t* (*get_config_value_fn)(const void*,const char*)
 
-    config_t* msgbus_config_new(
+    config_t* config_new(
             void* cfg, msgbus_free_fn free_fn,
             get_config_value_fn get_config_value)
-    config_value_t* msgbus_config_value_new_integer(int64_t value)
-    config_value_t* msgbus_config_value_new_floating(double value)
-    config_value_t* msgbus_config_value_new_string(const char* value)
-    config_value_t* msgbus_config_value_new_boolean(bool value)
-    config_value_t* msgbus_config_value_new_object(
-            void* value, void (*free_fn)(void* object))
-    config_value_t* msgbus_config_value_new_array(
-            void* array, size_t length, config_value_t* (*get)(void*,int),
-            void (*free_fn)(void*))
-    void msgbus_config_value_destroy(config_value_t* value)
-    void msgbus_config_destroy(config_t* config)
+    config_value_t* config_value_new_integer(int64_t value)
+    config_value_t* config_value_new_floating(double value)
+    config_value_t* config_value_new_string(const char* value)
+    config_value_t* config_value_new_boolean(bool value)
+    config_value_t* config_value_new_object(
+            void* value, config_value_t* (*get)(const void*,const char*),
+            void (*free_fn)(void*));
+    config_value_t* config_value_new_array(
+            void* array, size_t length, config_value_t* (*get)(const void*,int),
+            void (*free_fn)(void*));
+    void config_value_destroy(config_value_t* value)
+    void config_destroy(config_t* config)
     void* msgbus_initialize(config_t* config)
     void msgbus_destroy(void* ctx)
     msgbus_ret_t msgbus_publisher_new(

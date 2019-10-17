@@ -18,7 +18,7 @@
 # FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 set(CMAKE_CXX_STANDARD 11)
-configure_file(${CMAKE_MODULE_PATH}/GoogleTestCMakeLists.txt.in googletest-download/CMakeLists.txt)
+configure_file(${EIS_COMMON_CMAKE}/GoogleTestCMakeLists.txt.in googletest-download/CMakeLists.txt)
 execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
                 RESULT_VARIABLE result
                 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download)
@@ -65,11 +65,3 @@ configure_file(${IPC_CONFIG_IN} ${IPC_CONFIG})
 # Copy JSON configuration for msgbus-tests
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tcp_unittest_config.json"
      DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-
-add_executable(crc32-tests "crc32_tests.cpp")
-target_link_libraries(crc32-tests eismsgbus gtest_main)
-add_test(NAME crc32-tests COMMAND crc32-tests)
-
-add_executable(msg-envelope-tests "msg_envelope_tests.cpp")
-target_link_libraries(msg-envelope-tests eismsgbus gtest_main)
-add_test(NAME msg-envelope-tests COMMAND msg-envelope-tests)

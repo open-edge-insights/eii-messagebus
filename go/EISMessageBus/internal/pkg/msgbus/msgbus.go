@@ -24,10 +24,11 @@ package msgbus
 
 /*
 #cgo CFLAGS: -g -Wall
-#cgo pkg-config: libeismsgbus
+#cgo pkg-config: libeismsgbus libeismsgenv libeisutils
 
 #include <stdlib.h>
 #include <eis/msgbus/msgbus.h>
+#include <eis/utils/config.h>
 
 // Configuration context object for Go
 typedef struct {
@@ -80,7 +81,7 @@ static inline config_value_t* get_config_value(const void* obj, const char* key)
 }
 
 // Get array value at index  method wrapper to strip constness because does not have const
-static inline config_value_t* get_array_idx(void* obj, int idx) {
+static inline config_value_t* get_array_idx(const void* obj, int idx) {
 	int ref_id = ((go_config_t*) obj)->ref_id;
 	return (config_value_t*) go_get_array_idx(ref_id, idx);
 }
@@ -101,7 +102,7 @@ static inline void* init_msgbus(int ref_id) {
 
 	go_config->ref_id = ref_id;
 
-	config_t* config = msgbus_config_new((void*) go_config, free_config, get_config_value);
+	config_t* config = config_new((void*) go_config, free_config, get_config_value);
 	if(config == NULL) {
 		free(go_config);
 		return NULL;
@@ -109,7 +110,7 @@ static inline void* init_msgbus(int ref_id) {
 
 	void* ctx = msgbus_initialize(config);
 	if(ctx == NULL) {
-		msgbus_config_destroy(config);
+		config_destroy(config);
 		return NULL;
 	}
 
@@ -120,14 +121,14 @@ static inline void* init_msgbus(int ref_id) {
 static inline config_value_t* new_config_value_object(int ref_id) {
 	go_config_t* go_config = (go_config_t*) malloc(sizeof(go_config_t));
 	go_config->ref_id = ref_id;
-	return msgbus_config_value_new_object((void*) go_config, free_config);
+	return config_value_new_object((void*) go_config, get_config_value, free_config);
 }
 
 // Wrapper for creating a new config_value_t that is an array
 static inline config_value_t* new_config_value_array(int ref_id, int len) {
 	go_config_t* go_config = (go_config_t*) malloc(sizeof(go_config_t));
 	go_config->ref_id = ref_id;
-	return msgbus_config_value_new_array(
+	return config_value_new_array(
 		(void*) go_config, (size_t) len, get_array_idx, free_config);
 }
 
@@ -331,20 +332,20 @@ func goToConfigValue(value interface{}) (unsafe.Pointer, error) {
 		integer, err := jsonNumber.Int64()
 		if err != nil {
 			floating, _ := jsonNumber.Float64()
-			configValue = unsafe.Pointer(C.msgbus_config_value_new_floating(C.double(floating)))
+			configValue = unsafe.Pointer(C.config_value_new_floating(C.double(floating)))
 		} else {
-			configValue = unsafe.Pointer(C.msgbus_config_value_new_integer(C.long(integer)))
+			configValue = unsafe.Pointer(C.config_value_new_integer(C.long(integer)))
 		}
 	} else {
 		switch v := reflect.ValueOf(value); v.Kind() {
 		case reflect.String:
-			configValue = unsafe.Pointer(C.msgbus_config_value_new_string(C.CString(value.(string))))
+			configValue = unsafe.Pointer(C.config_value_new_string(C.CString(value.(string))))
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			configValue = unsafe.Pointer(C.msgbus_config_value_new_integer(C.long(value.(int64))))
+			configValue = unsafe.Pointer(C.config_value_new_integer(C.long(value.(int64))))
 		case reflect.Float32, reflect.Float64:
-			configValue = unsafe.Pointer(C.msgbus_config_value_new_floating(C.double(value.(float64))))
+			configValue = unsafe.Pointer(C.config_value_new_floating(C.double(value.(float64))))
 		case reflect.Bool:
-			configValue = unsafe.Pointer(C.msgbus_config_value_new_boolean(C.bool(value.(bool))))
+			configValue = unsafe.Pointer(C.config_value_new_boolean(C.bool(value.(bool))))
 		case reflect.Map:
 			config := newConfigContext(value.(map[string]interface{}), nil)
 			refId := register(config)
