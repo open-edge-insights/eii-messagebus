@@ -371,7 +371,9 @@ public:
      * Destructor.
      */
     virtual ~Deserializable() {
-        msgbus_msg_envelope_destroy(m_msg);
+        if(m_msg != NULL) {
+            msgbus_msg_envelope_destroy(m_msg);
+        }
     };
 };
 
