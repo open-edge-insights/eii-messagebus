@@ -31,7 +31,7 @@
 #include <pthread.h>
 
 #include "eis/msgbus/msgbus.h"
-#include "eis/msgbus/logger.h"
+#include "eis/utils/logger.h"
 #include "eis/utils/json_config.h"
 
 // Globals
