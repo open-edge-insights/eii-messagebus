@@ -29,7 +29,7 @@
 #include <unistd.h>
 
 #include "eis/msgbus/msgbus.h"
-#include "eis/msgbus/logger.h"
+#include "eis/utils/logger.h"
 #include "eis/utils/json_config.h"
 
 #define TOPIC "publish_test"
