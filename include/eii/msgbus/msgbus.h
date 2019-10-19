@@ -374,26 +374,33 @@ protected:
                     continue;
                 }
 
-                // Serialize message into a message envelope
-                env = msg->serialize();
-                if(env == NULL) {
+                try {
+                    // Serialize message into a message envelope
+                    env = msg->serialize();
+                    if(env == NULL) {
+                        delete msg;
+                        msg = NULL;
+                        LOG_ERROR_0(
+                                "Failed to serialize message to msg envelope");
+                        continue;
+                    }
+
+                    // Publish message
+                    ret = msgbus_publisher_publish(m_ctx, m_pub_ctx, env);
+                    if(ret != MSG_SUCCESS) {
+                        LOG_ERROR_0("Failed to publish message...");
+                    }
+
+                    // Clean up after publication attempt...
+                    delete msg;
+                    msgbus_msg_envelope_destroy(env);
+                    msg = NULL;
+                    env = NULL;
+                } catch(const std::exception& e) {
+                    LOG_ERROR("Failed to serialize message: %s", e.what());
                     delete msg;
                     msg = NULL;
-                    LOG_ERROR_0("Failed to serialize message to msg envelope");
-                    continue;
                 }
-
-                // Publish message
-                ret = msgbus_publisher_publish(m_ctx, m_pub_ctx, env);
-                if(ret != MSG_SUCCESS) {
-                    LOG_ERROR_0("Failed to publish message...");
-                }
-
-                // Clean up after publication attempt...
-                delete msg;
-                delete env;
-                msg = NULL;
-                env = NULL;
             }
         }
 
@@ -426,6 +433,7 @@ public:
      * Destructor.
      */
     ~Publisher() {
+        this->stop();
         msgbus_publisher_destroy(m_ctx, m_pub_ctx);
         msgbus_destroy(m_ctx);
     };
@@ -450,10 +458,46 @@ protected:
      */
     void run() override {
         LOG_DEBUG_0("Subscriber thread started");
+        int duration = 250; // microseconds
+        msg_envelope_t* msg = NULL;
+        msgbus_ret_t ret = MSG_SUCCESS;
+        QueueRetCode qret = QueueRetCode::SUCCESS;
 
-        // TODO: Implement run method for subscriber
-        // while(!m_stop.load()) {
-        // }
+        while(!m_stop.load()) {
+            ret = msgbus_recv_timedwait(m_ctx, m_recv_ctx, duration, &msg);
+            if(ret == MSG_SUCCESS) {
+                // Received message
+                T* received = new T(msg);
+                if(m_output_queue->push(received) != QueueRetCode::SUCCESS) {
+                    LOG_ERROR_0("Failed to enqueue received message, "
+                                "message dropped");
+                    msgbus_msg_envelope_destroy(msg);
+                } else {
+                    // Dropping pointer to message here because the memory for
+                    // the envelope is not owned by the received variable
+                    msg = NULL;
+                    try {
+                        // Received message
+                        T* received = new T(msg);
+                        qret = m_output_queue->push(received);
+                        if(qret != QueueRetCode::SUCCESS) {
+                            LOG_ERROR_0("Failed to enqueue received message, "
+                                        "message dropped");
+                            msgbus_msg_envelope_destroy(msg);
+                        } else {
+                            // Dropping pointer to message here because the
+                            // memory for the envelope is not owned by the
+                            // received variable
+                            msg = NULL;
+                        }
+                    } catch(const std::exception& e) {
+                        LOG_ERROR("Error deserializing message: %s", e.what());
+                    }
+                }
+            } else if(ret != MSG_RECV_NO_MESSAGE) {
+                LOG_ERROR("Error receiving message: %d", ret);
+            }
+        }
 
         LOG_DEBUG_0("Subscriber thread stopped");
     };
@@ -488,6 +532,7 @@ public:
      * Destructor.
      */
     ~Subscriber() {
+        this->stop();
         msgbus_recv_ctx_destroy(m_ctx, m_recv_ctx);
         msgbus_destroy(m_ctx);
     };
