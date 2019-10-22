@@ -392,10 +392,10 @@ protected:
                     }
 
                     // Clean up after publication attempt...
-                    delete msg;
+                    //delete msg;
                     msgbus_msg_envelope_destroy(env);
-                    msg = NULL;
-                    env = NULL;
+                    //msg = NULL;
+                    //env = NULL;
                 } catch(const std::exception& e) {
                     LOG_ERROR("Failed to serialize message: %s", e.what());
                     delete msg;
