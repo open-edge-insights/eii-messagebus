@@ -29,7 +29,20 @@ import (
 )
 
 func TestMapToMsgEnvelope(t *testing.T) {
-	m := map[string]interface{}{"str": "hello", "int": 2.0, "float": 55.5, "bool": true}
+	m := map[string]interface{}{
+		"str":   "hello",
+		"int":   2.0,
+		"float": 55.5,
+		"bool":  true,
+		"obj": map[string]interface{}{
+			"nest": map[string]interface{}{
+				"test": "hello",
+			},
+			"hello": "world",
+		},
+		"arr":   []interface{}{"test", 123.0},
+		"empty": nil,
+	}
 
 	msg, err := GoToMsgEnvelope(m)
 	if err != nil {
@@ -44,9 +57,9 @@ func TestMapToMsgEnvelope(t *testing.T) {
 		return
 	}
 
-	eq := reflect.DeepEqual(m, res.Data)
+	eq := reflect.DeepEqual(res.Data, m)
 	if !eq {
-		t.Errorf("Deserialized message to Go object failed:\n\tres: %v\n\torig: %v", res.Data, m)
+		t.Errorf("Deserialized message to Go object failed:\n\tres.: %v\n\torig: %v", res.Data, m)
 		return
 	}
 }
@@ -67,9 +80,9 @@ func TestBytesToMsgEnvelope(t *testing.T) {
 		return
 	}
 
-	eq := reflect.DeepEqual(bytes, res.Blob)
+	eq := reflect.DeepEqual(res.Blob, bytes)
 	if !eq {
-		t.Errorf("Deserialized message to Go object failed:\n\tres: %v\n\torig: %v", res.Blob, bytes)
+		t.Errorf("Deserialized message to Go object failed:\n\tres.: %v\n\torig: %v", res.Blob, bytes)
 		return
 	}
 }
