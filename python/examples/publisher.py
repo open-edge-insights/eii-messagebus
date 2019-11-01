@@ -51,7 +51,16 @@ try:
     print('[INFO] Running...')
     while True:
         blob = b'\x22' * args.blob_size
-        publisher.publish(({'hello': 123}, blob,))
+        meta = {
+            'integer': 123,
+            'floating': 55.5,
+            'string': 'test',
+            'boolean': True,
+            'empty': None,
+            'obj': {'test': {'test2': 'hello'}, 'test3': 'world'},
+            'arr': ['test', 123]
+        }
+        publisher.publish((meta, blob,))
         time.sleep(args.interval)
 except KeyboardInterrupt:
     print('[INFO] Quitting...')

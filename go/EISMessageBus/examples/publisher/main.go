@@ -63,7 +63,21 @@ func main() {
 	defer publisher.Close()
 
 	fmt.Println("-- Running...")
-	msg := map[string]interface{}{"hello": "world"}
+	msg := map[string]interface{}{
+		"str":   "hello",
+		"int":   2.0,
+		"float": 55.5,
+		"bool":  true,
+		"obj": map[string]interface{}{
+			"nest": map[string]interface{}{
+				"test": "hello",
+			},
+			"hello": "world",
+		},
+		"arr":   []interface{}{"test", 123.0},
+		"empty": nil,
+	}
+
 	for {
 		err = publisher.Publish(msg)
 		if err != nil {

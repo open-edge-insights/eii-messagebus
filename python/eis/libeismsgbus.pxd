@@ -50,6 +50,8 @@ cdef extern from "eis/msgbus/msgbus.h" nogil:
         MSG_ERR_MSG_SEND_FAILED = 20
         MSG_ERR_DISCONNECTED = 21
         MSG_ERR_AUTH_FAILED = 22
+        MSG_ERR_ELEM_OBJ = 23
+        MSG_ERR_ELEM_ARR = 24
         MSG_ERR_UNKNOWN = 255
 
     ctypedef struct owned_blob_t:
@@ -66,6 +68,7 @@ cdef extern from "eis/msgbus/msgbus.h" nogil:
         CVT_BOOLEAN  = 3
         CVT_OBJECT   = 4
         CVT_ARRAY    = 5
+        CVT_NONE     = 6
 
     # Forward declaration
     ctypedef struct config_value_t
@@ -96,12 +99,21 @@ cdef extern from "eis/msgbus/msgbus.h" nogil:
         CT_JSON = 0
         CT_BLOB = 1
 
+    ctypedef struct hashmap_t:
+        pass
+
+    ctypedef struct linkedlist_t:
+        pass
+
     ctypedef enum msg_envelope_data_type_t:
         MSG_ENV_DT_INT      = 0
         MSG_ENV_DT_FLOATING = 1
         MSG_ENV_DT_STRING   = 2
         MSG_ENV_DT_BOOLEAN  = 3
         MSG_ENV_DT_BLOB     = 4
+        MSG_ENV_DT_OBJECT   = 5
+        MSG_ENV_DT_ARRAY    = 6
+        MSG_ENV_DT_NONE     = 7
 
     ctypedef struct msg_envelope_blob_t:
         owned_blob_t* shared
@@ -114,6 +126,8 @@ cdef extern from "eis/msgbus/msgbus.h" nogil:
         char* string
         bool boolean
         msg_envelope_blob_t* blob
+        hashmap_t* object
+        linkedlist_t* array
 
     ctypedef struct msg_envelope_elem_body_t:
         msg_envelope_data_type_t type
@@ -196,11 +210,28 @@ cdef extern from "eis/msgbus/msgbus.h" nogil:
     msg_envelope_t* msgbus_msg_envelope_new(content_type_t ct)
     msg_envelope_elem_body_t* msgbus_msg_envelope_new_string(
             const char* string)
+    msg_envelope_elem_body_t* msgbus_msg_envelope_new_none()
+    msg_envelope_elem_body_t* msgbus_msg_envelope_new_array()
+    msg_envelope_elem_body_t* msgbus_msg_envelope_new_object()
     msg_envelope_elem_body_t* msgbus_msg_envelope_new_integer(int64_t integer)
     msg_envelope_elem_body_t* msgbus_msg_envelope_new_floating(double floating)
     msg_envelope_elem_body_t* msgbus_msg_envelope_new_bool(bool boolean)
     msg_envelope_elem_body_t* msgbus_msg_envelope_new_blob(
             const char* data, size_t len)
+    msgbus_ret_t msgbus_msg_envelope_elem_object_put(
+            msg_envelope_elem_body_t* obj, const char* key,
+            msg_envelope_elem_body_t* value)
+    msg_envelope_elem_body_t* msgbus_msg_envelope_elem_object_get(
+            msg_envelope_elem_body_t* obj, const char* key)
+    msgbus_ret_t msgbus_msg_envelope_elem_object_remove(
+            msg_envelope_elem_body_t* obj, const char* key)
+    msgbus_ret_t msgbus_msg_envelope_elem_array_add(
+            msg_envelope_elem_body_t* arr,
+            msg_envelope_elem_body_t* value)
+    msg_envelope_elem_body_t* msgbus_msg_envelope_elem_array_get_at(
+            msg_envelope_elem_body_t* arr, int idx)
+    msgbus_ret_t msgbus_msg_envelope_elem_array_remove_at(
+            msg_envelope_elem_body_t* arr, int idx)
     void msgbus_msg_envelope_elem_destroy(msg_envelope_elem_body_t* elem)
     msgbus_ret_t msgbus_msg_envelope_put(
             msg_envelope_t* env, const char* key,

@@ -174,42 +174,113 @@ func MsgEnvelopeDestroy(msg unsafe.Pointer) {
 	}
 }
 
+func goToMsgEnvElemBody(data interface{}) (unsafe.Pointer, error) {
+	var ret C.msgbus_ret_t
+	var elem unsafe.Pointer
+
+	if data == nil {
+		body := C.msgbus_msg_envelope_new_none()
+		if body == nil {
+			return nil, errors.New("Failed to initialize none msg envelope element")
+		}
+
+		elem = unsafe.Pointer(body)
+		return elem, nil
+	}
+
+	switch v := reflect.ValueOf(data); v.Kind() {
+	case reflect.String:
+		body := C.msgbus_msg_envelope_new_string(C.CString(data.(string)))
+		if body == nil {
+			return nil, errors.New("Error adding msg envelope element")
+		}
+		elem = unsafe.Pointer(body)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		body := C.msgbus_msg_envelope_new_integer(C.long(data.(int)))
+		if body == nil {
+			return nil, errors.New("Error adding msg envelope element")
+		}
+		elem = unsafe.Pointer(body)
+	case reflect.Float32, reflect.Float64:
+		body := C.msgbus_msg_envelope_new_floating(C.double(data.(float64)))
+		if body == nil {
+			return nil, errors.New("Error adding msg envelope element")
+		}
+		elem = unsafe.Pointer(body)
+	case reflect.Bool:
+		body := C.msgbus_msg_envelope_new_bool(C.bool(data.(bool)))
+		if body == nil {
+			return nil, errors.New("Error adding msg envelope element")
+		}
+		elem = unsafe.Pointer(body)
+	case reflect.Map:
+		body := C.msgbus_msg_envelope_new_object()
+		if body == nil {
+			return nil, errors.New("Error initializing msg envelope object element")
+		}
+
+		map_data := data.(map[string]interface{})
+		for key, value := range map_data {
+			subelem, err := goToMsgEnvElemBody(value)
+			if err != nil {
+				C.msgbus_msg_envelope_elem_destroy(body)
+				return nil, errors.New("Failed to initialize object sub element")
+			}
+
+			ret = C.msgbus_msg_envelope_elem_object_put(body, C.CString(key), (*C.msg_envelope_elem_body_t)(subelem))
+			if ret != C.MSG_SUCCESS {
+				C.msgbus_msg_envelope_elem_destroy((*C.msg_envelope_elem_body_t)(subelem))
+				C.msgbus_msg_envelope_elem_destroy(body)
+				return nil, errors.New("Failed to put sub-element into object element")
+			}
+		}
+
+		elem = unsafe.Pointer(body)
+	case reflect.Slice:
+		body := C.msgbus_msg_envelope_new_array()
+		if body == nil {
+			return nil, errors.New("Error initializing msg envelope object element")
+		}
+
+		slice_data := data.([]interface{})
+		for _, value := range slice_data {
+			subelem, err := goToMsgEnvElemBody(value)
+			if err != nil {
+				C.msgbus_msg_envelope_elem_destroy(body)
+				return nil, errors.New("Failed to initialize array sub element")
+			}
+
+			ret = C.msgbus_msg_envelope_elem_array_add(body, (*C.msg_envelope_elem_body_t)(subelem))
+			if ret != C.MSG_SUCCESS {
+				C.msgbus_msg_envelope_elem_destroy((*C.msg_envelope_elem_body_t)(subelem))
+				C.msgbus_msg_envelope_elem_destroy(body)
+				return nil, errors.New("Failed to put sub-element into array element")
+			}
+		}
+
+		elem = unsafe.Pointer(body)
+	default:
+		return nil, errors.New("Unknown type in data map")
+	}
+
+	return elem, nil
+}
+
 func addMapToMsgEnvelope(env unsafe.Pointer, data map[string]interface{}) error {
+	var ret C.msgbus_ret_t
 	msg := (*C.msg_envelope_t)(env)
 
-	var ret C.msgbus_ret_t
 	for key, value := range data {
-		switch v := reflect.ValueOf(value); v.Kind() {
-		case reflect.String:
-			body := C.msgbus_msg_envelope_new_string(C.CString(value.(string)))
-			ret = C.msgbus_msg_envelope_put(msg, C.CString(key), body)
-			if ret != C.MSG_SUCCESS {
-				C.msgbus_msg_envelope_elem_destroy(body)
-				return errors.New("Error adding msg envelope element")
-			}
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			body := C.msgbus_msg_envelope_new_integer(C.long(value.(int)))
-			ret = C.msgbus_msg_envelope_put(msg, C.CString(key), body)
-			if ret != C.MSG_SUCCESS {
-				C.msgbus_msg_envelope_elem_destroy(body)
-				return errors.New("Error adding msg envelope element")
-			}
-		case reflect.Float32, reflect.Float64:
-			body := C.msgbus_msg_envelope_new_floating(C.double(value.(float64)))
-			ret = C.msgbus_msg_envelope_put(msg, C.CString(key), body)
-			if ret != C.MSG_SUCCESS {
-				C.msgbus_msg_envelope_elem_destroy(body)
-				return errors.New("Error adding msg envelope element")
-			}
-		case reflect.Bool:
-			body := C.msgbus_msg_envelope_new_bool(C.bool(value.(bool)))
-			ret = C.msgbus_msg_envelope_put(msg, C.CString(key), body)
-			if ret != C.MSG_SUCCESS {
-				C.msgbus_msg_envelope_elem_destroy(body)
-				return errors.New("Error adding msg envelope element")
-			}
-		default:
-			return errors.New("Unknown type in data map")
+		elem, err := goToMsgEnvElemBody(value)
+		if err != nil {
+			return errors.New("Failed to convert golang value to msg envelope element")
+		}
+
+		body := (*C.msg_envelope_elem_body_t)(elem)
+		ret = C.msgbus_msg_envelope_put(msg, C.CString(key), body)
+		if ret != C.MSG_SUCCESS {
+			C.msgbus_msg_envelope_elem_destroy(body)
+			return errors.New("Failed to add msg envelope element")
 		}
 	}
 
@@ -256,7 +327,6 @@ func MsgEnvelopeToGo(msg unsafe.Pointer) (*types.MsgEnvelope, error) {
 			res.Blob = nil
 		}
 
-		// Need to do (n - 1) to remove the terminating 0 in C-string
 		err := json.Unmarshal(jsonBytes, &res.Data)
 		if err != nil {
 			return nil, err
