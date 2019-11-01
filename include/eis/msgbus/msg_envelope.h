@@ -31,6 +31,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "eis/msgbus/msgbusret.h"
+#include "eis/msgbus/hashmap.h"
+#include "eis/msgbus/linkedlist.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +61,9 @@ typedef enum {
     MSG_ENV_DT_STRING   = 2,
     MSG_ENV_DT_BOOLEAN  = 3,
     MSG_ENV_DT_BLOB     = 4,
+    MSG_ENV_DT_OBJECT   = 5,
+    MSG_ENV_DT_ARRAY    = 6,
+    MSG_ENV_DT_NONE     = 7,
 } msg_envelope_data_type_t;
 
 /**
@@ -95,18 +100,10 @@ typedef struct {
         char*                string;
         bool                 boolean;
         msg_envelope_blob_t* blob;
+        hashmap_t*           object;
+        linkedlist_t*        array;
     } body;
 } msg_envelope_elem_body_t;
-
-/**
- * Message envelope element type.
- */
-typedef struct {
-    char* key;
-    size_t key_len;
-    bool in_use;
-    msg_envelope_elem_body_t* body;
-} msg_envelope_elem_t;
 
 /**
  * Message envelope around a given message that is to be sent or received over
@@ -115,11 +112,9 @@ typedef struct {
 typedef struct {
     char* correlation_id;
     content_type_t content_type;
-    int size;
-    int max_size;
 
     // Internal tracking for (key, value) pairs
-    msg_envelope_elem_t* elems;
+    hashmap_t* map;
 
     // Internal tracking for blob data
     msg_envelope_elem_body_t* blob;
@@ -143,6 +138,28 @@ typedef struct {
  * @return msg_envelope_t, or NULL if an error occurs
  */
 msg_envelope_t* msgbus_msg_envelope_new(content_type_t ct);
+
+/**
+ * Create a new empty msg envelope element.
+ *
+ * @return @c msg_envelope_elem_body_t, or NULL if errors occur
+ */
+msg_envelope_elem_body_t* msgbus_msg_envelope_new_none();
+
+/**
+ * Create a new array element to be added to a message envelope.
+ *
+ * @return @c msg_envelope_elem_body_t, or NULL if errors occur
+ */
+msg_envelope_elem_body_t* msgbus_msg_envelope_new_array();
+
+/**
+ * Create a new nested object to be added to a message envelope, array, or
+ * other object.
+ *
+ * @return @c msg_envelope_elem_body_t, or NULL if errors occur
+ */
+msg_envelope_elem_body_t* msgbus_msg_envelope_new_object();
 
 /**
  * Helper function for creating a new message envelope element containing
@@ -192,6 +209,69 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_bool(bool boolean);
  */
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_blob(
         char* data, size_t len);
+
+/**
+ * Put a new (key, value) pair into a message envelope nested object.
+ *
+ * @param obj   - Message envelope object element to add the (key, value) pair to
+ * @param key   - Key for the value
+ * @param value - Value associated to the key
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_object_put(
+        msg_envelope_elem_body_t* obj, const char* key,
+        msg_envelope_elem_body_t* value);
+
+/**
+ * Get value from a message envelope nested object.
+ *
+ * @param obj - Message envelope object element to retrieve value from
+ * @param key - Key of the value to retrieve
+ * @return @c msg_envelope_body_t, or NULL if errors occur
+ */
+msg_envelope_elem_body_t* msgbus_msg_envelope_elem_object_get(
+        msg_envelope_elem_body_t* obj, const char* key);
+
+/**
+ * Remove (key, value) pair from the message envelope nested object.
+ *
+ * @param obj - Message envelope object element to remove element from
+ * @param key - Key to remove
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_object_remove(
+        msg_envelope_elem_body_t* obj, const char* key);
+
+/**
+ * Add item to the msg envelope array element.
+ *
+ * @param arr   - Array to add the element to
+ * @param value - Element to add
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_array_add(
+        msg_envelope_elem_body_t* arr,
+        msg_envelope_elem_body_t* value);
+
+/**
+ * Get item in the msg envelope array element.
+ *
+ * @param arr - Array to remove the element from
+ * @param idx - Index of the item to get
+ * @return msg_envelope_elem_body_t, or NULL if an error occurs
+ */
+msg_envelope_elem_body_t* msgbus_msg_envelope_elem_array_get_at(
+        msg_envelope_elem_body_t* arr, int idx);
+
+/**
+ * Remove item to the msg envelope array element.
+ *
+ * @param arr   - Array to remove the element from
+ * @param value - Element to remove
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_array_remove_at(
+        msg_envelope_elem_body_t* arr, int idx);
 
 /**
  * Helper function to destroy a message envelope element.

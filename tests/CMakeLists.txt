@@ -59,3 +59,11 @@ add_test(NAME msg-envelope-tests COMMAND msg-envelope-tests)
 add_executable(crc32-tests "crc32_tests.cpp")
 target_link_libraries(crc32-tests eismsgenv gtest_main)
 add_test(NAME crc32-tests COMMAND crc32-tests)
+
+add_executable(hashmap-tests "hashmap_tests.cpp")
+target_link_libraries(hashmap-tests eismsgenv gtest_main)
+add_test(NAME hashmap-tests COMMAND hashmap-tests)
+
+add_executable(linkedlist-tests "linkedlist_tests.cpp")
+target_link_libraries(linkedlist-tests eismsgenv gtest_main)
+add_test(NAME linkedlist-tests COMMAND linkedlist-tests)

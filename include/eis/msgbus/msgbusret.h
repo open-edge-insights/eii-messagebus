@@ -58,6 +58,8 @@ typedef enum {
     MSG_ERR_MSG_SEND_FAILED = 20,
     MSG_ERR_DISCONNECTED = 21,
     MSG_ERR_AUTH_FAILED = 22,
+    MSG_ERR_ELEM_OBJ = 23,
+    MSG_ERR_ELEM_ARR = 24,
     MSG_ERR_UNKNOWN = 255,
 } msgbus_ret_t;
 

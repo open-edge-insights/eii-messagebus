@@ -24,142 +24,24 @@
  */
 
 #include <stdlib.h>
+
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include <cjson/cJSON.h>
 #include <safe_lib.h>
 
 #include "eis/msgbus/msg_envelope.h"
-#include "eis/msgbus/crc32.h"
 
-#define INITIAL_SIZE  256
-#define MAX_CHAIN_LEN 8
-
-// Return values used internally
-#define MAP_SUCCESS      0
-#define MAP_FULL        -1
-#define MAP_OMEM        -2
-#define MAP_KEY_EXISTS  -3
-#define MAP_PUT_ERR     -4
-
-// Function prototypes
-msgbus_ret_t msg_envelope_put_helper(
-        msg_envelope_t* env, char* key, msg_envelope_elem_body_t* data);
+#define INITIAL_SIZE 32
 
 /**
- * Hash the given key to get the preferred index in the envelope
- *
- * @param env - Message envelope
- * @param key - Key to hash
- * @return index
+ * Internal method for freeing a msg_envelope_body_t from a hashmap
  */
-unsigned int hash_int(msg_envelope_t* env, const char* key) {
-    uint32_t crc = msgbus_crc32(key, strlen(key));
-
-	// Robert Jenkins' 32 bit Mix Function
-	crc += (crc << 12);
-	crc ^= (crc >> 22);
-	crc += (crc << 4);
-	crc ^= (crc >> 9);
-	crc += (crc << 10);
-	crc ^= (crc >> 2);
-	crc += (crc << 7);
-	crc ^= (crc >> 12);
-
-	// Knuth's Multiplicative Method
-	crc = (crc >> 3) * 2654435761;
-
-	return crc % env->max_size;
-}
-
-/**
- * Hash the given key.
- *
- * @param[in]  env  - Message envelope
- * @param[in]  key  - Key to hash
- * @param[out] hash - Index to store the value at if found
- * @return MAP_SUCCESS if successful, otherwise a different MAP_* value
- */
-int hash(msg_envelope_t* env, const char* key) {
-    int curr;
-    int i;
-
-    // Check if map is full, if so return
-    if(env->size >= (env->max_size / 2)) return MAP_FULL;
-
-    // Get preferred has index for the key
-    curr = hash_int(env, key);
-    curr = hash_int(env, key);
-
-    int ind = 0;
-
-    // Linear probing
-    for(i = 0; i < MAX_CHAIN_LEN; i++) {
-        // We have a good index to use
-        if(!env->elems[curr].in_use) return curr;
-
-        strcmp_s(env->elems[curr].key, env->elems[curr].key_len, key, &ind);
-
-        // For a message envelope only one value at a key can exist, there is
-        // no updating currently supported, a new message envelope must be
-        // created for each message
-        if(env->elems[curr].in_use && ind == 0)
-            return MAP_KEY_EXISTS;
-
-        curr = (curr + 1) % env->max_size;
-    }
-
-    // Reached max chain size and therefore the map is full for those CRC
-    // collisions
-    return MAP_FULL;
-}
-
-/**
- * Rehash the message envelope to double its size.
- *
- * \note{Ideally, a message does not have more than INITIAL_SIZE keys in it.}
- *
- * @param env - Message envelope
- * @return MAP_SUCESS if successfull, otherwise a different MAP_* value
- */
-int rehash(msg_envelope_t* env) {
-    int i;
-    msgbus_ret_t status;
-    int old_size;
-    msg_envelope_elem_t* curr;
-
-    // Initialize new message envelope elements buffer
-    msg_envelope_elem_t* temp = (msg_envelope_elem_t*) calloc(
-            2 * env->max_size, sizeof(msg_envelope_elem_t));
-    if(!temp) return MAP_OMEM;
-
-    // Update the array
-    curr = env->elems;
-    env->elems = temp;
-
-    // Update the size values
-    old_size = env->max_size;
-    env->max_size = 2 * old_size;
-    env->size = 0;
-
-    // Rehash all of the elements
-    for(i = 0; i < old_size; i++) {
-
-        // If dealing with an empty slot, continue to the next one
-        if(!curr[i].in_use) continue;
-
-        // Put value into resized envelope
-        status = msg_envelope_put_helper(env, curr[i].key, curr[i].body);
-        if(status != MSG_SUCCESS) goto err;
-    }
-
-    free(curr);
-    return MAP_SUCCESS;
-
-err:
-    free(curr);
-    return MAP_PUT_ERR;
+static void free_elem(void* vargs) {
+    msgbus_msg_envelope_elem_destroy((msg_envelope_elem_body_t*) vargs);
 }
 
 msg_envelope_t* msgbus_msg_envelope_new(content_type_t ct) {
@@ -168,17 +50,14 @@ msg_envelope_t* msgbus_msg_envelope_new(content_type_t ct) {
 
     env->correlation_id = NULL; // TODO: Need to assign this
     env->content_type = ct;
-    env->size = 0;
     env->blob = NULL;
 
     if(ct == CT_BLOB) {
-        env->max_size = 0;
-        env->elems = NULL;
+        env->map = NULL;
     } else {
-        env->max_size = INITIAL_SIZE;
-        env->elems = (msg_envelope_elem_t*) calloc(
-                env->max_size, sizeof(msg_envelope_elem_t));
-        if(!env->elems) goto err;
+        env->map = hashmap_new(INITIAL_SIZE);
+        if(env->map == NULL)
+            goto err;
     }
 
     return env;
@@ -189,56 +68,56 @@ err:
     return NULL;
 }
 
-/**
- * Helper function for putting an element into the envelope. This method
- * exists so that the rehash function can operate without needing to copy
- * the key strings. It still allows for the msgbus_msg_envelope_put() API
- * to copy the key given by the user.
- */
-msgbus_ret_t msg_envelope_put_helper(
-        msg_envelope_t* env, char* key, msg_envelope_elem_body_t* data)
-{
-    // Blob has different behavior
-    if(env->content_type == CT_BLOB) {
-        if(data->type != MSG_ENV_DT_BLOB)
-            // The body type must be a MSG_ENV_DT_BLOB
-            return MSG_ERR_ELEM_BLOB_MALFORMED;
-
-        if(env->blob != NULL)
-            // The blob for the message can only be set once
-            return MSG_ERR_ELEM_BLOB_ALREADY_SET;
-
-        env->blob = data;
-    } else {
-        if(data->type == MSG_ENV_DT_BLOB) {
-            if(env->blob != NULL)
-                // The blob for a (key,value) message can only be set once
-                return MSG_ERR_ELEM_BLOB_ALREADY_SET;
-
-            env->blob = data;
-        } else {
-            // Get hash index
-            int index = hash(env, key);
-
-            // Keep on rehashing until we can do something
-            while(index == MAP_FULL) {
-                if(rehash(env) == MAP_OMEM)
-                    return MSG_ERR_NO_MEMORY;
-                index = hash(env, key);
-            }
-
-            if(index == MAP_KEY_EXISTS)
-                return MSG_ERR_ELEM_ALREADY_EXISTS;
-
-            // Set data in the envelope
-            env->elems[index].key = key;
-            env->elems[index].key_len = strlen(key);
-            env->elems[index].in_use = true;
-            env->elems[index].body = data;
-        }
+msg_envelope_elem_body_t* msgbus_msg_envelope_new_none() {
+    msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
+            sizeof(msg_envelope_elem_body_t));
+    if(elem == NULL) {
+        return NULL;
     }
 
-    return MSG_SUCCESS;
+    // Initialize element values
+    elem->type = MSG_ENV_DT_NONE;
+
+    return elem;
+}
+
+msg_envelope_elem_body_t* msgbus_msg_envelope_new_array() {
+    msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
+            sizeof(msg_envelope_elem_body_t));
+    if(elem == NULL) {
+        return NULL;
+    }
+
+    // Initialize element values
+    elem->type = MSG_ENV_DT_ARRAY;
+    elem->body.array = linkedlist_new();
+    if(elem->body.array == NULL) {
+        free(elem);
+        return NULL;
+    }
+
+    return elem;
+}
+
+msg_envelope_elem_body_t* msgbus_msg_envelope_new_object() {
+    msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
+            sizeof(msg_envelope_elem_body_t));
+    if(elem == NULL) {
+        return NULL;
+    }
+
+    // Initializing underlying hashmap structure for the object.
+    hashmap_t* map = hashmap_new(INITIAL_SIZE);
+    if(map == NULL) {
+        free(elem);
+        return NULL;
+    }
+
+    // Initialize element values
+    elem->type = MSG_ENV_DT_OBJECT;
+    elem->body.object = map;
+
+    return elem;
 }
 
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_string(const char* string) {
@@ -340,12 +219,121 @@ err:
     return NULL;
 }
 
+msgbus_ret_t msgbus_msg_envelope_elem_object_put(
+        msg_envelope_elem_body_t* obj, const char* key,
+        msg_envelope_elem_body_t* value)
+{
+    // Verify that the given msg envelope element is an object
+    if(obj->type != MSG_ENV_DT_OBJECT)
+        return MSG_ERR_ELEM_OBJ;
+
+    // Attempt to put the element into the object hashmap
+    hashmap_ret_t ret = hashmap_put(
+            obj->body.object, key, (void*) value, free_elem);
+    if(ret != MAP_SUCCESS) {
+        if(ret == MAP_KEY_EXISTS)
+            return MSG_ERR_ELEM_ALREADY_EXISTS;
+        return MSG_ERR_ELEM_OBJ;
+    }
+
+    return MSG_SUCCESS;
+}
+
+msg_envelope_elem_body_t* msgbus_msg_envelope_elem_object_get(
+        msg_envelope_elem_body_t* obj, const char* key)
+{
+    // Verify that the given msg envelope element is an object
+    if(obj->type != MSG_ENV_DT_OBJECT)
+        return NULL;
+
+    // Retrieve the value (if it exists) from the hashmap of the object
+    void* value = hashmap_get(obj->body.object, key);
+    if(value == NULL)
+        return NULL;
+
+    return (msg_envelope_elem_body_t*) value;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_object_remove(
+        msg_envelope_elem_body_t* obj, const char* key)
+{
+    // Verify that the given msg envelope element is an object
+    if(obj->type != MSG_ENV_DT_OBJECT)
+        return MSG_ERR_ELEM_OBJ;
+
+    // Attempt to remove the element from the underlying hashmap
+    hashmap_ret_t ret = hashmap_remove(obj->body.object, key);
+    if(ret != MAP_SUCCESS) {
+        if(ret == MAP_KEY_NOT_EXISTS)
+            return MSG_ERR_ELEM_NOT_EXIST;
+        return MSG_ERR_UNKNOWN;
+    }
+
+    return MSG_SUCCESS;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_array_add(
+        msg_envelope_elem_body_t* arr,
+        msg_envelope_elem_body_t* value)
+{
+    // Verify that the given msg envelope element is an array
+    if(arr->type != MSG_ENV_DT_ARRAY)
+        return MSG_ERR_ELEM_ARR;
+
+    // Initialize the new node to add
+    node_t* node = linkedlist_node_new(value, free_elem);
+    if(node == NULL)
+        return MSG_ERR_ELEM_ARR;
+
+    // Attempt to add the element to the array's linked list
+    linkedlist_ret_t ret = linkedlist_add(arr->body.array, node);
+    if(ret != LL_SUCCESS)
+        return MSG_ERR_ELEM_ARR;
+
+    return MSG_SUCCESS;
+}
+
+msg_envelope_elem_body_t* msgbus_msg_envelope_elem_array_get_at(
+        msg_envelope_elem_body_t* arr, int idx)
+{
+    // Verify that the given msg envelope element is an array
+    if(arr->type != MSG_ENV_DT_ARRAY)
+        return NULL;
+
+    // Attempt to get the element to the array's linked list
+    node_t* node = linkedlist_get_at(arr->body.array, idx);
+    if(node == NULL)
+        return NULL;
+    else
+        return (msg_envelope_elem_body_t*) node->value;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_array_remove_at(
+        msg_envelope_elem_body_t* arr, int idx)
+{
+    // Verify that the given msg envelope element is an array
+    if(arr->type != MSG_ENV_DT_ARRAY)
+        return MSG_ERR_ELEM_ARR;
+
+    // Attempt to add the element to the array's linked list
+    linkedlist_ret_t ret = linkedlist_remove_at(arr->body.array, idx);
+    if(ret == LL_ERR_NOT_FOUND)
+        return MSG_ERR_ELEM_NOT_EXIST;
+
+    return MSG_SUCCESS;
+}
+
+
 void msgbus_msg_envelope_elem_destroy(msg_envelope_elem_body_t* body) {
     if(body->type == MSG_ENV_DT_STRING) {
         free(body->body.string);
     } else if(body->type == MSG_ENV_DT_BLOB) {
         owned_blob_destroy(body->body.blob->shared);
         free(body->body.blob);
+    } else if(body->type == MSG_ENV_DT_OBJECT) {
+        hashmap_destroy(body->body.object);
+    } else if(body->type == MSG_ENV_DT_ARRAY) {
+        linkedlist_destroy(body->body.array);
     }
     free(body);
 }
@@ -353,22 +341,28 @@ void msgbus_msg_envelope_elem_destroy(msg_envelope_elem_body_t* body) {
 msgbus_ret_t msgbus_msg_envelope_put(
         msg_envelope_t* env, const char* key, msg_envelope_elem_body_t* data)
 {
-    msgbus_ret_t ret;
+    msgbus_ret_t ret = MSG_SUCCESS;
 
     if(key == NULL) {
-        ret = msg_envelope_put_helper(env, NULL, data);
+        if(data->type != MSG_ENV_DT_BLOB)
+            // The body type must be a MSG_ENV_DT_BLOB
+            return MSG_ERR_ELEM_BLOB_MALFORMED;
+
+        if(env->blob != NULL)
+            // The blob for the message can only be set once
+            return MSG_ERR_ELEM_BLOB_ALREADY_SET;
+
+        env->blob = data;
     } else {
-        size_t len = strlen(key);
-
-        // Copying the key value
-        char* key_cpy = (char*) malloc(sizeof(char) * len + 1);
-        memcpy_s(key_cpy, len, key, len);
-        key_cpy[len] = '\0';
-
-        // Put the element into the message envelope
-        ret = msg_envelope_put_helper(env, key_cpy, data);
-        if(ret != MSG_SUCCESS)
-            free(key_cpy);
+        hashmap_ret_t put_ret = hashmap_put(
+                env->map, key, (void*) data, free_elem);
+        if(put_ret != MAP_SUCCESS) {
+            if(put_ret == MAP_KEY_EXISTS) {
+                return MSG_ERR_ELEM_ALREADY_EXISTS;
+            } else {
+                return MSG_ERR_UNKNOWN;
+            }
+        }
     }
 
     return ret;
@@ -379,33 +373,11 @@ msgbus_ret_t msgbus_msg_envelope_remove(msg_envelope_t* env, const char* key) {
     if(env->content_type == CT_BLOB)
         return MSG_ERR_ELEM_NOT_EXIST;
 
-    // Get intiial hash value
-    uint32_t curr = hash_int(env, key);
-    size_t key_len;
-    int ind = 0;
-
-    // Linear probing
-    for(int i = 0; i < MAX_CHAIN_LEN; i++) {
-        if(env->elems[curr].in_use) {
-            key_len = env->elems[curr].key_len;
-            strcmp_s(env->elems[curr].key, key_len, key, &ind);
-            if(ind == 0) {
-                // Found the correct body element
-                free(env->elems[curr].body);
-                free(env->elems[curr].key);
-
-                env->elems[curr].in_use = false;
-                env->elems[curr].key = NULL;
-                env->elems[curr].body = NULL;
-
-                return MSG_SUCCESS;
-            }
-        }
-
-        curr = (curr + 1) % env->max_size;
-    }
-
-    return MSG_ERR_ELEM_NOT_EXIST;
+    hashmap_ret_t ret = hashmap_remove(env->map, key);
+    if(ret != MAP_SUCCESS)
+        return MSG_ERR_ELEM_ALREADY_EXISTS;
+    else
+        return MSG_SUCCESS;
 }
 
 msgbus_ret_t msgbus_msg_envelope_get(
@@ -423,29 +395,80 @@ msgbus_ret_t msgbus_msg_envelope_get(
         return MSG_ERR_ELEM_NOT_EXIST;
     }
 
-    // Get intiial hash value
-    uint32_t curr = hash_int(env, key);
-    size_t key_len;
-    int ind;
+    (*data) = (msg_envelope_elem_body_t*) hashmap_get(env->map, key);
+    if((*data) == NULL) {
+        return MSG_ERR_ELEM_NOT_EXIST;
+    } else {
+        return MSG_SUCCESS;
+    }
+}
 
-    // Linear probing
-    for(int i = 0; i < MAX_CHAIN_LEN; i++) {
-        if(env->elems[curr].in_use) {
-            key_len = env->elems[curr].key_len;
-            strcmp_s(env->elems[curr].key, key_len, key, &ind);
-            if(ind == 0) {
-                *data = env->elems[curr].body;
-                return MSG_SUCCESS;
-            }
-        }
+/**
+ * Recursive function to convert @c msg_envelope_elem_body elements into
+ * @c cJSON object.
+ */
+static cJSON* elem_to_json(msg_envelope_elem_body_t* elem) {
+    cJSON* obj = NULL;
 
-        curr = (curr + 1) % env->max_size;
+    switch(elem->type) {
+        case MSG_ENV_DT_INT:
+            obj = cJSON_CreateNumber(elem->body.integer);
+            break;
+        case MSG_ENV_DT_FLOATING:
+            obj = cJSON_CreateNumber(elem->body.floating);
+            break;
+        case MSG_ENV_DT_STRING:
+            obj = cJSON_CreateString(elem->body.string);
+            break;
+        case MSG_ENV_DT_BOOLEAN:
+            obj = cJSON_CreateBool(elem->body.boolean);
+            break;
+        case MSG_ENV_DT_OBJECT:
+            obj = cJSON_CreateObject();
+            if(obj == NULL) break;  // Failed to initialize JSON object...
+
+            // Get pointer to the map to make code cleaner going forward
+            hashmap_t* map = elem->body.object;
+
+            // Loop over all hashmap items... This could probably be improved
+            HASHMAP_LOOP(map, msg_envelope_elem_body_t, {
+                cJSON* subobj = elem_to_json(value);
+                if(subobj == NULL) {
+                    // Failed to create a sub-JSON object
+                    cJSON_Delete(obj);
+                    obj = NULL;
+                    break;
+                }
+                // Add the object to the JSON object
+                cJSON_AddItemToObject(obj, key, subobj);
+            });
+            break;
+        case MSG_ENV_DT_ARRAY:
+            obj = cJSON_CreateArray();
+            if(obj == NULL) break; // Failed to initialize JSON object...
+
+            LINKEDLIST_FOREACH(elem->body.array, msg_envelope_elem_body_t, {
+                cJSON* subobj = elem_to_json(value);
+                if(subobj == NULL) {
+                    // Failed to create a sub-JSON object
+                    cJSON_Delete(obj);
+                    obj = NULL;
+                    break;
+                }
+                // Add the array item to the JSON array
+                cJSON_AddItemToArray(obj, subobj);
+            });
+            break;
+        case MSG_ENV_DT_NONE:
+            obj = cJSON_CreateNull();
+            break;
+        // Blob should never happen...
+        case MSG_ENV_DT_BLOB:
+        default:
+            break;
     }
 
-    // Make sure data is NULL
-    data = NULL;
-
-    return MSG_ERR_ELEM_NOT_EXIST;
+    return obj;
 }
 
 int msgbus_msg_envelope_serialize(
@@ -471,32 +494,20 @@ int msgbus_msg_envelope_serialize(
     } else if(env->content_type == CT_JSON) {
         // Initialize JSON object
         cJSON* obj = cJSON_CreateObject();
-
-        for(int i = 0; i < env->max_size; i++) {
-            msg_envelope_elem_t* elem = &env->elems[i];
-
-            // Pass by elements that are not in use in the hashmap
-            if(!elem->in_use)
-                continue;
-
-            cJSON* subobj = NULL;
-
-            if(elem->body->type == MSG_ENV_DT_INT) {
-                subobj = cJSON_CreateNumber(elem->body->body.integer);
-            } else if(elem->body->type == MSG_ENV_DT_FLOATING) {
-                subobj = cJSON_CreateNumber(elem->body->body.floating);
-            } else if(elem->body->type == MSG_ENV_DT_STRING) {
-                subobj = cJSON_CreateString(elem->body->body.string);
-            } else if(elem->body->type == MSG_ENV_DT_BOOLEAN) {
-                subobj = cJSON_CreateBool(elem->body->body.boolean);
-            } else {
-                // This should NEVER happen, type has to have been set
+        HASHMAP_LOOP(env->map, msg_envelope_elem_body_t, {
+            cJSON* subobj = elem_to_json(value);
+            if(subobj == NULL) {
+                cJSON_Delete(obj);
+                break;
             }
+            // Add the item to the root JSON object
+            cJSON_AddItemToObject(obj, key, subobj);
+        });
 
-            // Add the item to the JSON
-
-            cJSON_AddItemToObject(obj, elem->key, subobj);
-        }
+        // If the object is NULL at this point, then a JSON serialization error
+        // occurred
+        if(obj == NULL)
+            return -1;
 
         // Calculate number of parts for the serialized message
         int num_parts = 1;
@@ -543,69 +554,81 @@ int msgbus_msg_envelope_serialize(
     return -1;
 }
 
-int parse_json_object(msg_envelope_t* env, const char* key, cJSON* obj) {
-    msg_envelope_elem_body_t* data = NULL;
+/**
+ * Helper function to recursivly deserialize JSON objects into
+ * msg_envelope_elem_body_t structures.
+ */
+msg_envelope_elem_body_t* deserialize_json(cJSON* obj) {
+    msg_envelope_elem_body_t* elem = NULL;
 
     if(cJSON_IsArray(obj)) {
-        return -1;
-    } else if(cJSON_IsObject(obj)) {
-        int elems = cJSON_GetArraySize(obj);
-        for(int i = 0; i < elems; i++) {
-            cJSON* next = cJSON_GetArrayItem(obj, i);
-            int rc = parse_json_object(env, next->string, next);
-            if(rc != 0) {
-                return -1;
+        elem = msgbus_msg_envelope_new_array();
+        if(elem == NULL)
+            return NULL;
+
+        cJSON* subobj = NULL;
+        msgbus_ret_t ret = MSG_SUCCESS;
+
+        cJSON_ArrayForEach(subobj, obj) {
+            msg_envelope_elem_body_t* subelem = deserialize_json(subobj);
+            if(subelem == NULL) {
+                msgbus_msg_envelope_elem_destroy(elem);
+                elem = NULL;
+                break;
+            }
+
+            ret = msgbus_msg_envelope_elem_array_add(elem, subelem);
+            if(ret != MSG_SUCCESS) {
+                msgbus_msg_envelope_elem_destroy(subelem);
+                msgbus_msg_envelope_elem_destroy(elem);
+                elem = NULL;
+                break;
             }
         }
+    } else if(cJSON_IsObject(obj)) {
+        elem = msgbus_msg_envelope_new_object();
+        if(elem == NULL)
+            return NULL;
 
-        // Return early because all nested items have been added
-        return 0;
+        cJSON* subobj = NULL;
+        msgbus_ret_t ret = MSG_SUCCESS;
+
+        cJSON_ArrayForEach(subobj, obj) {
+            msg_envelope_elem_body_t* subelem = deserialize_json(subobj);
+            if(subelem == NULL) {
+                msgbus_msg_envelope_elem_destroy(elem);
+                return NULL;
+            }
+
+            ret = msgbus_msg_envelope_elem_object_put(
+                    elem, subobj->string, subelem);
+            if(ret != MSG_SUCCESS) {
+                msgbus_msg_envelope_elem_destroy(subelem);
+                msgbus_msg_envelope_elem_destroy(elem);
+                elem = NULL;
+                break;
+            }
+        }
     } else if(cJSON_IsBool(obj)) {
-        data = (msg_envelope_elem_body_t*) malloc(
-               sizeof(msg_envelope_elem_body_t));
-        data->type = MSG_ENV_DT_BOOLEAN;
         if(cJSON_IsTrue(obj))
-            data->body.boolean = true;
+            elem = msgbus_msg_envelope_new_bool(true);
         else
-            data->body.boolean = false;
+            elem = msgbus_msg_envelope_new_bool(false);
     } else if(cJSON_IsNumber(obj)) {
         double value = obj->valuedouble;
-        data = (msg_envelope_elem_body_t*) malloc(
-               sizeof(msg_envelope_elem_body_t));
-        if(value == (int64_t) value) {
-            data->type = MSG_ENV_DT_INT;
-            data->body.integer = (int64_t) value;
-        } else {
-            data->type = MSG_ENV_DT_FLOATING;
-            data->body.floating = value;
-        }
+        if(value == (int64_t) value)
+            elem = msgbus_msg_envelope_new_integer((int64_t) value);
+        else
+            elem = msgbus_msg_envelope_new_floating(value);
     } else if(cJSON_IsString(obj)) {
-        size_t len = strlen(obj->valuestring) + 1;
-        data = (msg_envelope_elem_body_t*) malloc(
-               sizeof(msg_envelope_elem_body_t));
-        data->type = MSG_ENV_DT_STRING;
-        data->body.string = (char*) malloc(sizeof(char) * len);
-        memcpy_s(data->body.string, len, obj->valuestring, len);
-        data->body.string[len - 1] = '\0';
+        elem = msgbus_msg_envelope_new_string(obj->valuestring);
+    } else if(cJSON_IsNull(obj)) {
+        elem = msgbus_msg_envelope_new_none();
     } else {
-        return -1;
+        return NULL;
     }
 
-    // Verify that the key given to the method is not NULL
-    if(key == NULL) {
-        if(data != NULL) {
-            msgbus_msg_envelope_elem_destroy(data);
-        }
-        return -1;
-    }
-
-    msgbus_ret_t ret = msgbus_msg_envelope_put(env, key, data);
-    if(ret != MSG_SUCCESS) {
-        msgbus_msg_envelope_elem_destroy(data);
-        return -1;
-    }
-
-    return 0;
+    return elem;
 }
 
 /**
@@ -684,14 +707,26 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
             return MSG_ERR_UNKNOWN;
         }
 
-        int rc = parse_json_object(msg, NULL, json);
-        if(rc != 0)
-            ret = MSG_ERR_UNKNOWN;
+        // Start parsing the root level of the JSON object
+        cJSON* subobj = NULL;
+        cJSON_ArrayForEach(subobj, json) {
+            msg_envelope_elem_body_t* elem = deserialize_json(subobj);
+            if(elem == NULL) {
+                ret = MSG_ERR_UNKNOWN;
+                break;
+            }
+            ret = msgbus_msg_envelope_put(msg, subobj->string, elem);
+            if(ret != MSG_SUCCESS) {
+                msgbus_msg_envelope_elem_destroy(elem);
+                break;
+            }
+        }
 
         // Free JSON structure
         cJSON_Delete(json);
 
-        if(num_parts == 2) {
+        // Only deserialize the blob if the JSON was successfully parsed
+        if(ret == MSG_SUCCESS && num_parts == 2) {
             ret = deserialize_blob(msg, &parts[1]);
         }
     }
@@ -740,15 +775,8 @@ void msgbus_msg_envelope_serialize_destroy(
 void msgbus_msg_envelope_destroy(msg_envelope_t* env) {
     if(env->blob != NULL)
         msgbus_msg_envelope_elem_destroy(env->blob);
-
-    for(int i = 0; i < env->max_size; i++) {
-        if(env->elems[i].in_use) {
-            msgbus_msg_envelope_elem_destroy(env->elems[i].body);
-            free(env->elems[i].key);
-        }
-    }
-
-    free(env->elems);
+    if(env->map != NULL)
+        hashmap_destroy(env->map);
     free(env);
 }
 
