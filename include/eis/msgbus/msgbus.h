@@ -373,7 +373,6 @@ protected:
                     LOG_ERROR_0("Got NULL serializable message...");
                     continue;
                 }
-
                 try {
                     // Serialize message into a message envelope
                     env = msg->serialize();
@@ -384,7 +383,6 @@ protected:
                                 "Failed to serialize message to msg envelope");
                         continue;
                     }
-
                     // Publish message
                     ret = msgbus_publisher_publish(m_ctx, m_pub_ctx, env);
                     if(ret != MSG_SUCCESS) {
@@ -459,6 +457,7 @@ protected:
      * Publisher thread run method.
      */
     void run() override {
+
         LOG_DEBUG_0("Subscriber thread started");
         int duration = 250; // microseconds
         msg_envelope_t* msg = NULL;
@@ -477,7 +476,7 @@ protected:
                 } else {
                     // Dropping pointer to message here because the memory for
                     // the envelope is not owned by the received variable
-                    msg = NULL;
+                    // msg = NULL;
                     try {
                         // Received message
                         T* received = new T(msg);
@@ -502,6 +501,7 @@ protected:
         }
 
         LOG_DEBUG_0("Subscriber thread stopped");
+        
     };
 
 public:
@@ -521,7 +521,6 @@ public:
     {
         static_assert(std::is_base_of<Deserializable, T>::value,
                       "Template must be subclass of Serializable");
-
         m_output_queue = output_queue;
         msgbus_ret_t ret = msgbus_subscriber_new(
                 m_ctx, topic.c_str(), NULL, &m_recv_ctx);
