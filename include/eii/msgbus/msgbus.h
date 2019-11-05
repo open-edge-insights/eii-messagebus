@@ -246,14 +246,9 @@ namespace msgbus {
 using namespace eis::utils;
 
 /**
- * Thread safe queue for serializable objects
+ * Thread safe queue for serializable objects.
  */
-typedef ThreadSafeQueue<eis::msgbus::Serializable*> InputMessageQueue;
-
-/**
- * Thread safe queue for deserializable objects
- */
-typedef ThreadSafeQueue<eis::msgbus::Deserializable*> OutputMessageQueue;
+typedef ThreadSafeQueue<eis::msgbus::Serializable*> MessageQueue;
 
 /**
  * Base object for running message bus operations in a thread.
@@ -349,7 +344,7 @@ private:
     publisher_ctx_t* m_pub_ctx;
 
     // Input message queue
-    InputMessageQueue* m_input_queue;
+    MessageQueue* m_input_queue;
 
 protected:
     /**
@@ -418,7 +413,7 @@ public:
      * @param input_queue   - Input queue of messages to publish
      */
     Publisher(config_t* msgbus_config, std::string topic,
-              InputMessageQueue* input_queue) :
+              MessageQueue* input_queue) :
         BaseMsgbusThread(msgbus_config)
     {
         m_input_queue = input_queue;
@@ -450,7 +445,7 @@ private:
     recv_ctx_t* m_recv_ctx;
 
     // Output message queue
-    OutputMessageQueue* m_output_queue;
+    MessageQueue* m_output_queue;
 
 protected:
     /**
@@ -476,24 +471,7 @@ protected:
                 } else {
                     // Dropping pointer to message here because the memory for
                     // the envelope is not owned by the received variable
-                    // msg = NULL;
-                    try {
-                        // Received message
-                        T* received = new T(msg);
-                        qret = m_output_queue->push(received);
-                        if(qret != QueueRetCode::SUCCESS) {
-                            LOG_ERROR_0("Failed to enqueue received message, "
-                                        "message dropped");
-                            msgbus_msg_envelope_destroy(msg);
-                        } else {
-                            // Dropping pointer to message here because the
-                            // memory for the envelope is not owned by the
-                            // received variable
-                            msg = NULL;
-                        }
-                    } catch(const std::exception& e) {
-                        LOG_ERROR("Error deserializing message: %s", e.what());
-                    }
+                    msg = NULL;
                 }
             } else if(ret != MSG_RECV_NO_MESSAGE) {
                 LOG_ERROR("Error receiving message: %d", ret);
@@ -501,7 +479,7 @@ protected:
         }
 
         LOG_DEBUG_0("Subscriber thread stopped");
-        
+
     };
 
 public:
@@ -516,10 +494,10 @@ public:
      * @param output_queue  - Output queue for received messages
      */
     Subscriber(config_t* msgbus_config, std::string topic,
-              OutputMessageQueue* output_queue) :
+              MessageQueue* output_queue) :
         BaseMsgbusThread(msgbus_config)
     {
-        static_assert(std::is_base_of<Deserializable, T>::value,
+        static_assert(std::is_base_of<Serializable, T>::value,
                       "Template must be subclass of Serializable");
         m_output_queue = output_queue;
         msgbus_ret_t ret = msgbus_subscriber_new(
@@ -541,6 +519,6 @@ public:
 } // msgbus
 } // eis
 
-#endif
+#endif // __cpluspplus
 
 #endif // _EIS_MESSAGE_BUS_H

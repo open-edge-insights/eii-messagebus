@@ -38,7 +38,7 @@ using namespace eis::msgbus;
 /**
  * Example object which is both serializable and deserialzable
  */
-class ExampleMessage : public Serializable, public Deserializable {
+class ExampleMessage : public Serializable {
 private:
     // Internal string message
     char* m_message;
@@ -50,7 +50,7 @@ public:
      * @param message - Message for the example message
      */
     ExampleMessage(char* message) :
-        Serializable(), Deserializable(NULL)
+        Serializable(NULL)
     {
         m_message = message;
     };
@@ -61,7 +61,7 @@ public:
      * @param msg - Message Envelope
      */
     ExampleMessage(msg_envelope_t* msg) :
-        Serializable(), Deserializable(msg)
+        Serializable(NULL)
     {
         // Retrieve data out of the message envelope
         msg_envelope_elem_body_t* body = NULL;
@@ -79,6 +79,7 @@ public:
         m_message = new char[len + 1];
         memcpy(m_message, body->body.string, len);
         m_message[len] = '\0';
+        msgbus_msg_envelope_destroy(msg);
     };
 
     /**
@@ -132,8 +133,8 @@ public:
 // Globals
 Publisher* g_publisher = NULL;
 Subscriber<ExampleMessage>* g_subscriber = NULL;
-InputMessageQueue* g_input_queue = NULL;
-OutputMessageQueue* g_output_queue = NULL;
+MessageQueue* g_input_queue = NULL;
+MessageQueue* g_output_queue = NULL;
 
 /**
  * Function to print the usage of the application.
@@ -189,8 +190,8 @@ int main(int argc, char** argv) {
 
     LOG_INFO_0("Initializing publisher/subscriber");
 
-    g_input_queue = new InputMessageQueue(-1);
-    g_output_queue = new OutputMessageQueue(-1);
+    g_input_queue = new MessageQueue(-1);
+    g_output_queue = new MessageQueue(-1);
     g_publisher = new Publisher(pub_config, "PUBSUB_TOPIC", g_input_queue);
     g_subscriber = new Subscriber<ExampleMessage>(
             sub_config, "PUBSUB_TOPIC", g_output_queue);
