@@ -411,11 +411,33 @@ namespace msgbus {
  * structures.
  */
 class Serializable {
+protected:
+    msg_envelope_t* m_msg;
+
 public:
+    /**
+     * Default constructor.
+     */
+    Serializable() : m_msg(NULL) {};
+
+    /**
+     * Constructor.
+     *
+     * \note Subclasses should not destroy the message, that is handled by the
+     *      parents destructor.
+     *
+     * @param msg - Message to deserialize
+     */
+    Serializable(msg_envelope_t* msg) : m_msg(msg) {};
+
     /**
      * Destructor
      */
-    virtual ~Serializable() {};
+    virtual ~Serializable() {
+        if(m_msg != NULL) {
+            msgbus_msg_envelope_destroy(m_msg);
+        }
+    };
 
     /**
      * Method to be overriden by subclasses which shall be called to serialize
@@ -426,39 +448,9 @@ public:
     virtual msg_envelope_t* serialize() = 0;
 };
 
-/**
- * Base interface for objecst which can be deserialized from a
- * @c msg_envelope_t.
- */
-class Deserializable {
-protected:
-    // Message that was deserialized, keeping here because the memory is owned
-    // by this object.
-    msg_envelope_t* m_msg;
-
-public:
-    /**
-     * Constructor.
-     *
-     * \note Subclasses should not destroy the message, that is handled by the
-     *      parents destructor.
-     *
-     * @param msg - Message to deserialize
-     */
-    Deserializable(msg_envelope_t* msg) : m_msg(msg) {};
-
-    /**
-     * Destructor.
-     */
-    virtual ~Deserializable() {
-        if(m_msg != NULL) {
-            msgbus_msg_envelope_destroy(m_msg);
-        }
-    };
-};
-
 } // msgbus
 } // eis
-#endif
+
+#endif // __cplusplus
 
 #endif // _EIS_MESSAGE_BUD_MSGENV_H
