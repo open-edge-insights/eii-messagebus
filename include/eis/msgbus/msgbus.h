@@ -384,7 +384,7 @@ protected:
                         LOG_ERROR_0("Failed to publish message...");
                     }
                     // TODO: print msgenv data and msgbus config
-                    LOG_INFO("Message published successfully");
+                    LOG_DEBUG("Message published successfully");
 
                     // Clean up after publication attempt...
                     //delete msg;
