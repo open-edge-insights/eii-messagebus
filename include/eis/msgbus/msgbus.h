@@ -234,6 +234,7 @@ msgbus_ret_t msgbus_recv_nowait(
 #include <atomic>
 #include <thread>
 #include <chrono>
+#include <condition_variable>
 #include <eis/utils/logger.h>
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/msgbus/msg_envelope.h>
@@ -265,6 +266,9 @@ protected:
     // Stop flag
     std::atomic<bool> m_stop;
 
+    // Error condition variable to notify users of an error
+    std::condition_variable& m_err_cv;
+
     /**
      * Run method to be overriden by subclasses.
      */
@@ -276,8 +280,8 @@ public:
      *
      * @param msgbus_config - Message bus configuration
      */
-    BaseMsgbusThread(config_t* msgbus_config) :
-        m_th(NULL), m_stop(false)
+    BaseMsgbusThread(config_t* msgbus_config, std::condition_variable& err_cv) :
+        m_th(NULL), m_stop(false), m_err_cv(err_cv)
     {
         m_ctx = msgbus_initialize(msgbus_config);
         if(m_ctx == NULL) {
@@ -365,9 +369,10 @@ protected:
                 msg = m_input_queue->front();
                 m_input_queue->pop();
                 if(msg == NULL) {
-                    LOG_ERROR_0("Got NULL serializable message...");
+                    LOG_WARN_0("Got NULL serializable message...");
                     continue;
                 }
+
                 try {
                     // Serialize message into a message envelope
                     env = msg->serialize();
@@ -376,25 +381,28 @@ protected:
                         msg = NULL;
                         LOG_ERROR_0(
                                 "Failed to serialize message to msg envelope");
-                        continue;
+                        m_err_cv.notify_all();
+                        break;
                     }
                     // Publish message
                     ret = msgbus_publisher_publish(m_ctx, m_pub_ctx, env);
                     if(ret != MSG_SUCCESS) {
                         LOG_ERROR_0("Failed to publish message...");
+                        msgbus_msg_envelope_destroy(env);
+                        m_err_cv.notify_all();
+                        break;
                     }
-                    // TODO: print msgenv data and msgbus config
+
                     LOG_DEBUG("Message published successfully");
 
                     // Clean up after publication attempt...
-                    //delete msg;
                     msgbus_msg_envelope_destroy(env);
-                    //msg = NULL;
-                    //env = NULL;
                 } catch(const std::exception& e) {
                     LOG_ERROR("Failed to serialize message: %s", e.what());
                     delete msg;
                     msg = NULL;
+                    m_err_cv.notify_all();
+                    break;
                 }
             }
         }
@@ -412,9 +420,9 @@ public:
      * @param msgbus_config - Message bus context configuration
      * @param input_queue   - Input queue of messages to publish
      */
-    Publisher(config_t* msgbus_config, std::string topic,
-              MessageQueue* input_queue) :
-        BaseMsgbusThread(msgbus_config)
+    Publisher(config_t* msgbus_config, std::condition_variable& err_cv,
+              std::string topic, MessageQueue* input_queue) :
+        BaseMsgbusThread(msgbus_config, err_cv)
     {
         m_input_queue = input_queue;
         msgbus_ret_t ret = msgbus_publisher_new(
@@ -452,8 +460,8 @@ protected:
      * Publisher thread run method.
      */
     void run() override {
-
         LOG_DEBUG_0("Subscriber thread started");
+
         int duration = 250; // microseconds
         msg_envelope_t* msg = NULL;
         msgbus_ret_t ret = MSG_SUCCESS;
@@ -468,6 +476,8 @@ protected:
                     LOG_ERROR_0("Failed to enqueue received message, "
                                 "message dropped");
                     msgbus_msg_envelope_destroy(msg);
+                    m_err_cv.notify_all();
+                    break;
                 } else {
                     // Dropping pointer to message here because the memory for
                     // the envelope is not owned by the received variable
@@ -475,11 +485,12 @@ protected:
                 }
             } else if(ret != MSG_RECV_NO_MESSAGE) {
                 LOG_ERROR("Error receiving message: %d", ret);
+                m_err_cv.notify_all();
+                break;
             }
         }
 
         LOG_DEBUG_0("Subscriber thread stopped");
-
     };
 
 public:
@@ -493,9 +504,9 @@ public:
      * @param topic         - Topic to subscribe on
      * @param output_queue  - Output queue for received messages
      */
-    Subscriber(config_t* msgbus_config, std::string topic,
-              MessageQueue* output_queue) :
-        BaseMsgbusThread(msgbus_config)
+    Subscriber(config_t* msgbus_config, std::condition_variable& err_cv,
+              std::string topic, MessageQueue* output_queue) :
+        BaseMsgbusThread(msgbus_config, err_cv)
     {
         static_assert(std::is_base_of<Serializable, T>::value,
                       "Template must be subclass of Serializable");
