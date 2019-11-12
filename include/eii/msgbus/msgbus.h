@@ -472,7 +472,7 @@ protected:
             if(ret == MSG_SUCCESS) {
                 // Received message
                 T* received = new T(msg);
-                if(m_output_queue->push(received) != QueueRetCode::SUCCESS) {
+                if(m_output_queue->push_wait(received) != QueueRetCode::SUCCESS) {
                     LOG_ERROR_0("Failed to enqueue received message, "
                                 "message dropped");
                     msgbus_msg_envelope_destroy(msg);
