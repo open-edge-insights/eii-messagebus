@@ -457,7 +457,7 @@ private:
 
 protected:
     /**
-     * Publisher thread run method.
+     * Subscriber thread run method.
      */
     void run() override {
         LOG_DEBUG_0("Subscriber thread started");
