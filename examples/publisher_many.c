@@ -156,6 +156,9 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    // Set log level
+    set_log_level(LOG_LVL_DEBUG);
+
     char* config_file = argv[1];
     g_num_publishers = atoi(argv[2]);
 
