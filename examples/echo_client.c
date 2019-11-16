@@ -79,6 +79,9 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    // Set log level
+    set_log_level(LOG_LVL_DEBUG);
+
     // Setting up signal handlers
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);

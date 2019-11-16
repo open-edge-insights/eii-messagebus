@@ -273,6 +273,15 @@ whitelisted clients.
 The list of allowed clients is given to the message bus via the `allowed_clients`
 key. This key must be a list of Z85 encoded CurveZMQ keys.
 
+### Additional ZeroMQ Configuration Properties
+
+The configuration interface for the ZeroMQ protocol exposes additional socket
+properties. The table below specifies each of the supported properties.
+
+|  Configuration  |  Type  |  Default |                                    Description                               |
+| :-------------: | :----: | :------: | ---------------------------------------------------------------------------- |
+| `zmq_recv_hwm`  | `int`  | `1000`   | Sets `ZMQ_RCVHWM` socket property (queue size for pending received messages) |
+
 ## Example Usage
 
 > **IMPORTANT NOTE:** Some of the example configurations contain public/private
