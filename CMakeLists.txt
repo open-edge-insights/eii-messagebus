@@ -57,26 +57,7 @@ find_package(Threads REQUIRED)
 find_package(cJSON REQUIRED)
 find_package(EISUtils REQUIRED)
 find_package(EISMsgEnv REQUIRED)
-
-# Include Intel safestring library
-configure_file(${EIS_COMMON_CMAKE}/IntelSafeString.txt.in safestring-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-                RESULT_VARIABLE ss_result
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/safestring-download)
-if(ss_result)
-    message(FATAL_ERROR "CMake step for safestring failed: ${ss_result}")
-endif()
-
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-    RESULT_VARIABLE ss_result
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/safestring-download)
-if(result)
-    message(FATAL_ERROR "Build step for safestring failed: ${ss_result}")
-endif()
-
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/safestring-src
-                 ${CMAKE_CURRENT_BINARY_DIR}/safestring-build
-                 EXCLUDE_FROM_ALL)
+find_package(IntelSafeString REQUIRED)
 
 # Include header directories
 include_directories(
@@ -86,7 +67,7 @@ include_directories(
     ${EISUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
-    ${safestring_SOURCE_DIR}/include)
+    ${IntelSafeString_INCLUDE})
 
 # Get all source files
 file(GLOB SOURCES "src/*.c")
@@ -103,7 +84,7 @@ target_link_libraries(eismsgbus
     PRIVATE
         ${ZMQ_LIBRARIES}
         ${CJSON_LIBRARIES}
-        safestring_static)
+        ${IntelSafeString_LIBRARIES})
 
 # If compile in debug mode, set DEBUG flag for C code
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
