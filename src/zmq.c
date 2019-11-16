@@ -44,6 +44,7 @@
 #define IPC_PREFIX_LEN 6
 #define TCP_PREFIX     "tcp://"
 #define TCP_PREFIX_LEN 6
+#define ZEROMQ_HWM     "zmq_recv_hwm"
 
 #define LOG_ZMQ_ERROR(msg) \
     LOG_ERROR(msg ": [%d] %s", zmq_errno(), zmq_strerror(zmq_errno()));
@@ -85,6 +86,7 @@ typedef struct {
     void* zmq_context;
     bool is_ipc;
     config_t* config;
+    int zmq_recv_hwm;
 
     // Known config values alread extracted from the configuration
     union {
@@ -483,6 +485,27 @@ void sock_ctx_destroy(zmq_sock_ctx_t* ctx, bool close_socket) {
     }
 }
 
+/**
+ * Helper function for setting the ZMQ_RCVHWM socket option on a ZMQ socket.
+ *
+ * \note Returns true immediately if zmq_rcvhwm < 0
+ *
+ * @param socket     - ZeroMQ socket
+ * @param zmq_rcvhwm - ZeroMQ receive high watermark value
+ * @return bool
+ */
+bool set_rcv_hwm(void* socket, int zmq_rcvhwm) {
+    if(zmq_rcvhwm < 0) return true;
+
+    int ret = zmq_setsockopt(socket, ZMQ_RCVHWM, &zmq_rcvhwm, sizeof(int));
+    if(ret != 0) {
+        LOG_ZMQ_ERROR("Failed setting ZMQ_RCVHWM");
+        return false;
+    }
+
+    return true;
+}
+
 bool verify_key_len(const char* key);
 
 // Macro to make receiving ZAP frames simpler
@@ -805,6 +828,7 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     // Initialize all proto context values
     zmq_proto_ctx->zmq_context = zmq_ctx_new();
     zmq_proto_ctx->config = config;
+    zmq_proto_ctx->zmq_recv_hwm = -1;
     zmq_proto_ctx->is_ipc = false;
 
     // Initialize IPC configuration values
@@ -816,6 +840,27 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     zmq_proto_ctx->cfg.tcp.pub_socket = NULL;
     zmq_proto_ctx->cfg.tcp.pub_config = NULL;
     zmq_proto_ctx->cfg.tcp.pub_mutex = NULL;
+
+    // Getting ZeroMQ receive high wartermark
+    config_value_t* recv_hwm = config_get(config, ZEROMQ_HWM);
+    if(recv_hwm != NULL) {
+        if(recv_hwm->type != CVT_INTEGER) {
+            LOG_ERROR_0("ZeroMQ receive HWM must be an integer");
+            config_value_destroy(recv_hwm);
+            goto err;
+        }
+
+        if(recv_hwm->body.integer < 0) {
+            LOG_ERROR_0("ZeroMQ receive HWM must be greater than 0");
+            config_value_destroy(recv_hwm);
+            goto err;
+        }
+
+        zmq_proto_ctx->zmq_recv_hwm = (int) recv_hwm->body.integer;
+        LOG_DEBUG("ZeroMQ receive high watermark: %d",
+                zmq_proto_ctx->zmq_recv_hwm);
+        config_value_destroy(recv_hwm);
+    }
 
     int ind_ipc;
     int ind_tcp;
@@ -1208,6 +1253,9 @@ msgbus_ret_t proto_zmq_publisher_new(
             goto err;
         }
 
+        // Set the receive high watermark (if it is set for the protocol)
+        if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
+
         // Initialize socket with Curve authentication if the socket is a TCP
         // socket and the correct values are set in the configuration for the
         // socket
@@ -1324,6 +1372,7 @@ msgbus_ret_t proto_zmq_subscriber_new(
         LOG_ZMQ_ERROR("Failed to initialize ZeroMQ socket");
         goto err;
     }
+
     // Setting socket_options
     int val = 0;
     int ret = zmq_setsockopt(socket, ZMQ_LINGER, &val, sizeof(val));
@@ -1331,6 +1380,9 @@ msgbus_ret_t proto_zmq_subscriber_new(
         LOG_ZMQ_ERROR("Failed setting ZMQ_LINGER");
         goto err;
     }
+
+    // Set the receive high watermark (if it is set for the protocol)
+    if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
 
     // Set subscription filter
     size_t topic_len = strlen(topic);
@@ -1666,6 +1718,9 @@ msgbus_ret_t proto_zmq_service_get(
         goto err;
     }
 
+    // Set the receive high watermark (if it is set for the protocol)
+    if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
+
     // Initialize context object
     zmq_recv_ctx = (zmq_recv_ctx_t*) malloc(sizeof(zmq_recv_ctx_t));
     if(zmq_recv_ctx == NULL) {
@@ -1742,6 +1797,9 @@ msgbus_ret_t proto_zmq_service_new(
         LOG_ZMQ_ERROR("Failed to initialize ZeroMQ socket");
         goto err;
     }
+
+    // Set the receive high watermark (if it is set for the protocol)
+    if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
 
     // Initialize socket with Curve authentication if the socket is a TCP
     // socket and the correct values are set in the configuration for the
