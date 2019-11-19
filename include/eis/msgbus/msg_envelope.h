@@ -446,6 +446,17 @@ public:
      * @return @c msg_envelope_t*, @c NULL if an error occurs
      */
     virtual msg_envelope_t* serialize() = 0;
+
+    /**
+     * Get @c msg_envelope_t meta-data envelope.
+     *
+     * \note NULL will be returned if the frame has already been serialized.
+     * Pure virtual function for getting the meta data envelope from the frame
+     *
+     * @return @c msg_envelope_t*
+     */
+    virtual msg_envelope_t* get_meta_data()=0;
+
 };
 
 } // msgbus
