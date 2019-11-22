@@ -10,6 +10,11 @@ To install the dependencies for the message bus execute the following command:
 $ sudo -E ./install.sh
 ```
 
+Additionally, EISMessageBus depends on the below libraries. Follow their documentation to install them.
+* [IntelSafeString](../IntelSafeString/README.md)
+* [EISMsgEnv](../EISMsgEnv/README.md)
+* [EISUtils](../../util/c/README.md)
+
 If you wish to compile the Python binding as well, then run the `install.sh`
 script with the `--cython` flag (as shown below).
 
