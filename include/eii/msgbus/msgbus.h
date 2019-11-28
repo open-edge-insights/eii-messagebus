@@ -449,7 +449,7 @@ public:
 template<class T>
 class Subscriber : public BaseMsgbusThread {
 private:
-    // Publisher context
+    // Subscriber context
     recv_ctx_t* m_recv_ctx;
 
     // Output message queue
@@ -465,7 +465,6 @@ protected:
         int duration = 250; // microseconds
         msg_envelope_t* msg = NULL;
         msgbus_ret_t ret = MSG_SUCCESS;
-        QueueRetCode qret = QueueRetCode::SUCCESS;
 
         while(!m_stop.load()) {
             ret = msgbus_recv_timedwait(m_ctx, m_recv_ctx, duration, &msg);
