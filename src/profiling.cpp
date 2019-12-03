@@ -2,14 +2,20 @@
 #include <algorithm>
 
 eis::utils::Profiling::Profiling() {
-    std::string prof_mode = std::string(getenv("PROFILING_MODE"));
-    std::transform(prof_mode.begin(), prof_mode.end(), prof_mode.begin(),
-    [](unsigned char c){ return std::tolower(c); });
+    char* prof_mode_str = getenv("PROFILING_MODE");
+    if(prof_mode_str != NULL) {
+        std::string prof_mode = std::string(prof_mode_str);
+        std::transform(prof_mode.begin(), prof_mode.end(), prof_mode.begin(),
+            [](unsigned char c){ return std::tolower(c); });
 
-    if(prof_mode.compare(std::string("true")) == 0){
-        this->m_profiling_enabled = true;
-    }
-    else {
+        if(prof_mode.compare(std::string("true")) == 0) {
+            this->m_profiling_enabled = true;
+        } else {
+            this->m_profiling_enabled = false;
+        }
+    } else {
+        // If the environmenatal variable Profiling mode is not found then
+        // the default value is set to false
         this->m_profiling_enabled = false;
     }
 }
@@ -39,7 +45,7 @@ void eis::utils::Profiling::add_profiling_ts(msg_envelope_t* meta, const char* k
             throw "Failed to wrap msgBody ito meta-data envelope";
         }
     } catch(std::exception& err){
-        LOG_ERROR("%s",err);
+        LOG_ERROR("exception: %s",err.what());
     }
 
 }
