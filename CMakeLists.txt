@@ -103,7 +103,7 @@ install(TARGETS eismsgenv
 set_target_properties(eismsgenv PROPERTIES EXPORT_NAME EISMsgEnv)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-# Install pkg-config libeismsgbus.pc file
+# Install pkg-config libeismsgenv.pc file
 install(
     FILES
         ${PKG_CONFIG_OUT}
