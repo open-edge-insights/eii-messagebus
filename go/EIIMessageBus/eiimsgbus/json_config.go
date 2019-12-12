@@ -54,11 +54,13 @@ func ParseJsonConfig(jsonBytes []byte) (map[string]interface{}, error) {
 // Note: This method automatically takes care of using a JSON decode having set the UseNumber() flag.
 func ReadJsonConfig(fileName string) (map[string]interface{}, error) {
 	// Open JSON file
-	jsonFile, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
+	if fileName != nil {
+		jsonFile, err := os.Open(fileName)
+		if err != nil {
+			return nil, err
+		}
+		defer jsonFile.Close()
 	}
-	defer jsonFile.Close()
 
 	// Read all bytes from the file
 	jsonBytes, err := ioutil.ReadAll(jsonFile)
