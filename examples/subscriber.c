@@ -104,10 +104,13 @@ int main(int argc, char** argv) {
     }
 
     msgbus_ret_t ret;
-    if(argc == 3)
-         ret = msgbus_subscriber_new(g_msgbus_ctx, argv[2], NULL, &g_sub_ctx);
-    else
-         ret = msgbus_subscriber_new(g_msgbus_ctx, TOPIC, NULL, &g_sub_ctx);
+    if(argc == 3) {
+        LOG_INFO_0("if topic name explicitly given");
+        ret = msgbus_subscriber_new(g_msgbus_ctx, argv[2], NULL, &g_sub_ctx);
+    } else {
+        LOG_INFO_0("if topic name explicitly NOT given");
+        ret = msgbus_subscriber_new(g_msgbus_ctx, TOPIC, NULL, &g_sub_ctx);
+    }
     if(ret != MSG_SUCCESS) {
         LOG_ERROR("Failed to initialize subscriber (errno: %d)", ret);
         goto err;
@@ -123,7 +126,7 @@ int main(int argc, char** argv) {
             LOG_ERROR("Failed to receive message (errno: %d)", ret);
             goto err;
         }
-
+        LOG_INFO("Topic in the received message on subscriber is %s \n", msg->name);
         num_parts = msgbus_msg_envelope_serialize(msg, &parts);
         if(num_parts <= 0) {
             LOG_ERROR_0("Failed to serialize message");
