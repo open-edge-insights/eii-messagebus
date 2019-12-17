@@ -53,17 +53,16 @@ typedef struct {
 /**
  * Helper to initailize the message to be published
  */
-msg_envelope_t* initialize_message(const char* topic) {
+msg_envelope_t* initialize_message() {
     // Creating message to be published
     msg_envelope_elem_body_t* integer = msgbus_msg_envelope_new_integer(42);
     msg_envelope_elem_body_t* fp = msgbus_msg_envelope_new_floating(55.5);
-    msg_envelope_elem_body_t* string = msgbus_msg_envelope_new_string(topic);
 
     msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
 
     msgbus_msg_envelope_put(msg, "hello", integer);
     msgbus_msg_envelope_put(msg, "world", fp);
-    msgbus_msg_envelope_put(msg, "topic", string);
+
     return msg;
 }
 
@@ -143,13 +142,10 @@ int main(int argc, char** argv) {
             if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
                 usage(argv[0]);
                 return 0;
-            } else {
-                LOG_ERROR_0("Too few arguments");
-                return -1;
             }
-        } else {
-            LOG_ERROR_0("Too few arguments");
-            return -1;
+        } else if(argc == 1) {
+            usage(argv[0]);
+                return 0;
         }
     } else if(argc > 3) {
         LOG_ERROR_0("Too many arguments");
@@ -158,6 +154,10 @@ int main(int argc, char** argv) {
 
     // Set log level
     set_log_level(LOG_LVL_DEBUG);
+
+    // Setup signal handlers
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
 
     char* config_file = argv[1];
     g_num_publishers = atoi(argv[2]);
@@ -204,7 +204,7 @@ int main(int argc, char** argv) {
         char topic[64];
 
         // Create topic string
-        sprintf(topic, "pub-%d", i);
+        sprintf(topic, "pub/A/B/-%d", i);
 
         LOG_INFO("Initializing publisher for topic: %s", topic);
 
@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
         }
 
         // Create the message for the publisher to send
-        ctx->msg = initialize_message(topic);
+        ctx->msg = initialize_message();
 
         // Start publisher thread
         g_pub_threads[i] = (pthread_t*) malloc(sizeof(pthread_t));
@@ -226,10 +226,6 @@ int main(int argc, char** argv) {
         }
         pthread_create(g_pub_threads[i], NULL, pub_run, (void*) ctx);
     }
-
-    // Setup signal handlers
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
 
     // Wait for signal to stop
     pthread_mutex_lock(&g_mutex);
