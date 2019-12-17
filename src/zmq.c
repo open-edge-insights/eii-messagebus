@@ -202,7 +202,6 @@ char* create_uri(zmq_proto_ctx_t* ctx, const char* name, bool is_publisher) {
     if(ctx->is_ipc) {
         // Temp pointer to the socket directory
         char* sock_dir = ctx->cfg.ipc.socket_dir->body.string;
-
         // Get all string portion lengths
         size_t name_len = strlen(name);
         size_t socket_dir_len = strlen(sock_dir);
@@ -1510,11 +1509,9 @@ msgbus_ret_t base_recv(
 {
     int rc = 0;
     void* socket = ctx->socket;
-
     zmq_pollitem_t poll_items[1];
     poll_items[0].socket = socket;
     poll_items[0].events = ZMQ_POLLIN;
-
     if(timeout < 0) {
         msgbus_ret_t event_ret;
         // Poll indefinitley
@@ -1570,7 +1567,10 @@ msgbus_ret_t base_recv(
         LOG_ZMQ_ERROR("recv failed");
         return MSG_ERR_RECV_FAILED;
     }
-    LOG_DEBUG("Received message for '%s'", (char*) zmq_msg_data(&prefix));
+
+    char* name = NULL;
+    name = (char*) zmq_msg_data(&prefix);
+    LOG_DEBUG("Received message for '%s'", name);
     zmq_msg_close(&prefix);
 
     // Receive content type
@@ -1643,7 +1643,6 @@ msgbus_ret_t base_recv(
         }
 
         LOG_DEBUG("Received %d bytes", rc);
-
         parts[part_idx].shared = owned_blob_new(
                 (void*) part, free_zmq_msg, (char*) zmq_msg_data(part), rc);
         parts[part_idx].len = rc;
@@ -1662,13 +1661,13 @@ msgbus_ret_t base_recv(
     } while(more);
 
     ret = msgbus_msg_envelope_deserialize(
-            (content_type_t) buf[0], parts, num_parts, env);
+            (content_type_t) buf[0], parts, num_parts, name, env);
     if(ret != MSG_SUCCESS) {
         LOG_ERROR("Failed to deserialize message: %d", ret);
         msgbus_msg_envelope_serialize_destroy(parts, num_parts);
         return ret;
     }
-
+    LOG_DEBUG("env->name = %s \n",(*env)->name);
     msgbus_msg_envelope_serialize_destroy(parts, num_parts);
 
     return MSG_SUCCESS;
