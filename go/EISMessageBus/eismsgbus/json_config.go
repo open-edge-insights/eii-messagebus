@@ -25,6 +25,7 @@ package eismsgbus
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 )
@@ -54,19 +55,18 @@ func ParseJsonConfig(jsonBytes []byte) (map[string]interface{}, error) {
 // Note: This method automatically takes care of using a JSON decode having set the UseNumber() flag.
 func ReadJsonConfig(fileName string) (map[string]interface{}, error) {
 	// Open JSON file
-	if fileName != nil {
-		jsonFile, err := os.Open(fileName)
-		if err != nil {
-			return nil, err
-		}
-		defer jsonFile.Close()
+	if fileName == "" {
+		return nil, errors.New("fileName cannot be empty")
 	}
-
+	jsonFile, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer jsonFile.Close()
 	// Read all bytes from the file
 	jsonBytes, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
 		return nil, err
 	}
-
 	return ParseJsonConfig(jsonBytes)
 }
