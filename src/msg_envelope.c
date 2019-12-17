@@ -26,7 +26,6 @@
 #include <stdlib.h>
 
 #include <stdio.h>
-#include <string.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -51,6 +50,7 @@ msg_envelope_t* msgbus_msg_envelope_new(content_type_t ct) {
     env->correlation_id = NULL; // TODO: Need to assign this
     env->content_type = ct;
     env->blob = NULL;
+    env->name = NULL; // topic name/ service name
 
     if(ct == CT_BLOB) {
         env->map = NULL;
@@ -682,7 +682,7 @@ msgbus_ret_t deserialize_blob(
 
 msgbus_ret_t msgbus_msg_envelope_deserialize(
         content_type_t ct, msg_envelope_serialized_part_t* parts,
-        int num_parts, msg_envelope_t** env)
+        int num_parts, const char* name, msg_envelope_t** env)
 {
     msgbus_ret_t ret = MSG_SUCCESS;
     msg_envelope_t* msg = msgbus_msg_envelope_new(ct);
@@ -731,6 +731,14 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
         }
     }
 
+    size_t len = strlen(name) + 1;
+    msg->name = (char*)malloc(len);
+    if (msg->name == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+    memset(msg->name, "", len);
+    *((msg->name)+len) = "\0";
+    strcpy_s(msg->name, len, name);
     if(ret == MSG_SUCCESS)
         *env = msg;
     else
@@ -777,6 +785,8 @@ void msgbus_msg_envelope_destroy(msg_envelope_t* env) {
         msgbus_msg_envelope_elem_destroy(env->blob);
     if(env->map != NULL)
         hashmap_destroy(env->map);
+    if (env->name != NULL)
+        msgbus_msg_envelope_elem_destroy(env->name);
     free(env);
 }
 

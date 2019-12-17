@@ -110,6 +110,7 @@ typedef struct {
  * the message bus.
  */
 typedef struct {
+    char* name;
     char* correlation_id;
     content_type_t content_type;
 
@@ -345,12 +346,13 @@ int msgbus_msg_envelope_serialize(
  * @param[in]  ct        - Message content type
  * @param[in]  parts     - Serialized parts to deserailize
  * @param[in]  num_parts - Number of message parts
+ * @param[in] name       - Topic name
  * @param[out] env       - Output message envelope
  * @return msgbus_ret_t
  */
 msgbus_ret_t msgbus_msg_envelope_deserialize(
         content_type_t ct, msg_envelope_serialized_part_t* parts,
-        int num_parts, msg_envelope_t** env);
+        int num_parts, const char* name, msg_envelope_t** env);
 
 /**
  * Create a new list of serialized message parts.
