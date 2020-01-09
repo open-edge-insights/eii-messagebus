@@ -24,6 +24,7 @@ package types
 
 // Message envelope wrapper type
 type MsgEnvelope struct {
+	Name string
 	Data map[string]interface{}
 	Blob []byte
 }
@@ -31,6 +32,8 @@ type MsgEnvelope struct {
 // Initialize a new message envelope.
 func NewMsgEnvelope(data map[string]interface{}, blob []byte) *MsgEnvelope {
 	env := new(MsgEnvelope)
+	// topic or service name
+	env.Name = ""
 	env.Data = data
 	env.Blob = blob
 	return env
