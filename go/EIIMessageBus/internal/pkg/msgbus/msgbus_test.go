@@ -53,8 +53,8 @@ func TestPubSub(t *testing.T) {
 		return
 	}
 	defer ctx.Destroy()
-
-	pubCtx, err := ctx.NewPublisher("test")
+	topic := "test"
+	pubCtx, err := ctx.NewPublisher(topic)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -62,7 +62,7 @@ func TestPubSub(t *testing.T) {
 
 	defer ctx.DestroyPublisher(pubCtx)
 
-	subCtx, err := ctx.NewSubscriber("test")
+	subCtx, err := ctx.NewSubscriber(topic)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -99,6 +99,12 @@ func TestPubSub(t *testing.T) {
 	eq = reflect.DeepEqual(received.Blob, bytes)
 	if !eq {
 		t.Errorf("Messages not equal:\n\tSENT: %v\n\tRECEIVED: %v\n", m, received)
+		return
+	}
+
+	eq = reflect.DeepEqual(received.Name, topic)
+	if !eq {
+		t.Errorf("Topic name is not matching :\n\tSENT: %v\n\tRECEIVED: %v\n", topic, received.Name)
 		return
 	}
 }

@@ -314,6 +314,9 @@ func MsgEnvelopeToGo(msg unsafe.Pointer) (*types.MsgEnvelope, error) {
 
 	defer C.free_parts_wrapper(parts)
 
+	if env.name != nil {
+		res.Name = C.GoString(env.name)
+	}
 	if env.content_type == C.CT_BLOB {
 		res.Blob = C.GoBytes(unsafe.Pointer(C.get_part_bytes(parts, 0)), C.get_part_len(parts, 0))
 		res.Data = nil
