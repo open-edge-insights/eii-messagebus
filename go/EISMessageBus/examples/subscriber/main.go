@@ -65,7 +65,7 @@ func main() {
 	for {
 		select {
 		case msg := <-subscriber.MessageChannel:
-			fmt.Printf("-- Received Message: %v\n", msg)
+			fmt.Printf("-- Received Message: %v on topic: %s\n", msg.Data, msg.Name)
 		case err := <-subscriber.ErrorChannel:
 			fmt.Printf("-- Error receiving message: %v\n", err)
 		}
