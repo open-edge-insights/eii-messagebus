@@ -57,13 +57,11 @@ msg_envelope_t* initialize_message(const char* topic) {
     // Creating message to be published
     msg_envelope_elem_body_t* integer = msgbus_msg_envelope_new_integer(42);
     msg_envelope_elem_body_t* fp = msgbus_msg_envelope_new_floating(55.5);
-    msg_envelope_elem_body_t* string = msgbus_msg_envelope_new_string(topic);
 
     msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
 
     msgbus_msg_envelope_put(msg, "hello", integer);
     msgbus_msg_envelope_put(msg, "world", fp);
-    msgbus_msg_envelope_put(msg, "topic", string);
     return msg;
 }
 
