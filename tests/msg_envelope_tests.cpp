@@ -62,6 +62,23 @@ TEST(msg_envelope_tests, simple_init) {
 }
 
 /**
+ * Test to add name field to msg_envelope_t & verify that there are no memory leaks.
+ */
+TEST(msg_envelope_tests, topic_envelope) {
+    msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
+    if(msg == NULL)
+        FAIL() << "NULL";
+
+    msg_envelope_elem_body_t* data = msgbus_msg_envelope_new_integer(42);
+    msgbus_msg_envelope_put(msg, "testing", data);
+
+    msg->name = "topic_or_service_name";
+
+    msgbus_msg_envelope_destroy(msg);
+}
+
+
+/**
  * Test to verify flow of put, get, remove, and get
  */
 TEST(msg_envelope_tests, simple_put_get_remove) {
@@ -198,7 +215,7 @@ TEST(msg_envelope_tests, ct_blob_serialize) {
     }
 
     msg_envelope_t* env = NULL;
-    ret = msgbus_msg_envelope_deserialize(CT_BLOB, parts, num_parts, &env);
+    ret = msgbus_msg_envelope_deserialize(CT_BLOB, parts, num_parts, "test", &env);
     ASSERT_EQ(ret, MSG_SUCCESS);
 
     msgbus_msg_envelope_serialize_destroy(parts, num_parts);
@@ -317,7 +334,7 @@ TEST(msg_envelope_tests, ct_json_serialize) {
 
     msg_envelope_t* deserialized = NULL;
     ret = msgbus_msg_envelope_deserialize(
-            CT_JSON, parts, num_parts, &deserialized);
+            CT_JSON, parts, num_parts, "test", &deserialized);
     ASSERT_EQ(ret, MSG_SUCCESS);
 
     // Verify the object is there after deserialization
