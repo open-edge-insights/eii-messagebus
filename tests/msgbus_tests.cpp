@@ -28,7 +28,7 @@
 
 #include <gtest/gtest.h>
 #include "eis/msgbus/msgbus.h"
-#include "eis/msgbus/zmq.h"
+#include <eis/utils/logger.h>
 #include "eis/utils/timeit.h"
 #include "eis/utils/logger.h"
 #include "eis/utils/json_config.h"
