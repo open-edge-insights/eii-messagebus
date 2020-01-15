@@ -46,8 +46,8 @@ bool g_stop = false;
  * Structure to contain state for a publisher thread
  */
 typedef struct {
-    msg_envelope_t* msg;
     publisher_ctx_t* pub_ctx;
+    char* topic;
 } pub_thread_ctx_t;
 
 /**
@@ -75,8 +75,10 @@ void* pub_run(void* vargs) {
     pub_thread_ctx_t* ctx = (pub_thread_ctx_t*) vargs;
 
     while(keep_running) {
-        LOG_INFO_0("Publishing message");
-        msgbus_publisher_publish(g_msgbus_ctx, ctx->pub_ctx, ctx->msg);
+        msg_envelope_t* msg = initialize_message(ctx->topic);
+        LOG_INFO("Publishing message for '%s'", ctx->topic);
+        msgbus_publisher_publish(g_msgbus_ctx, ctx->pub_ctx, msg);
+        msgbus_msg_envelope_destroy(msg);
 
         sleep(1);
 
@@ -89,7 +91,7 @@ void* pub_run(void* vargs) {
     msgbus_publisher_destroy(g_msgbus_ctx, ctx->pub_ctx);
     pthread_mutex_unlock(&g_mutex);
 
-    msgbus_msg_envelope_destroy(ctx->msg);
+    free(ctx->topic);
     free(ctx);
 
     return NULL;
@@ -201,22 +203,19 @@ int main(int argc, char** argv) {
             LOG_ERROR_0("malloc failed");
             goto err;
         }
-        char topic[64];
+        ctx->topic = (char*) malloc(sizeof(char) * 64);
 
         // Create topic string
-        sprintf(topic, "pub-%d", i);
+        sprintf(ctx->topic, "pub-%d", i);
 
-        LOG_INFO("Initializing publisher for topic: %s", topic);
+        LOG_INFO("Initializing publisher for topic: %s", ctx->topic);
 
         // Create publisher
-        ret = msgbus_publisher_new(g_msgbus_ctx, topic, &ctx->pub_ctx);
+        ret = msgbus_publisher_new(g_msgbus_ctx, ctx->topic, &ctx->pub_ctx);
         if(ret != MSG_SUCCESS) {
             LOG_ERROR("Error creating publisher (errno: %d)", ret);
             goto err;
         }
-
-        // Create the message for the publisher to send
-        ctx->msg = initialize_message(topic);
 
         // Start publisher thread
         g_pub_threads[i] = (pthread_t*) malloc(sizeof(pthread_t));
