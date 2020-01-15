@@ -70,7 +70,7 @@ include_directories(
     ${IntelSafeString_INCLUDE})
 
 # Get all source files
-file(GLOB SOURCES "src/*.c")
+file(GLOB SOURCES "src/*.c" "src/*/*.c")
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
 add_library(eismsgbus SHARED

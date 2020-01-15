@@ -32,7 +32,7 @@
 
 #include "eis/msgbus/msgbus.h"
 #include "eis/msgbus/protocol.h"
-#include "eis/msgbus/zmq.h"
+#include "proto_zmq/zmq.h"
 #include "cpuid-check.h"
 
 #define INTEL_VENDOR "GenuineIntel"
