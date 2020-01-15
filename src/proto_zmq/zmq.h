@@ -19,7 +19,6 @@
 // IN THE SOFTWARE.
 
 /**
- * @file
  * @brief ZeroMQ protocol interface
  * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
@@ -27,25 +26,12 @@
 #ifndef _EIS_MESSAGE_BUS_ZMQ_H
 #define _EIS_MESSAGE_BUS_ZMQ_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+#include <eis/utils/logger.h>
 #include "eis/msgbus/protocol.h"
 
 // Protocol supported by the zeromq protocol implementation
 #define ZMQ_IPC "zmq_ipc"
 #define ZMQ_TCP "zmq_tcp"
-#define ZMQ_CFG_TCP_PUB         "zmq_tcp_publish"
-#define ZMQ_CFG_TCP_ALLOWED_CLIENTS "allowed_clients"
-
-// Expected configuration keys for server sockets (used for TCP communication)
-#define ZMQ_CFG_SERVER_SECRET   "server_secret_key"
-
-// Expected configuration keys for client sockets (used for TCP communication)
-#define ZMQ_CFG_SERVER_PUBLIC_KEY "server_public_key"
-#define ZMQ_CFG_CLIENT_PUBLIC_KEY "client_public_key"
-#define ZMQ_CFG_CLIENT_SECRET_KEY "client_secret_key"
 
 /**
  * Initialize the ZeroMQ protocol for the EIS message bus.
@@ -55,9 +41,5 @@ extern "C" {
  * @return ZeroMQ protocol context, or NULL
  */
 protocol_t* proto_zmq_initialize(const char* type, config_t* config);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // _EIS_MESSAGE_BUS_ZMQ_H
