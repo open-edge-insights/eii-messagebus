@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <cjson/cJSON.h>
 #include <safe_lib.h>
@@ -732,12 +733,11 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
     }
 
     size_t len = strlen(name) + 1;
-    msg->name = (char*)malloc(len);
+    msg->name = (char*) malloc(len);
     if (msg->name == NULL) {
         return MSG_ERR_NO_MEMORY;
     }
-    memset(msg->name, "", len);
-    *((msg->name)+len) = "\0";
+    memset(msg->name, '\0', len);
     strcpy_s(msg->name, len, name);
     if(ret == MSG_SUCCESS)
         *env = msg;
@@ -786,7 +786,7 @@ void msgbus_msg_envelope_destroy(msg_envelope_t* env) {
     if(env->map != NULL)
         hashmap_destroy(env->map);
     if (env->name != NULL)
-        msgbus_msg_envelope_elem_destroy(env->name);
+        free(env->name);
     free(env);
 }
 
