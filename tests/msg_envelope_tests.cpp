@@ -32,6 +32,7 @@
 #include <cjson/cJSON.h>
 #include "eis/msgbus/msg_envelope.h"
 
+#define TEST_NAME "topic-or-service-name"
 #define EXPECTED_JSON_LEN 108
 #define EXPECTED_JSON "{"\
     "\"int\":42,"\
@@ -72,7 +73,11 @@ TEST(msg_envelope_tests, topic_envelope) {
     msg_envelope_elem_body_t* data = msgbus_msg_envelope_new_integer(42);
     msgbus_msg_envelope_put(msg, "testing", data);
 
-    msg->name = "topic_or_service_name";
+    size_t len = strlen(TEST_NAME) + 1;
+    msg->name = (char*) malloc(sizeof(char) * len);
+    ASSERT_NOT_NULL(msg->name);
+    strcpy(msg->name, TEST_NAME);
+    msg->name[len - 1] = '\0';  // NULL terminate string
 
     msgbus_msg_envelope_destroy(msg);
 }
