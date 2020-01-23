@@ -49,9 +49,18 @@ try:
     print('[INFO] Running...')
     while True:
         msg = subscriber.recv()
-        if msg is not None:
+        meta_data, blob = msg
+        if meta_data is not None:
             if args.print:
-                print(f'[INFO] RECEIVED: {msg}')
+                print(f'[INFO] RECEIVED: meta data: {meta_data} \
+                    for topic {msg.get_name()}')
+        else:
+            print('[INFO] Receive interrupted')
+
+        if blob is not None:
+            if args.print:
+                print(f'[INFO] RECEIVED: blob: {msg.get_blob()} \
+                    for topic {msg.get_name()}')
         else:
             print('[INFO] Receive interrupted')
 except KeyboardInterrupt:
