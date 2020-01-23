@@ -139,6 +139,7 @@ cdef extern from "eis/msgbus/msgbus.h" nogil:
         msg_envelope_elem_body_t* body
 
     ctypedef struct msg_envelope_t:
+        char* name
         char* correlation_id
         content_type_t content_type
         int size
@@ -245,7 +246,7 @@ cdef extern from "eis/msgbus/msgbus.h" nogil:
             msg_envelope_t* env, msg_envelope_serialized_part_t** parts)
     msgbus_ret_t msgbus_msg_envelope_deserialize(
             content_type_t ct, msg_envelope_serialized_part_t* data,
-            size_t num_parts, msg_envelope_t** env)
+            size_t num_parts, const char* name, msg_envelope_t** env)
     msgbus_ret_t msgbus_msg_envelope_serialize_parts_new(
             int num_parts, msg_envelope_serialized_part_t** parts)
     void msgbus_msg_envelope_serialize_destroy(

@@ -31,6 +31,93 @@ from cpython cimport bool, Py_INCREF, Py_DECREF
 from libc.stdint cimport int64_t
 
 
+class MsgEnvelope:
+    """EIS Message Envelope
+    """
+    def __init__(self, meta_data=None, blob=None, name=None):
+        """Constructor
+
+        :param str name: Topic string or service name
+        :param dict meta_data: (key, value) data in the
+                                message envelope, can be None
+        :param bytes blob: Blob data in the message, can be None
+        """
+        self.name = name
+        self.meta_data = meta_data
+        self.blob = blob
+
+    def get_name(self):
+        """Get the topic string or service name in the message envelope.
+
+        .. note:: This will only be assigned if the MsgEnvelope was received
+            over the message bus.
+
+        :return: Topic string or service name, will be None if not set
+        :rtype: Union[None, str]
+        """
+        return self.name
+
+    def get_blob(self):
+        """Get the blob data in the message envelope.
+
+        :return: Blob data in the message if any exists
+        :rtype: Union[None, bytes]
+        """
+        return self.blob
+
+    def get_meta_data(self):
+        """Get the meta-data in the message envelope if any exists.
+
+        :return: Meta-data in the message envelope
+        :rtype: Union[None, dict]
+        """
+        return self.meta_data
+
+    def __getitem__(self, key):
+        """Override Python __getitem__() method to make the MsgEnvelope class
+        behave like a tuple, dict, or bytes value to maintain backwards
+        compatibility through the API.
+        """
+        tup = (self.meta_data, self.blob,)
+        return tup[key]
+
+    def __setitem__(self, key, value):
+        """Override Python __setitem__() method to make the MsgEnvelope class
+        assign values in the meta_data dictionary.
+        """
+        if self.meta_data is None:
+            self.meta_data = {}
+        self.meta_data[key] = value
+
+    def __bytes__(self):
+        """Overriden bytes method.
+        """
+        if self.meta_data is not None:
+            # Raising the same error that Python raises for calling bytes on a
+            # dict (this case also applies to when the object is tuple of
+            # (dict, bytes))
+            raise TypeError(
+                    '\'dict\' object cannot be interpreted as an integer')
+        else:
+            return self.blob
+
+    def __eq__(self, other):
+        """Overridden equals method.
+        """
+        if isinstance(other, MsgEnvelope):
+            return self.meta_data == other.meta_data and \
+                self.blob == other.blob
+        elif self.meta_data is not None and self.blob is not None:
+            # Assume that other is a tuple and is being compared to this msg
+            return (self.meta_data, self.blob,) == other
+        elif self.meta_data is not None:
+            # Assume that other is a dict and is being compared to meta_data
+            return self.meta_data == other
+        else:
+            # Assume that other is a bytes object
+            return self.blob == other
+
+
 cdef void free_python_blob(void* vhint) nogil:
     """Method for freeing a Python blob by decreasing the number of references
     on it in the Python interpreter.
@@ -241,16 +328,20 @@ cdef object msg_envelope_to_python(msg_envelope_t* msg):
 
     try:
         data = None
-
+        msg_meta_data = None
+        msg_blob = None
+        msg_name = None
+        if msg.name.decode() is not None:
+            msg_name = msg.name.decode()
         if msg.content_type == content_type_t.CT_JSON:
-            data = json.loads(char_to_bytes(parts[0].bytes, parts[0].len))
+            msg_meta_data = json.loads(char_to_bytes(parts[0].bytes, parts[0].len))
             if num_parts > 1:
-                data = (data, char_to_bytes(parts[1].bytes, parts[1].len),)
+                msg_blob = char_to_bytes(parts[1].bytes, parts[1].len)
         elif msg.content_type == content_type_t.CT_BLOB:
-            data = char_to_bytes(parts[0].bytes, parts[0].len)
+            msg_blob = char_to_bytes(parts[0].bytes, parts[0].len)
         else:
             raise MessageBusError('Unknown content type')
-
+        data = MsgEnvelope(name=msg_name, meta_data=msg_meta_data, blob=msg_blob)
         return data
     finally:
         msgbus_msg_envelope_serialize_destroy(parts, num_parts)
