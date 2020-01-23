@@ -57,11 +57,15 @@ msg_envelope_t* initialize_message(const char* topic) {
     // Creating message to be published
     msg_envelope_elem_body_t* integer = msgbus_msg_envelope_new_integer(42);
     msg_envelope_elem_body_t* fp = msgbus_msg_envelope_new_floating(55.5);
+    char* blob_data = (char*) malloc(sizeof(char) * 9);
+    memcpy(blob_data, "testblob", 9);
+    msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(blob_data, 9);
 
     msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
 
     msgbus_msg_envelope_put(msg, "hello", integer);
     msgbus_msg_envelope_put(msg, "world", fp);
+    msgbus_msg_envelope_put(msg, NULL, blob);
     return msg;
 }
 
