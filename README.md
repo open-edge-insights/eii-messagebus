@@ -310,11 +310,14 @@ The table below specifies all of the provided example configurations.
 |                 Configuration                   |                                     Description                                     |
 | :---------------------------------------------: | ----------------------------------------------------------------------------------- |
 | ipc_example_config.json                         | Configuration for IPC based communication. Works with all examples.                 |
+| ipc_example_config_multi_topics.json                         | Configuration for IPC based communications to be used with multi-topic publishing/subscribing. Works with publisher-many & subscriber examples.                 |
 | tcp_publisher_no_security.json                  | TCP configuration for publishing with no security.                                  |
 | tcp_publisher_with_security_no_auth.json        | TCP configuration for publishing with key based auth without ZAP auth.              |
 | tcp_publisher_with_security_with_auth.json      | TCP configuration for publishing with key based auth and ZAP auth.                  |
 | tcp_subscriber_no_security.json                 | TCP configuration for subscribing to a topic with no security.                      |
+| tcp_subscriber_no_security_prefix_match.json                 | TCP configuration for subscribing to multiple topics which share a common prefix, with no security.                                        |
 | tcp_subscriber_with_security.json               | TCP configuration for subscribing to a topic with security enabled.                 |
+| tcp_subscriber_with_security_prefix_match.json                 | TCP configuration for subscribing to multiple topics which share a common prefix, with security.                                        |
 | tcp_service_server_no_security.json             | TCP configuration for a service server side (i.e. `echo-service`) without security. |
 | tcp_service_server_with_security_no_auth.json   | TCP configuration for a service server side with key based auth without ZAP auth.   |
 | tcp_service_server_with_security_with_auth.json | TCP configuration for a service server side with key based auth and ZAP auth.       |
@@ -371,22 +374,24 @@ $ ./publisher-many ./configs/ipc_example_config.json 5
 
 In the case above, the example will create 5 publishers where the topic
 strings follow the pattern `pub-{0,N-1}` where `N` is the number of publishers
-specified through the CLI.
+specified through the CLI. Can replace this JSON config file with any other JSON
+config as mention in the table above.
 
 The behavior of how these topics are published depends on if the configuration
 is IPC or TCP (i.e. if `type` is set to `zmq_ipc` vs. `zmq_tcp` in the JSON
 configuration file).
 
 If IPC communication is being used, then each topic will be a different Unix
-socket file in the `socket_dir` directory specified in the configuration.
+socket file in the `socket_dir` directory specified in the configuration, if default IPC config file `ipc_example_config.json` is used. If the IPC config file `ipc_example_config_multi_topics.json` is used then each topic is published over
+the socket file that is mentioned in the configuration file. For example, in the
+default file `ipc_example_config_multi_topics.json`, all topics publish & subscribe over the same socket file "multi-topics". However, we can have each topic or a set of topics publish/subscribe over a different socket file.
 
 If TCP communication is being used, then each message will be published over
 the `host` and `port` specified under the `zmq_tcp_publish` JSON object in the
 configuration.
 
 In order to subscribe to the topics published by this example, use the
-`subscriber.c` example. If you are using TCP, then you will need to specify
-the topic in your configuration. For example, your JSON configuration will
+`subscriber.c` example. If you are using TCP or even IPC with multiple topics subscription, then you will need to specify the topic in your configuration. For example, your JSON configuration will
 need to contain the following to subscribe to the `pub-0` topic:
 
 ```json
@@ -420,6 +425,25 @@ shown below to subscribe to the `pub-1` topic:
 ```sh
 $ ./subscribe output.json pub-1
 ```
+
+Similiarly for IPC mode of communicatin with multi topics, the sample JSON configuration would look like below:
+
+``` json
+    {
+    "type": "zmq_ipc",
+    "socket_dir": "${CMAKE_CURRENT_BINARY_DIR}/.socks",
+    "pub-0": {
+        "socket_file": "multi-topics"
+    },
+    "pub-1": {
+       "socket_file": "multi-topics"
+    },
+    "pub-": {
+       "socket_file": "multi-topics"
+    }
+}
+```
+Here, `pub-0` & `pub-1` are the PUB topics & `pub-` is the SUB topics, where we have given just the prefix name. If we don't intend to give the SUB topic prefix, we can as well give the entire SUB topic name. In this example all these topics communicate over a common socket file `multi-topics`.
 
 ### Python Examples
 
