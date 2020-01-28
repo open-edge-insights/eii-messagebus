@@ -59,10 +59,6 @@ target_link_libraries(echo-client eismsgbus)
 add_executable(publisher-many "publisher_many.c")
 target_link_libraries(publisher-many eismsgbus)
 
-# Add publisher many prefix match example
-add_executable(publisher-many-prefix-match "publisher_many_prefix_match.c")
-target_link_libraries(publisher-many-prefix-match eismsgbus)
-
 # Add pubsub c++ example
 add_executable(pubsub-threads "pubsub_threads.cpp")
 target_link_libraries(pubsub-threads eismsgbus)
