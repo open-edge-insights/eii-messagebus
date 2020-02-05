@@ -283,9 +283,10 @@ key. This key must be a list of Z85 encoded CurveZMQ keys.
 The configuration interface for the ZeroMQ protocol exposes additional socket
 properties. The table below specifies each of the supported properties.
 
-|  Configuration  |  Type  |  Default |                                    Description                               |
-| :-------------: | :----: | :------: | ---------------------------------------------------------------------------- |
-| `zmq_recv_hwm`  | `int`  | `1000`   | Sets `ZMQ_RCVHWM` socket property (queue size for pending received messages) |
+|     Configuration      |  Type  |  Default |                                    Description                               |
+| :--------------------: | :----: | :------: | ---------------------------------------------------------------------------- |
+| `zmq_recv_hwm`         | `int`  | `1000`   | Sets `ZMQ_RCVHWM` socket property (queue size for pending received messages) |
+| `zmq_connect_retries`  | `int`  | `1000`   | Sets number of connect failures before recreating ZMQ socket object          |
 
 ## Example Usage
 
