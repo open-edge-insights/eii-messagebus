@@ -37,8 +37,14 @@ typedef struct {
     // Underlying ZeroMQ socket pointer
     void* socket;
 
+    // ZeroMQ socket type (ZMQ_PUB, ZMQ_SUB, ZMQ_REQ, or ZMQ_REP)
+    int socket_type;
+
     // Number of references to the shared socket
     int refcount;
+
+    // Number of times the given socket has tried to reconnect
+    int retries;
 
     // inproc socket monitor for the ZeroMQ socket
     void* monitor;
@@ -71,13 +77,14 @@ typedef struct {
  *
  * \note There should only be one shared socket wrapper per socket.
  *
- * @param zmq_ctx - ZeroMQ context
- * @param uri     - URI for the socket
- * @param socket  - ZeroMQ socket
+ * @param zmq_ctx     - ZeroMQ context
+ * @param uri         - URI for the socket
+ * @param socket      - ZeroMQ socket
+ * @param socket_type - ZeroMQ socket type
  * @return @c zmq_shared_sock_t, or NULL if an error occurs
  */
 zmq_shared_sock_t* shared_sock_new(
-        void* zmq_ctx, const char* uri, void* socket);
+        void* zmq_ctx, const char* uri, void* socket, int socket_type);
 
 /**
  * Increase the number of references that exist for the given shared socket.
@@ -106,6 +113,33 @@ void shared_sock_lock(zmq_shared_sock_t* shared_sock);
  * @param shared_sock - ZeroMQ shared socket
  */
 void shared_sock_unlock(zmq_shared_sock_t* shared_sock);
+
+/**
+ * Increment the number of retries that have occured on the socket.
+ *
+ * @param shared_sock - ZeroMQ shared socket
+ */
+void shared_sock_retries_incr(zmq_shared_sock_t* shared_sock);
+
+/**
+ * Reset the number of retries to zero.
+ *
+ * @param shared_sock - ZeroMQ shared socket
+ */
+void shared_sock_retries_reset(zmq_shared_sock_t* shared_sock);
+
+/**
+ * Replace the shared socket's underlying ZeroMQ socket with the given socket.
+ * It is the job of the caller to close the original socket. Additionally, the
+ * lock should be held prior to calling this method, otherwise unknown behavior
+ * may occur.
+ *
+ * @param shared_sock - ZeroMQ shared socket
+ * @param zmq_ctx     - ZeroMQ context
+ * @param socket      - ZeroMQ socket
+ */
+void shared_sock_replace(
+        zmq_shared_sock_t* shared_sock, void* zmq_ctx, void* socket);
 
 /**
  * Destroy the shared socket.
@@ -144,6 +178,32 @@ void sock_ctx_lock(zmq_sock_ctx_t* ctx);
  * @param ctx - ZeroMQ socket context
  */
 void sock_ctx_unlock(zmq_sock_ctx_t* ctx);
+
+/**
+ * Increment the number of retries that have occured on the socket.
+ *
+ * @param ctx - ZeroMQ socket context
+ */
+void sock_ctx_retries_incr(zmq_sock_ctx_t* ctx);
+
+/**
+ * Reset the number of retries to zero.
+ *
+ * @param ctx - ZeroMQ socket context
+ */
+void sock_ctx_retries_reset(zmq_sock_ctx_t* ctx);
+
+/**
+ * Replace the shared socket's underlying ZeroMQ socket with the given socket.
+ * It is the job of the caller to close the original socket. Additionally, the
+ * lock should be held prior to calling this method, otherwise unknown behavior
+ * may occur.
+ *
+ * @param ctx     - ZeroMQ socket context
+ * @param zmq_ctx - ZeroMQ context
+ * @param socket  - ZeroMQ socket
+ */
+void sock_ctx_replace(zmq_sock_ctx_t* ctx, void* zmq_ctx, void* socket);
 
 /**
  * Destroy the given ZMQ socket context.
