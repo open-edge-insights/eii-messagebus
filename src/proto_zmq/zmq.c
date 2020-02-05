@@ -46,6 +46,8 @@
 #define TCP_PREFIX     "tcp://"
 #define TCP_PREFIX_LEN 6
 #define ZEROMQ_HWM     "zmq_recv_hwm"
+#define ZEROMQ_RECONNECT_RETRIES "zmq_connect_retries"
+#define ZEROMQ_RECONNECT_RETRIES_DF 1000
 
 /**
  * Internal ZeroMQ protocol context
@@ -55,6 +57,7 @@ typedef struct {
     bool is_ipc;
     config_t* config;
     int zmq_recv_hwm;
+    int zmq_connect_retries;
 
     // Known config values alread extracted from the configuration
     union {
@@ -123,14 +126,16 @@ static const char* get_event_str(int event);
 static int get_monitor_event(void* monitor, bool block);
 static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg);
 static msgbus_ret_t base_recv(
-        recv_type_t type, zmq_sock_ctx_t* ctx, int timeout,
-        msg_envelope_t** env);
+        recv_type_t type, zmq_proto_ctx_t* zmq_ctx, zmq_sock_ctx_t* ctx,
+        int timeout, msg_envelope_t** env);
 static msgbus_ret_t init_curve_server_socket(
         void* socket, config_t* conf, config_value_t* conf_obj);
 static msgbus_ret_t init_curve_client_socket(
-        zmq_sock_ctx_t* sock_ctx, config_t* conf, config_value_t* conf_obj);
+        void* socket, config_t* conf, config_value_t* conf_obj);
 static void free_sock_ctx(void* vargs);
-static msgbus_ret_t check_client_events(void* monitor);
+static void* new_socket(
+        zmq_proto_ctx_t* zmq_ctx, const char* uri, const char* name,
+        int socket_type);
 
 protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     // TODO: Clean up method to make sure all memeory is fully freed always
@@ -144,6 +149,7 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     zmq_proto_ctx->zmq_context = zmq_ctx_new();
     zmq_proto_ctx->config = config;
     zmq_proto_ctx->zmq_recv_hwm = -1;
+    zmq_proto_ctx->zmq_connect_retries = ZEROMQ_RECONNECT_RETRIES_DF;
     zmq_proto_ctx->is_ipc = false;
 
     // Initialize IPC configuration values
@@ -176,6 +182,27 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
         LOG_DEBUG("ZeroMQ receive high watermark: %d",
                 zmq_proto_ctx->zmq_recv_hwm);
         config_value_destroy(recv_hwm);
+    }
+
+    // Getting ZeroMQ socket retries before recreating the socket
+    config_value_t* retries = config_get(config, ZEROMQ_RECONNECT_RETRIES);
+    if(retries != NULL) {
+        if(retries->type != CVT_INTEGER) {
+            LOG_ERROR_0("ZeroMQ receive HWM must be an integer");
+            config_value_destroy(retries);
+            goto err;
+        }
+
+        if(retries->body.integer < 0) {
+            LOG_ERROR_0("ZeroMQ receive HWM must be greater than 0");
+            config_value_destroy(retries);
+            goto err;
+        }
+
+        zmq_proto_ctx->zmq_connect_retries = (int) retries->body.integer;
+        LOG_DEBUG("ZeroMQ socket connect retries: %d",
+                zmq_proto_ctx->zmq_connect_retries);
+        config_value_destroy(retries);
     }
 
     int ind_ipc;
@@ -404,38 +431,8 @@ msgbus_ret_t proto_zmq_publisher_new(
             }
         }
 
-        socket = zmq_socket(zmq_ctx->zmq_context, ZMQ_PUB);
-        if(socket == NULL) {
-            LOG_ZMQ_ERROR("Failed to initialize ZeroMQ socket");
-            goto err;
-        }
-
-        // Setting socket_options
-        int val = 0;
-        int ret = zmq_setsockopt(socket, ZMQ_LINGER, &val, sizeof(val));
-        if(ret != 0) {
-            LOG_ZMQ_ERROR("Failed setting ZMQ_LINGER");
-            goto err;
-        }
-
-        // Set the receive high watermark (if it is set for the protocol)
-        if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
-
-        // Initialize socket with Curve authentication if the socket is a TCP
-        // socket and the correct values are set in the configuration for the
-        // socket
-        if(!zmq_ctx->is_ipc) {
-            msgbus_ret_t rc = init_curve_server_socket(
-                    socket, zmq_ctx->config, zmq_ctx->cfg.tcp.pub_config);
-            if(rc != MSG_SUCCESS) { goto err; }
-        }
-
-        // Binding socket
-        ret = zmq_bind(socket, topic_uri);
-        if(ret != 0) {
-            LOG_ZMQ_ERROR("Failed to bind publisher socket");
-            goto err;
-        }
+        socket = new_socket(zmq_ctx, topic_uri, topic, ZMQ_PUB);
+        if(socket == NULL) { goto err; }
 
         LOG_DEBUG_0("ZeroMQ publisher created");
 
@@ -446,7 +443,8 @@ msgbus_ret_t proto_zmq_publisher_new(
         nanosleep(&sleep_time, NULL);
 
         // Create shared socket for the newly created ZeroMQ socket
-        shared_socket = shared_sock_new(zmq_ctx->zmq_context, topic_uri, socket);
+        shared_socket = shared_sock_new(
+                zmq_ctx->zmq_context, topic_uri, socket, ZMQ_PUB);
         if(shared_socket == NULL) {
             LOG_ERROR_0("Failed to create shared socket");
             goto err;
@@ -556,36 +554,12 @@ msgbus_ret_t proto_zmq_subscriber_new(
 
     LOG_DEBUG("ZeroMQ creating socket for URI: %s", topic_uri);
 
-    void* socket = zmq_socket(zmq_ctx->zmq_context, ZMQ_SUB);
-    if(socket == NULL) {
-        LOG_ZMQ_ERROR("Failed to initialize ZeroMQ socket");
-        goto err;
-    }
+    void* socket = new_socket(zmq_ctx, topic_uri, topic, ZMQ_SUB);
+    if(socket == NULL) { goto err; }
 
-    // Setting socket_options
-    int val = 0;
-    int ret = zmq_setsockopt(socket, ZMQ_LINGER, &val, sizeof(val));
-    if(ret != 0) {
-        LOG_ZMQ_ERROR("Failed setting ZMQ_LINGER");
-        goto err;
-    }
-
-    // Set the receive high watermark (if it is set for the protocol)
-    if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
-
-    // Set subscription filter
-    size_t topic_len = strlen(topic);
-    char* tmp = (char*) malloc(sizeof(char) * (topic_len + 1));
-    memcpy_s(tmp, topic_len, topic, topic_len);
-    tmp[strlen(topic)] = '\0';
-    ret = zmq_setsockopt(socket, ZMQ_SUBSCRIBE, tmp, topic_len);
-    free(tmp);
-    if(ret != 0) {
-        LOG_ZMQ_ERROR("Failed to set socket opts");
-        goto err;
-    }
-
-    shared_socket = shared_sock_new(zmq_ctx->zmq_context, topic_uri, socket);
+    // Initialize shared socket
+    shared_socket = shared_sock_new(
+            zmq_ctx->zmq_context, topic_uri, socket, ZMQ_SUB);
 
     // Initialize subscriber receive context
     zmq_recv_ctx = (zmq_recv_ctx_t*) malloc(sizeof(zmq_recv_ctx_t));
@@ -606,27 +580,6 @@ msgbus_ret_t proto_zmq_subscriber_new(
     // going forward for the socket (i.e. the reference for this function after
     // creating the shared socket is no longer needed)
     shared_sock_decref(shared_socket);
-
-    if(!zmq_ctx->is_ipc) {
-        // Can assume that this object is correct, since it would already have
-        // been retrieved in the create_uri() function call where the object
-        // would already have been validated
-        config_value_t* cv = zmq_ctx->config->get_config_value(
-                zmq_ctx->config->cfg, topic);
-        rc = init_curve_client_socket(
-                zmq_recv_ctx->sock_ctx, zmq_ctx->config, cv);
-        config_value_destroy(cv);
-        if(rc != MSG_SUCCESS)
-            goto err;
-    }
-
-    // Connecting socket
-    ret = zmq_connect(socket, topic_uri);
-    if(ret != 0) {
-        LOG_ZMQ_ERROR("Failed to bind socket");
-        rc = MSG_ERR_SUB_FAILED;
-        goto err;
-    }
 
     *subscriber = (void*) zmq_recv_ctx;
 
@@ -662,21 +615,27 @@ void proto_zmq_recv_ctx_destroy(void* ctx, void* recv_ctx) {
 
 msgbus_ret_t proto_zmq_recv_wait(
         void* ctx, void* recv_ctx, msg_envelope_t** message) {
+    zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_recv_ctx_t* zmq_recv_ctx = (zmq_recv_ctx_t*) recv_ctx;
-    return base_recv(zmq_recv_ctx->type, zmq_recv_ctx->sock_ctx, -1, message);
+    return base_recv(
+            zmq_recv_ctx->type, zmq_ctx, zmq_recv_ctx->sock_ctx, -1, message);
 }
 
 msgbus_ret_t proto_zmq_recv_timedwait(
         void* ctx, void* recv_ctx, int timeout, msg_envelope_t** message) {
+    zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_recv_ctx_t* zmq_recv_ctx = (zmq_recv_ctx_t*) recv_ctx;
     return base_recv(
-            zmq_recv_ctx->type, zmq_recv_ctx->sock_ctx, timeout, message);
+            zmq_recv_ctx->type, zmq_ctx, zmq_recv_ctx->sock_ctx, timeout,
+            message);
 }
 
 msgbus_ret_t proto_zmq_recv_nowait(
         void* ctx, void* recv_ctx, msg_envelope_t** message) {
+    zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_recv_ctx_t* zmq_recv_ctx = (zmq_recv_ctx_t*) recv_ctx;
-    return base_recv(zmq_recv_ctx->type, zmq_recv_ctx->sock_ctx, 0, message);
+    return base_recv(
+            zmq_recv_ctx->type, zmq_ctx, zmq_recv_ctx->sock_ctx, 0, message);
 }
 
 msgbus_ret_t proto_zmq_service_get(
@@ -693,19 +652,10 @@ msgbus_ret_t proto_zmq_service_get(
 
     msgbus_ret_t ret = MSG_SUCCESS;
     zmq_recv_ctx_t* zmq_recv_ctx = NULL;
-    void* socket = NULL;
 
     // Create ZeroMQ socket
-    LOG_DEBUG_0("Creating zeromq socket");
-    socket = zmq_socket(zmq_ctx->zmq_context, ZMQ_REQ);
-    if(socket == NULL) {
-        ret = MSG_ERR_SERVICE_INIT_FAILED;
-        LOG_ZMQ_ERROR("Failed to initialize ZeroMQ socket");
-        goto err;
-    }
-
-    // Set the receive high watermark (if it is set for the protocol)
-    if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
+    void* socket = new_socket(zmq_ctx, service_uri, service_name, ZMQ_REQ);
+    if(socket == NULL) { goto err; }
 
     // Initialize context object
     zmq_recv_ctx = (zmq_recv_ctx_t*) malloc(sizeof(zmq_recv_ctx_t));
@@ -715,7 +665,8 @@ msgbus_ret_t proto_zmq_service_get(
         goto err;
     }
 
-    shared_socket = shared_sock_new(zmq_ctx->zmq_context, service_uri, socket);
+    shared_socket = shared_sock_new(
+            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REQ);
 
     zmq_recv_ctx->type = RECV_SERVICE_REQ;
     ret = sock_ctx_new(
@@ -731,28 +682,6 @@ msgbus_ret_t proto_zmq_service_get(
     // going forward for the socket (i.e. the reference for this function after
     // creating the shared socket is no longer needed)
     shared_sock_decref(shared_socket);
-
-    // Initialize socket with Curve authentication if the socket is a TCP
-    // socket and the correct values are set in the configuration for the
-    // socket
-    if(!zmq_ctx->is_ipc) {
-        config_value_t* cv = zmq_ctx->config->get_config_value(
-                zmq_ctx->config->cfg, service_name);
-        msgbus_ret_t rc = init_curve_client_socket(
-                zmq_recv_ctx->sock_ctx, zmq_ctx->config, cv);
-        config_value_destroy(cv);
-        if(rc != MSG_SUCCESS)
-            goto err;
-    }
-
-    // Connecting socket
-    LOG_DEBUG("Connecting socket to %s", service_uri);
-    int rc = zmq_connect(socket, service_uri);
-    if(rc != 0) {
-        ret = MSG_ERR_SERVICE_INIT_FAILED;
-        LOG_ZMQ_ERROR("Failed to connect socket");
-        goto err;
-    }
 
     (*service_ctx) = zmq_recv_ctx;
 
@@ -785,40 +714,9 @@ msgbus_ret_t proto_zmq_service_new(
 
     msgbus_ret_t ret = MSG_SUCCESS;
     zmq_recv_ctx_t* zmq_recv_ctx = NULL;
-    void* socket = NULL;
 
     // Create ZeroMQ socket
-    LOG_DEBUG_0("Creating zeromq socket");
-    socket = zmq_socket(zmq_ctx->zmq_context, ZMQ_REP);
-    if(socket == NULL) {
-        ret = MSG_ERR_SERVICE_INIT_FAILED;
-        LOG_ZMQ_ERROR("Failed to initialize ZeroMQ socket");
-        goto err;
-    }
-
-    // Set the receive high watermark (if it is set for the protocol)
-    if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
-
-    // Initialize socket with Curve authentication if the socket is a TCP
-    // socket and the correct values are set in the configuration for the
-    // socket
-    if(!zmq_ctx->is_ipc) {
-        config_value_t* cv = zmq_ctx->config->get_config_value(
-                zmq_ctx->config->cfg, service_name);
-        msgbus_ret_t rc = init_curve_server_socket(socket, zmq_ctx->config, cv);
-        config_value_destroy(cv);
-        if(rc != MSG_SUCCESS)
-            goto err;
-    }
-
-    // Binding socket
-    LOG_DEBUG("Binding socket to %s", service_uri);
-    int rc = zmq_bind(socket, service_uri);
-    if(rc != 0) {
-        LOG_ZMQ_ERROR("Failed to bind socket");
-        ret = MSG_ERR_SERVICE_INIT_FAILED;
-        goto err;
-    }
+    void* socket = new_socket(zmq_ctx, service_uri, service_name, ZMQ_REP);
 
     // Initialize context object
     zmq_recv_ctx = (zmq_recv_ctx_t*) malloc(sizeof(zmq_recv_ctx_t));
@@ -832,7 +730,8 @@ msgbus_ret_t proto_zmq_service_new(
     // socket context that was just created should be the only reference
     // going forward for the socket (i.e. the reference for this function after
     // creating the shared socket is no longer needed)
-    shared_socket = shared_sock_new(zmq_ctx->zmq_context, service_uri, socket);
+    shared_socket = shared_sock_new(
+            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REP);
 
     zmq_recv_ctx->sock_ctx = NULL;
     zmq_recv_ctx->type = RECV_SERVICE;
@@ -1032,52 +931,93 @@ err:
 }
 
 static msgbus_ret_t base_recv(
-        recv_type_t type, zmq_sock_ctx_t* ctx, int timeout,
-        msg_envelope_t** env)
+        recv_type_t type, zmq_proto_ctx_t* zmq_ctx, zmq_sock_ctx_t* ctx,
+        int timeout, msg_envelope_t** env)
 {
     int rc = 0;
     void* socket = ctx->shared_socket->socket;
+    bool indef_poll = timeout < 0;
+    timeout = (indef_poll) ? 1000 : timeout;
 
     zmq_pollitem_t poll_items[1];
     poll_items[0].socket = socket;
     poll_items[0].events = ZMQ_POLLIN;
-    if(timeout < 0) {
-        msgbus_ret_t event_ret;
-        // Poll indefinitley
-        while(true) {
-            rc = zmq_poll(poll_items, 1, 1000);
-            if(rc < 0) {
-                if(zmq_errno() == EINTR) {
-                    LOG_DEBUG_0("Receive interrupted");
-                    return MSG_ERR_EINTR;
-                }
-                LOG_ZMQ_ERROR("Error while polling indefinitley");
-                return MSG_ERR_RECV_FAILED;
-            } else if(rc > 0) {
-                // Got message!
-                break;
-            }
 
-            event_ret = check_client_events(ctx->shared_socket->monitor);
-            if(event_ret != MSG_SUCCESS)
-                return event_ret;
-        }
-    } else {
-        // Get microseconds for the timeout
+    do {
         rc = zmq_poll(poll_items, 1, timeout);
-        LOG_DEBUG("Done polling: %d", rc);
-        if(rc == 0) {
-            return MSG_RECV_NO_MESSAGE;
-        } else if(rc < 0) {
-            LOG_ZMQ_ERROR("recv failed");
+        if(rc < 0) {
+            if(zmq_errno() == EINTR) {
+                LOG_DEBUG_0("Receive interrupted");
+                return MSG_ERR_EINTR;
+            }
+            LOG_ZMQ_ERROR("Error while polling indefinitley");
             return MSG_ERR_RECV_FAILED;
+        } else if(rc > 0) {
+            // Got message!
+            if(ctx->shared_socket->retries != 0) {
+                // Reset the number of retries if there are any (the if
+                // statement exists because locking a mutex in the function
+                // call is expensive)
+                sock_ctx_retries_reset(ctx);
+            }
+            break;
+        } else if(!indef_poll) {
+            return MSG_RECV_NO_MESSAGE;
         }
 
-        msgbus_ret_t event_ret = check_client_events(
-                ctx->shared_socket->monitor);
-        if(event_ret != MSG_SUCCESS)
-            return event_ret;
-    }
+        switch(get_monitor_event(ctx->shared_socket->monitor, false)) {
+            case ZMQ_EVENT_HANDSHAKE_SUCCEEDED:
+                LOG_DEBUG_0("Handshake for the socket succeeded");
+                break;
+            case ZMQ_EVENT_CONNECT_DELAYED:
+                LOG_DEBUG_0("ZeroMQ connection delayed");
+                sock_ctx_retries_incr(ctx);
+                break;
+            case ZMQ_EVENT_CONNECTED:
+                LOG_DEBUG_0("ZeroMQ socket connected");
+                sock_ctx_retries_incr(ctx);
+                break;
+            case ZMQ_EVENT_DISCONNECTED:
+                LOG_WARN_0("ZeroMQ socket disconnected");
+                sock_ctx_retries_incr(ctx);
+                break;
+            // All possible handshake failure events
+            case ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL:
+            case ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL:
+            case ZMQ_EVENT_HANDSHAKE_FAILED_AUTH:
+                LOG_ERROR_0("ZeroMQ handshake failed");
+                return MSG_ERR_AUTH_FAILED;
+            default:
+                // No event received...
+                break;
+        }
+
+        if(ctx->shared_socket->retries == zmq_ctx->zmq_connect_retries) {
+            LOG_WARN_0("Reached max retries on the socket connect, "
+                       "initializing new ZeroMQ socket");
+            sock_ctx_lock(ctx);
+            close_zero_linger(socket);
+
+            // Give the socket time to fully close... If not enough time is
+            // given the socket could fail during creation
+            struct timespec sleep_time;
+            sleep_time.tv_sec = 0;
+            sleep_time.tv_nsec = 5000000L;
+            nanosleep(&sleep_time, NULL);
+
+            ctx->shared_socket->socket = NULL;
+            socket = NULL;
+            socket = new_socket(
+                      zmq_ctx, ctx->shared_socket->uri, ctx->name,
+                        ctx->shared_socket->socket_type);
+            if(socket == NULL) { return MSG_ERR_UNKNOWN; }
+            sock_ctx_replace(ctx, zmq_ctx->zmq_context, socket);
+            poll_items[0].socket = socket;
+            sock_ctx_unlock(ctx);
+            sock_ctx_retries_reset(ctx);
+            LOG_DEBUG_0("Finished re-initializing ZMQ socket");
+        }
+    } while(indef_poll);
 
     LOG_DEBUG_0("Receiving all of the message");
 
@@ -1198,7 +1138,6 @@ static msgbus_ret_t base_recv(
         return ret;
     }
 
-    LOG_DEBUG("env->name = %s \n",(*env)->name);
     msgbus_msg_envelope_serialize_destroy(parts, num_parts);
 
     return MSG_SUCCESS;
@@ -1378,35 +1317,6 @@ static bool set_rcv_hwm(void* socket, int zmq_rcvhwm) {
     return true;
 }
 
-// ----------
-// NOTE: Commented out for now, this method may be required in the future,
-// keeping it for now
-//
-// Helper function to wait until a socket is connected
-// msgbus_ret_t wait_client_connected(void* monitor) {
-//     LOG_DEBUG_0("Waiting for successful connection");
-//     int event = get_monitor_event(monitor, true);
-//
-//     if(event == ZMQ_EVENT_CONNECT_DELAYED) {
-//         LOG_DEBUG_0("Connection delayed.. Still waiting");
-//         event = get_monitor_event(monitor, true);
-//     }
-//
-//     if(event != ZMQ_EVENT_CONNECTED) {
-//         LOG_ERROR_0("Socket failed to connect");
-//         return MSG_ERR_UNKNOWN;
-//     }
-//
-//     event = get_monitor_event(monitor, true);
-//     if(event != ZMQ_EVENT_HANDSHAKE_SUCCEEDED) {
-//         LOG_ERROR_0("ZeroMQ handshake failed");
-//         return MSG_ERR_AUTH_FAILED;
-//     }
-//
-//     return MSG_SUCCESS;
-// }
-// ----------
-
 /**
  * Helper function to get a string for the name of a ZeroMQ event.
  *
@@ -1556,14 +1466,13 @@ static void free_sock_ctx(void* vargs) {
  * IMPORTANT NOTE: This method MUST be called prior to the zmq_connect() for
  * the socket.
  *
- * @param sock_ctx - Internal socket context structure
+ * @param socket   - ZeroMQ socket
  * @param conf     - Configuration context
  * @param conf_obj - Configuration object for the TCP socket
  * @return msgbus_ret_t
  */
 static msgbus_ret_t init_curve_client_socket(
-        zmq_sock_ctx_t* sock_ctx, config_t* conf, config_value_t* conf_obj) {
-    void* socket = sock_ctx->shared_socket->socket;
+        void* socket, config_t* conf, config_value_t* conf_obj) {
 
     // Get configuration values
     config_value_t* server_pub_cv = conf->get_config_value(
@@ -1652,38 +1561,129 @@ err:
 }
 
 /**
- * Helper function to check for events occuring for a given client socket
- * (i.e. a subscriber or service client).
+ * Helper function for creating a new ZeroMQ socket.
  *
- * Returns MSG_SUCCESS if no event occurred or if events occured but are not
- * critical errors.
- *
- * @param monitor - ZeroMQ monitor socket
- * @return MSG_SUCCESS
+ * @param zmq_ctx     - EIS Message Bus ZeroMQ protocol context
+ * @param uri         - Socket URI
+ * @param name        - Service name or topic string
+ * @param socket_type - ZMQ_* constant for the type of socket
+ * @return ZeroMQ socket, NULL if an error occurs
  */
-static msgbus_ret_t check_client_events(void* monitor) {
-    switch(get_monitor_event(monitor, false)) {
-        case ZMQ_EVENT_HANDSHAKE_SUCCEEDED:
-            LOG_DEBUG_0("Handshake for the socket succeeded");
-            break;
-        case ZMQ_EVENT_CONNECT_DELAYED:
-            LOG_DEBUG_0("ZeroMQ connection delayed");
-            break;
-        case ZMQ_EVENT_CONNECTED:
-            LOG_DEBUG_0("ZeroMQ socket connected");
-            break;
-        case ZMQ_EVENT_DISCONNECTED:
-            LOG_WARN_0("ZeroMQ socket disconnected");
-            break;
-        // All possible handshake failure events
-        case ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL:
-        case ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL:
-        case ZMQ_EVENT_HANDSHAKE_FAILED_AUTH:
-            LOG_ERROR_0("ZeroMQ handshake failed");
-            return MSG_ERR_AUTH_FAILED;
-        default:
-            // No event received...
-            break;
+static void* new_socket(
+        zmq_proto_ctx_t* zmq_ctx, const char* uri, const char* name,
+        int socket_type) {
+    // Bind / connect method to use on the socket
+    int (*connect_fn)(void*,const char*) = zmq_bind;
+    int ret = 0;
+    int val = 0;
+
+    LOG_DEBUG("Creating new socket: %s", uri);
+
+    // Initialize ZeroMQ socket
+    void* socket = zmq_socket(zmq_ctx->zmq_context, socket_type);
+    if(socket == NULL) {
+        LOG_ZMQ_ERROR("Failed to initialize ZeroMQ socket");
+        goto err;
     }
-    return MSG_SUCCESS;
+
+    // Setting socket_options
+    ret = zmq_setsockopt(socket, ZMQ_LINGER, &val, sizeof(val));
+    if(ret != 0) {
+        LOG_ZMQ_ERROR("Failed setting ZMQ_LINGER");
+        goto err;
+    }
+    // Set the receive high watermark (if it is set for the protocol)
+    if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
+
+    switch(socket_type) {
+        // Binding socket types
+        case ZMQ_PUB:
+            if(!zmq_ctx->is_ipc) {
+                msgbus_ret_t rc = init_curve_server_socket(
+                        socket, zmq_ctx->config, zmq_ctx->cfg.tcp.pub_config);
+                if(rc != MSG_SUCCESS) { goto err; }
+            }
+            break;
+        case ZMQ_REP:
+            // Initialize socket with Curve authentication if the socket is a
+            // TCP socket and the correct values are set in the configuration
+            // for the socket
+            if(!zmq_ctx->is_ipc) {
+                config_value_t* cv = zmq_ctx->config->get_config_value(
+                        zmq_ctx->config->cfg, name);
+                msgbus_ret_t rc = init_curve_server_socket(
+                        socket, zmq_ctx->config, cv);
+                config_value_destroy(cv);
+                if(rc != MSG_SUCCESS)
+                    goto err;
+            }
+            break;
+
+        // Connecting socket types
+        case ZMQ_SUB:
+            // Set the connect function to zmq_connect()
+            connect_fn = zmq_connect;
+
+            // Set subscription filter
+            size_t topic_len = strlen(name);
+            char* tmp = (char*) malloc(sizeof(char) * (topic_len + 1));
+            memcpy_s(tmp, topic_len, name, topic_len);
+            tmp[topic_len] = '\0';
+
+            ret = zmq_setsockopt(socket, ZMQ_SUBSCRIBE, tmp, topic_len);
+            free(tmp);
+            if(ret != 0) {
+                LOG_ZMQ_ERROR("Failed to set socket opts");
+                goto err;
+            }
+
+            // Initialize socket with Curve authentication if the socket is a
+            // TCP socket and the correct values are set in the configuration
+            // for the socket
+            if(!zmq_ctx->is_ipc) {
+                config_value_t* cv = zmq_ctx->config->get_config_value(
+                        zmq_ctx->config->cfg, name);
+                msgbus_ret_t rc = init_curve_client_socket(
+                        socket, zmq_ctx->config, cv);
+                config_value_destroy(cv);
+                if(rc != MSG_SUCCESS)
+                    goto err;
+            }
+            break;
+        case ZMQ_REQ:
+            // Set the connect function to zmq_connect()
+            connect_fn = zmq_connect;
+
+            // Initialize socket with Curve authentication if the socket is a
+            // TCP socket and the correct values are set in the configuration
+            // for the socket
+            if(!zmq_ctx->is_ipc) {
+                config_value_t* cv = zmq_ctx->config->get_config_value(
+                        zmq_ctx->config->cfg, name);
+                msgbus_ret_t rc = init_curve_client_socket(
+                        socket, zmq_ctx->config, cv);
+                config_value_destroy(cv);
+                if(rc != MSG_SUCCESS)
+                    goto err;
+            }
+            break;
+
+        // Unknown socket type
+        default:
+            LOG_ERROR_0("Unknown type of socket to create");
+            goto err;
+    }
+
+    ret = connect_fn(socket, uri);
+    if(ret != 0) {
+        LOG_ZMQ_ERROR("Socket bind/connect failed");
+        goto err;
+    }
+
+    return socket;
+err:
+    if(socket != NULL) {
+        zmq_close(socket);
+    }
+    return NULL;
 }

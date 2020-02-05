@@ -46,7 +46,14 @@
 static char* generate_random_str(int len);
 
 zmq_shared_sock_t* shared_sock_new(
-        void* zmq_ctx, const char* uri, void* socket) {
+        void* zmq_ctx, const char* uri, void* socket, int socket_type) {
+    // Verify socket type
+    if(socket_type != ZMQ_PUB && socket_type != ZMQ_SUB
+            && socket_type != ZMQ_REQ && socket_type != ZMQ_REP) {
+        LOG_ERROR_0("Unknown ZeroMQ socket type");
+        return NULL;
+    }
+
     char* monitor_uri = NULL;
     zmq_shared_sock_t* shared_sock = (zmq_shared_sock_t*) malloc(
             sizeof(zmq_shared_sock_t));
@@ -56,7 +63,9 @@ zmq_shared_sock_t* shared_sock_new(
     }
 
     shared_sock->socket = socket;
+    shared_sock->socket_type = socket_type;
     shared_sock->refcount = 1;
+    shared_sock->retries = 0;
     shared_sock->monitor = NULL;
     shared_sock->uri = NULL;
     shared_sock->uri_len = strlen(uri);
@@ -163,6 +172,83 @@ void shared_sock_unlock(zmq_shared_sock_t* shared_sock) {
     pthread_mutex_unlock(shared_sock->mtx);
 }
 
+void shared_sock_retries_incr(zmq_shared_sock_t* shared_sock) {
+    shared_sock_lock(shared_sock);
+    shared_sock->retries++;
+    shared_sock_unlock(shared_sock);
+}
+
+void shared_sock_retries_reset(zmq_shared_sock_t* shared_sock) {
+    shared_sock_lock(shared_sock);
+    shared_sock->retries = 0;
+    shared_sock_unlock(shared_sock);
+}
+
+void shared_sock_replace(
+        zmq_shared_sock_t* shared_sock, void* zmq_ctx, void* socket) {
+    // NOTE: This assumes that the lock is already held and that the prior
+    // underlying socket has been closed. This is so that the caller can
+    // re-bind to the same TCP port if needed.
+    char* monitor_uri = NULL;
+    shared_sock->socket = socket;
+
+    // Closing old ZeroMQ monitor for the old socket
+    close_zero_linger(shared_sock->monitor);
+
+    // Initialize new socket monitor
+
+    // Generating random part of string in case there are multiple services
+    // or publishers with the same name. There can only be one monitor socket
+    // per monitor URI
+    const char* rand_str = generate_random_str(5);
+    if(rand_str == NULL) {
+        LOG_ERROR_0("Failed to initialize random string");
+        goto err;
+    }
+
+    size_t total_len = strlen(rand_str) + 10;
+    monitor_uri = concat_s(total_len, 2, "inproc://", rand_str);
+    free((void*) rand_str);
+    if(monitor_uri == NULL) {
+        LOG_ERROR_0("Failed to initialize monotor URI for the new socket");
+        goto err;
+    }
+
+    LOG_DEBUG("Creating socket monitor for %s", monitor_uri);
+    int rc = zmq_socket_monitor(socket, monitor_uri, ZMQ_EVENT_ALL);
+    if(rc == -1) {
+        // Only an error if the socket has not been bound already, if it has
+        // then it is okay
+        if(zmq_errno() != EADDRINUSE) {
+            LOG_ZMQ_ERROR("Failed creating socket monitor");
+            goto err;
+        }
+    }
+
+    // Create monitor socket
+    shared_sock->monitor = zmq_socket(zmq_ctx, ZMQ_PAIR);
+    if(shared_sock->monitor == NULL) {
+        LOG_ZMQ_ERROR("Failed to create ZMQ_PAIR monitor socket");
+        goto err;
+    }
+
+    // Connect monitor socket
+    LOG_DEBUG_0("Connecting monitor ZMQ socket");
+    rc = zmq_connect(shared_sock->monitor, monitor_uri);
+    if(rc == -1) {
+        LOG_ZMQ_ERROR("Failed to connect to monitor URI");
+        goto err;
+    }
+
+    free(monitor_uri);
+    return;
+err:
+    if(monitor_uri != NULL)
+        free(monitor_uri);
+
+    return;
+}
+
 void shared_sock_destroy(zmq_shared_sock_t* shared_sock) {
     shared_sock_decref(shared_sock);
 
@@ -226,6 +312,18 @@ void sock_ctx_lock(zmq_sock_ctx_t* ctx) {
 
 void sock_ctx_unlock(zmq_sock_ctx_t* ctx) {
     shared_sock_unlock(ctx->shared_socket);
+}
+
+void sock_ctx_retries_incr(zmq_sock_ctx_t* ctx) {
+    shared_sock_retries_incr(ctx->shared_socket);
+}
+
+void sock_ctx_retries_reset(zmq_sock_ctx_t* ctx) {
+    shared_sock_retries_reset(ctx->shared_socket);
+}
+
+void sock_ctx_replace(zmq_sock_ctx_t* ctx, void* zmq_ctx, void* socket) {
+    shared_sock_replace(ctx->shared_socket, zmq_ctx, socket);
 }
 
 void sock_ctx_destroy(zmq_sock_ctx_t* ctx) {
