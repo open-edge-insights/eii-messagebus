@@ -4,7 +4,28 @@ Message bus used between containers inside of EIS.
 
 ## Dependency Installation
 
-To install the dependencies for the message bus execute the following command:
+The EIS Message Bus depends on CMake version 3.11+. For Ubuntu 18.04 this is not
+the default version installed via `apt-get`. To install the correct version
+of CMake, execute the following commands:
+
+```sh
+# Remove old CMake version
+$ sudo apt -y purge cmake
+$ sudo apt -y autoremove
+
+# Download CMake
+$ wget https://cmake.org/files/v3.15/cmake-3.15.0-Linux-x86_64.sh
+
+# Installation CMake
+$ sudo mkdir /opt/cmake
+$ sudo cmake-3.15.0-Linux-x86_64.sh --prefix=/opt/cmake --skip-license
+
+# Make the command available to all users
+$ sudo update-alternatives --install /usr/bin/cmake cmake /opt/cmake/bin/cmake 1 --force
+```
+
+To install the remaining dependencies for the message bus execute the following
+command:
 
 ```sh
 $ sudo -E ./install.sh
