@@ -125,6 +125,10 @@ static bool set_rcv_hwm(void* socket, int zmq_rcvhwm);
 static const char* get_event_str(int event);
 static int get_monitor_event(void* monitor, bool block);
 static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg);
+static int send_zmq_msg(void* socket, zmq_msg_t* msg, int flags);
+static int send_zmq(void* socket, void* buf, size_t buf_size, int flags);
+static int recv_zmq(void* socket, void* buf, size_t buf_size);
+static int recv_zmq_msg(void* socket, zmq_msg_t* msg);
 static msgbus_ret_t base_recv(
         recv_type_t type, zmq_proto_ctx_t* zmq_ctx, zmq_sock_ctx_t* ctx,
         int timeout, msg_envelope_t** env);
@@ -801,6 +805,67 @@ static void free_zmq_msg(void* ptr) {
 }
 
 /**
+ * Helper method to send a message over ZeroMQ. This method will continue
+ * attempting to send data if EINTR or EAGAIN occur.
+ *
+ * @param socket - ZeroMQ socket
+ * @param msg    - ZeroMQ message to send
+ * @param flags  - ZeroMQ send flags
+ * @return @c zmq_msg_send() return value
+ */
+static int send_zmq_msg(void* socket, zmq_msg_t* msg, int flags) {
+    int nbytes = 0;
+
+    while(true) {
+        nbytes = zmq_msg_send(msg, socket, flags);
+        if(nbytes <= 0) {
+            // Either an error or an interrupt occurred
+            if(zmq_errno() == EAGAIN || zmq_errno() == EINTR) {
+                LOG_DEBUG_0("ZeroMQ send interrupted");
+                continue;
+            }
+            break;
+        } else {
+            // The bytes were sent correctly
+            break;
+        }
+    }
+
+    return nbytes;
+}
+
+/**
+ * Helper method to send a message over ZeroMQ. This method will continue
+ * attempting to send data if EINTR or EAGAIN occur.
+ *
+ * @param socket   - ZeroMQ socket
+ * @param buf      - Buffer to send
+ * @parma buf_size - Size of the buffer to send
+ * @param flags    - ZeroMQ send flags
+ * @return @c zmq_send() return value
+ */
+static int send_zmq(void* socket, void* buf, size_t buf_size, int flags) {
+    int nbytes = 0;
+
+    while(true) {
+        nbytes = zmq_send(socket, buf, buf_size, flags);
+        if(nbytes <= 0) {
+            // Either an error or an interrupt occurred
+            if(zmq_errno() == EAGAIN || zmq_errno() == EINTR) {
+                LOG_DEBUG_0("ZeroMQ send interrupted");
+                continue;
+            }
+            break;
+        } else {
+            // The bytes were sent correctly
+            break;
+        }
+    }
+
+    return nbytes;
+}
+
+/**
  * Method for sending the given message envelope over the provided ZeroMQ
  * socket context.
  *
@@ -833,6 +898,10 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
     // Separating into two for loops to be able to correctly clean up the
     // memory if constructing a zmq_msg_t fails
     msgs = (zmq_msg_t*) malloc(sizeof(zmq_msg_t) * num_parts);
+    if(msg == NULL) {
+        LOG_ERROR_0("Out of memory");
+        goto err;
+    }
 
     // Initialize zeromq multi-part messages
     for(int i = 0; i < num_parts; i++) {
@@ -861,9 +930,8 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
     }
 
     // Send message prefix
-    int nbytes = zmq_msg_send(&prefix_msg, socket, ZMQ_SNDMORE);
-    zmq_msg_close(&prefix_msg);
-    if(nbytes <= 0 && zmq_errno() != EAGAIN) {
+    int nbytes = send_zmq_msg(socket, &prefix_msg, ZMQ_SNDMORE);
+    if(nbytes <= 0) {
         LOG_ZMQ_ERROR("Failed to send message envelope for part");
         goto err;
     }
@@ -872,8 +940,8 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
     uint8_t val[1];
     val[0] = (uint8_t) msg->content_type;
 
-    nbytes = zmq_send(socket, &val, sizeof(val), ZMQ_SNDMORE);
-    if(nbytes <= 0 && zmq_errno() != EAGAIN) {
+    nbytes = send_zmq(socket, &val, sizeof(val), ZMQ_SNDMORE);
+    if(nbytes <= 0) {
         LOG_ZMQ_ERROR("Failed to send message envelope for content type");
         goto err;
     }
@@ -881,8 +949,8 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
     // Send expected number of parts
     val[0] = (uint8_t) num_parts;
 
-    nbytes = zmq_send(socket, &val, sizeof(val), ZMQ_SNDMORE);
-    if(nbytes <= 0 && zmq_errno() != EAGAIN) {
+    nbytes = send_zmq(socket, &val, sizeof(val), ZMQ_SNDMORE);
+    if(nbytes <= 0) {
         LOG_ZMQ_ERROR("Failed to send message envelope for num parts");
         goto err;
     }
@@ -895,8 +963,8 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
             flags = 0;
 
         // Send main body of the message
-        nbytes = zmq_msg_send(&msgs[i], socket, flags);
-        if(nbytes <= 0 && zmq_errno() != EAGAIN) {
+        nbytes = send_zmq_msg(socket, &msgs[i], flags);
+        if(nbytes <= 0) {
             LOG_ZMQ_ERROR("Failed to send message envelope for part");
             goto err;
         }
@@ -928,6 +996,77 @@ err:
         return MSG_ERR_EINTR;
     else
         return MSG_ERR_MSG_SEND_FAILED;
+}
+
+/**
+ * Helper method for receiving a @c zmq_msg_t from ZeroMQ. This method will
+ * keep attempting to receive a message if EINTR or EAGAIN occur.
+ *
+ * @param[in]  socket - ZeroMQ socket
+ * @param[out] msg    - Received message
+ * @return ZMQ receive value
+ */
+static int recv_zmq_msg(void* socket, zmq_msg_t* msg) {
+    int rc = zmq_msg_init(msg);
+    if(rc != 0) {
+        LOG_ZMQ_ERROR("Failed to initialize message");
+        return rc;
+    }
+
+    while(true) {
+        rc = zmq_msg_recv(msg, socket, 0);
+        if(rc == -1) {
+            if(zmq_errno() == EAGAIN) {
+                LOG_DEBUG_0("ZMQ received EAGAIN");
+                continue;
+            }
+            if(zmq_errno() == EINTR) {
+                LOG_DEBUG_0("Receive interrupted");
+                continue;
+            }
+
+            LOG_ZMQ_ERROR("Failed to receive message");
+            return rc;
+        } else {
+            break;
+        }
+    }
+
+    return rc;
+}
+
+/**
+ * Helper method for receiving a bytes from ZeroMQ. This method will
+ * keep attempting to receive a message if EINTR or EAGAIN occur.
+ *
+ * @param[in]  socket   - ZeroMQ socket
+ * @param[out] buf      - Output buffer
+ * @param[in]  buf_size - Buffer size
+ * @return ZMQ receive value
+ */
+static int recv_zmq(void* socket, void* buf, size_t buf_size) {
+    int rc = 0;
+
+    while(true) {
+        rc = zmq_recv(socket, (void*) buf, buf_size, 0);
+        if(rc == -1) {
+            if(zmq_errno() == EAGAIN) {
+                LOG_DEBUG_0("ZMQ received EAGAIN");
+                continue;
+            }
+            if(zmq_errno() == EINTR) {
+                LOG_DEBUG_0("Receive interrupted");
+                continue;
+            }
+
+            LOG_ZMQ_ERROR("Failed to receive message");
+            return rc;
+        } else {
+            break;
+        }
+    }
+
+    return rc;
 }
 
 static msgbus_ret_t base_recv(
@@ -1023,18 +1162,9 @@ static msgbus_ret_t base_recv(
 
     // Receive message prefix (i.e. topic or service name)
     zmq_msg_t prefix;
-    rc = zmq_msg_init(&prefix);
-    rc = zmq_msg_recv(&prefix, socket, 0);
+    rc = recv_zmq_msg(socket, &prefix);
     if(rc == -1) {
-        if(zmq_errno() == EAGAIN) {
-            LOG_DEBUG_0("ZMQ received EAGAIN");
-            return MSG_RECV_NO_MESSAGE;
-        }
-        if(zmq_errno() == EINTR) {
-            LOG_DEBUG_0("Receive interrupted");
-            return MSG_ERR_EINTR;
-        }
-        LOG_ZMQ_ERROR("recv failed");
+        LOG_ERROR_0("Failed to receive message prefix");
         return MSG_ERR_RECV_FAILED;
     }
 
@@ -1046,33 +1176,17 @@ static msgbus_ret_t base_recv(
     // Receive content type
     uint8_t buf[1];
     size_t buf_size = 1;
-    rc = zmq_recv(socket, (void*) buf, buf_size, 0);
+    rc = recv_zmq(socket, (void*) buf, buf_size);
     if(rc == -1) {
-        if(zmq_errno() == EAGAIN) {
-            LOG_DEBUG_0("ZMQ received EAGAIN");
-            return MSG_RECV_NO_MESSAGE;
-        }
-        if(zmq_errno() == EINTR) {
-            LOG_DEBUG_0("Receive interrupted");
-            return MSG_ERR_EINTR;
-        }
-        LOG_ZMQ_ERROR("recv failed");
+        LOG_ERROR_0("Failed to receive message content type");
         return MSG_ERR_RECV_FAILED;
     }
 
     // Receive expected number of parts
     uint8_t parts_buf[1];
-    rc = zmq_recv(socket, (void*) parts_buf, buf_size, 0);
+    rc = recv_zmq(socket, (void*) parts_buf, buf_size);
     if(rc == -1) {
-        if(zmq_errno() == EAGAIN) {
-            LOG_DEBUG_0("ZMQ received EAGAIN");
-            return MSG_RECV_NO_MESSAGE;
-        }
-        if(zmq_errno() == EINTR) {
-            LOG_DEBUG_0("Receive interrupted");
-            return MSG_ERR_EINTR;
-        }
-        LOG_ZMQ_ERROR("recv failed");
+        LOG_ERROR_0("Failed to receive message content type");
         return MSG_ERR_RECV_FAILED;
     }
 
@@ -1094,18 +1208,15 @@ static msgbus_ret_t base_recv(
     size_t more_size = sizeof(more);
 
     do {
-        // TODO: Check part NULL
         zmq_msg_t* part = (zmq_msg_t*) malloc(sizeof(zmq_msg_t));
-        rc = zmq_msg_init(part);
-        if(rc != 0) {
-            LOG_ZMQ_ERROR("Failed to initialize ZeroMQ message");
-            msgbus_msg_envelope_serialize_destroy(parts, num_parts);
+        if(part == NULL) {
+            LOG_ERROR_0("Ran out of memory initializing message part");
             return MSG_ERR_RECV_FAILED;
         }
 
-        rc = zmq_msg_recv(part, socket, 0);
+        rc = recv_zmq_msg(socket, part);
         if(rc == -1) {
-            LOG_ZMQ_ERROR("Error receiving zmq message body");
+            LOG_ERROR_0("Failed to receive message part");
             msgbus_msg_envelope_serialize_destroy(parts, num_parts);
             zmq_msg_close(part);
             free(part);
@@ -1113,6 +1224,7 @@ static msgbus_ret_t base_recv(
         }
 
         LOG_DEBUG("Received %d bytes", rc);
+
         parts[part_idx].shared = owned_blob_new(
                 (void*) part, free_zmq_msg, (char*) zmq_msg_data(part), rc);
         parts[part_idx].len = rc;
