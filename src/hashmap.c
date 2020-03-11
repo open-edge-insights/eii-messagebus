@@ -78,6 +78,10 @@ hashmap_ret_t hashmap_put(
     // Copying the key value
     size_t len = strlen(key);
     char* key_cpy = (char*) malloc(sizeof(char) * len + 1);
+    if(key_cpy == NULL) {
+        return MAP_OMEM;
+    }
+
     memcpy_s(key_cpy, len, key, len);
     key_cpy[len] = '\0';
 
