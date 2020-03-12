@@ -735,6 +735,7 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
     size_t len = strlen(name) + 1;
     msg->name = (char*) malloc(len);
     if (msg->name == NULL) {
+        msgbus_msg_envelope_destroy(msg);
         return MSG_ERR_NO_MEMORY;
     }
     memset(msg->name, '\0', len);
