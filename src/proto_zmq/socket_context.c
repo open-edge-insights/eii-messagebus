@@ -72,6 +72,7 @@ zmq_shared_sock_t* shared_sock_new(
     shared_sock->mtx = NULL;
 
     // Copy URI
+    int pthread_init_failed = 0;
     shared_sock->uri = (char*) malloc(
             sizeof(char) * (shared_sock->uri_len + 1));
     if(shared_sock->uri == NULL) {
@@ -87,13 +88,18 @@ zmq_shared_sock_t* shared_sock_new(
         LOG_ERROR_0("Out of memory allocating mutex");
         goto err;
     }
-    pthread_mutex_init(shared_sock->mtx, NULL);
+
+    pthread_init_failed = pthread_mutex_init(shared_sock->mtx, NULL);
+    if(pthread_init_failed != 0) {
+        LOG_ERROR_0("Failed to initlaize mutex");
+        goto err;
+    }
 
     // Initialize monitor
     // Generating random part of string in case there are multiple services
     // or publishers with the same name. There can only be one monitor socket
     // per monitor URI
-    const char* rand_str = generate_random_str(5);
+    char* rand_str = generate_random_str(5);
     if(rand_str == NULL) {
         LOG_ERROR_0("Failed to initialize random string");
         goto err;
@@ -101,7 +107,7 @@ zmq_shared_sock_t* shared_sock_new(
 
     size_t total_len = strlen(rand_str) + 10;
     monitor_uri = concat_s(total_len, 2, "inproc://", rand_str);
-    free((void*) rand_str);
+    free(rand_str);
     if(monitor_uri == NULL) {
         LOG_ERROR_0("Failed to initialize monotor URI for the new socket");
         goto err;
@@ -142,46 +148,76 @@ err:
     if(shared_sock->uri != NULL)
         free(shared_sock->uri);
     if(shared_sock->mtx != NULL) {
-        pthread_mutex_destroy(shared_sock->mtx);
+        if(pthread_init_failed == 0) {
+            if(pthread_mutex_destroy(shared_sock->mtx) != 0) {
+                LOG_ERROR_0("Failed to destory shared socket mutex");
+            }
+        }
         free(shared_sock->mtx);
     }
+    if(shared_sock != NULL)
+        free(shared_sock);
     return NULL;
 }
 
 void shared_sock_incref(zmq_shared_sock_t* shared_sock) {
-    shared_sock_lock(shared_sock);
+    if(shared_sock_lock(shared_sock) != 0) {
+        LOG_ERROR_0("Failed to obtain mutex");
+        return;
+    }
     shared_sock->refcount++;
-    shared_sock_unlock(shared_sock);
+    if(shared_sock_unlock(shared_sock) != 0) {
+        LOG_ERROR_0("Failed to unlock mutex");
+        return;
+    }
 }
 
 void shared_sock_decref(zmq_shared_sock_t* shared_sock) {
-    shared_sock_lock(shared_sock);
+    if(shared_sock_lock(shared_sock) != 0) {
+        LOG_ERROR_0("Failed to obtain mutex");
+        return;
+    }
     if(shared_sock->refcount > 0) {
         shared_sock->refcount--;
     } else {
         LOG_ERROR_0("shared_sock_decref() called with refcount == 0");
     }
-    shared_sock_unlock(shared_sock);
+    if(shared_sock_unlock(shared_sock) != 0) {
+        LOG_ERROR_0("Failed to unlock mutex");
+        return;
+    }
 }
 
-void shared_sock_lock(zmq_shared_sock_t* shared_sock) {
-    pthread_mutex_lock(shared_sock->mtx);
+int shared_sock_lock(zmq_shared_sock_t* shared_sock) {
+    return pthread_mutex_lock(shared_sock->mtx);
 }
 
-void shared_sock_unlock(zmq_shared_sock_t* shared_sock) {
-    pthread_mutex_unlock(shared_sock->mtx);
+int shared_sock_unlock(zmq_shared_sock_t* shared_sock) {
+    return pthread_mutex_unlock(shared_sock->mtx);
 }
 
 void shared_sock_retries_incr(zmq_shared_sock_t* shared_sock) {
-    shared_sock_lock(shared_sock);
+    if(shared_sock_lock(shared_sock) != 0) {
+        LOG_ERROR_0("Failed to obtain mutex");
+        return;
+    }
     shared_sock->retries++;
-    shared_sock_unlock(shared_sock);
+    if(shared_sock_unlock(shared_sock) != 0) {
+        LOG_ERROR_0("Failed to unlock mutex");
+        return;
+    }
 }
 
 void shared_sock_retries_reset(zmq_shared_sock_t* shared_sock) {
-    shared_sock_lock(shared_sock);
+    if(shared_sock_lock(shared_sock) != 0) {
+        LOG_ERROR_0("Failed to obtain mutex");
+        return;
+    }
     shared_sock->retries = 0;
-    shared_sock_unlock(shared_sock);
+    if(shared_sock_unlock(shared_sock) != 0) {
+        LOG_ERROR_0("Failed to unlock mutex");
+        return;
+    }
 }
 
 void shared_sock_replace(
@@ -200,7 +236,7 @@ void shared_sock_replace(
     // Generating random part of string in case there are multiple services
     // or publishers with the same name. There can only be one monitor socket
     // per monitor URI
-    const char* rand_str = generate_random_str(5);
+    char* rand_str = generate_random_str(5);
     if(rand_str == NULL) {
         LOG_ERROR_0("Failed to initialize random string");
         goto err;
@@ -208,7 +244,7 @@ void shared_sock_replace(
 
     size_t total_len = strlen(rand_str) + 10;
     monitor_uri = concat_s(total_len, 2, "inproc://", rand_str);
-    free((void*) rand_str);
+    free(rand_str);
     if(monitor_uri == NULL) {
         LOG_ERROR_0("Failed to initialize monotor URI for the new socket");
         goto err;
@@ -293,7 +329,10 @@ msgbus_ret_t sock_ctx_new(
     ctx->shared_socket = socket;
     ctx->name_len = strlen(name) + 1;
     ctx->name = (char*) malloc(sizeof(char) * ctx->name_len);
-    if(ctx->name == NULL) { return MSG_ERR_NO_MEMORY; }
+    if(ctx->name == NULL) {
+        free(ctx);
+        return MSG_ERR_NO_MEMORY;
+    }
 
     memcpy_s(ctx->name, ctx->name_len, name, ctx->name_len);
     ctx->name[ctx->name_len - 1] = '\0';
@@ -306,12 +345,12 @@ msgbus_ret_t sock_ctx_new(
     return MSG_SUCCESS;
 }
 
-void sock_ctx_lock(zmq_sock_ctx_t* ctx) {
-    shared_sock_lock(ctx->shared_socket);
+int sock_ctx_lock(zmq_sock_ctx_t* ctx) {
+    return shared_sock_lock(ctx->shared_socket);
 }
 
-void sock_ctx_unlock(zmq_sock_ctx_t* ctx) {
-    shared_sock_unlock(ctx->shared_socket);
+int sock_ctx_unlock(zmq_sock_ctx_t* ctx) {
+    return shared_sock_unlock(ctx->shared_socket);
 }
 
 void sock_ctx_retries_incr(zmq_sock_ctx_t* ctx) {
