@@ -105,14 +105,14 @@ void shared_sock_decref(zmq_shared_sock_t* shared_sock);
  *
  * @param shared_sock - ZeroMQ shared socket
  */
-void shared_sock_lock(zmq_shared_sock_t* shared_sock);
+int shared_sock_lock(zmq_shared_sock_t* shared_sock);
 
 /**
  * Unlock the mutex for the shared socket.
  *
  * @param shared_sock - ZeroMQ shared socket
  */
-void shared_sock_unlock(zmq_shared_sock_t* shared_sock);
+int shared_sock_unlock(zmq_shared_sock_t* shared_sock);
 
 /**
  * Increment the number of retries that have occured on the socket.
@@ -170,14 +170,14 @@ msgbus_ret_t sock_ctx_new(
  *
  * @param ctx - ZeroMQ socket context
  */
-void sock_ctx_lock(zmq_sock_ctx_t* ctx);
+int sock_ctx_lock(zmq_sock_ctx_t* ctx);
 
 /**
  * Unlock socket mutex.
  *
  * @param ctx - ZeroMQ socket context
  */
-void sock_ctx_unlock(zmq_sock_ctx_t* ctx);
+int sock_ctx_unlock(zmq_sock_ctx_t* ctx);
 
 /**
  * Increment the number of retries that have occured on the socket.

@@ -362,8 +362,10 @@ void proto_zmq_destroy(void* ctx) {
             // Clean up the socket context object
             //zmq_close(zmq_ctx->cfg.tcp.pub_socket);
             LOG_DEBUG_0("Destroying publisher shared socket");
-            shared_sock_destroy(zmq_ctx->cfg.tcp.pub_socket);
-            zmq_ctx->cfg.tcp.pub_socket = NULL;
+            if(zmq_ctx->cfg.tcp.pub_socket != NULL) {
+                shared_sock_destroy(zmq_ctx->cfg.tcp.pub_socket);
+                zmq_ctx->cfg.tcp.pub_socket = NULL;
+            }
 
             if(pthread_mutex_unlock(zmq_ctx->cfg.tcp.pub_mutex) != 0) {
                 LOG_DEBUG_0("Unable to unlock mutex");
@@ -511,9 +513,18 @@ msgbus_ret_t proto_zmq_publisher_publish(
         void* ctx, void* pub_ctx, msg_envelope_t* msg)
 {
     zmq_sock_ctx_t* sock_ctx = (zmq_sock_ctx_t*) pub_ctx;
-    sock_ctx_lock(sock_ctx);
+    if(sock_ctx_lock(sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to obtain socket context lock");
+        return MSG_ERR_UNKNOWN;
+    }
+
     msgbus_ret_t ret = send_message(sock_ctx, msg);
-    sock_ctx_unlock(sock_ctx);
+
+    if(sock_ctx_unlock(sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to unlock socket context lock");
+        return MSG_ERR_UNKNOWN;
+    }
+
     return ret;
 }
 
@@ -564,6 +575,7 @@ msgbus_ret_t proto_zmq_subscriber_new(
     // Initialize shared socket
     shared_socket = shared_sock_new(
             zmq_ctx->zmq_context, topic_uri, socket, ZMQ_SUB);
+    if(shared_socket == NULL) { goto err; }
 
     // Initialize subscriber receive context
     zmq_recv_ctx = (zmq_recv_ctx_t*) malloc(sizeof(zmq_recv_ctx_t));
@@ -671,6 +683,10 @@ msgbus_ret_t proto_zmq_service_get(
 
     shared_socket = shared_sock_new(
             zmq_ctx->zmq_context, service_uri, socket, ZMQ_REQ);
+    if(shared_socket == NULL) {
+        LOG_ERROR_0("Failed to initialize new shared socket");
+        goto err;
+    }
 
     zmq_recv_ctx->type = RECV_SERVICE_REQ;
     ret = sock_ctx_new(
@@ -736,6 +752,10 @@ msgbus_ret_t proto_zmq_service_new(
     // creating the shared socket is no longer needed)
     shared_socket = shared_sock_new(
             zmq_ctx->zmq_context, service_uri, socket, ZMQ_REP);
+    if(shared_socket == NULL) {
+        LOG_ERROR_0("Out of memory initializing shared socket");
+        goto err;
+    }
 
     zmq_recv_ctx->sock_ctx = NULL;
     zmq_recv_ctx->type = RECV_SERVICE;
@@ -1134,7 +1154,10 @@ static msgbus_ret_t base_recv(
         if(ctx->shared_socket->retries == zmq_ctx->zmq_connect_retries) {
             LOG_WARN_0("Reached max retries on the socket connect, "
                        "initializing new ZeroMQ socket");
-            sock_ctx_lock(ctx);
+            if(sock_ctx_lock(ctx) != 0)  {
+                LOG_ERROR_0("Failed to obtain socket context lock");
+                return MSG_ERR_UNKNOWN;
+            }
             close_zero_linger(socket);
 
             // Give the socket time to fully close... If not enough time is
@@ -1152,7 +1175,10 @@ static msgbus_ret_t base_recv(
             if(socket == NULL) { return MSG_ERR_UNKNOWN; }
             sock_ctx_replace(ctx, zmq_ctx->zmq_context, socket);
             poll_items[0].socket = socket;
-            sock_ctx_unlock(ctx);
+            if(sock_ctx_unlock(ctx) != 0) {
+                LOG_ERROR_0("Failed to unlock socket contxt lock");
+                return MSG_ERR_UNKNOWN;
+            }
             sock_ctx_retries_reset(ctx);
             LOG_DEBUG_0("Finished re-initializing ZMQ socket");
         }
@@ -1739,6 +1765,11 @@ static void* new_socket(
             // Set subscription filter
             size_t topic_len = strlen(name);
             char* tmp = (char*) malloc(sizeof(char) * (topic_len + 1));
+            if(tmp == NULL) {
+                LOG_ERROR_0("Out of memory while initializing temp string");
+                goto err;
+            }
+
             memcpy_s(tmp, topic_len, name, topic_len);
             tmp[topic_len] = '\0';
 
