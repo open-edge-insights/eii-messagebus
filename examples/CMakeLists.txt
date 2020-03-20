@@ -62,3 +62,7 @@ target_link_libraries(publisher-many eismsgbus)
 # Add pubsub c++ example
 add_executable(pubsub-threads "pubsub_threads.cpp")
 target_link_libraries(pubsub-threads eismsgbus)
+
+# Add subscriber thread C++ example
+add_executable(thread-subscriber "subscriber_thread.cpp")
+target_link_libraries(thread-subscriber eismsgbus)
