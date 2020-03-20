@@ -455,6 +455,10 @@ private:
     // Output message queue
     MessageQueue* m_output_queue;
 
+    // Timeout for time to wait between receiving and checking if the stop
+    // signal has been sent
+    int m_timeout;
+
 protected:
     /**
      * Subscriber thread run method.
@@ -462,12 +466,11 @@ protected:
     void run() override {
         LOG_DEBUG_0("Subscriber thread started");
 
-        int duration = 250; // microseconds
         msg_envelope_t* msg = NULL;
         msgbus_ret_t ret = MSG_SUCCESS;
 
         while(!m_stop.load()) {
-            ret = msgbus_recv_timedwait(m_ctx, m_recv_ctx, duration, &msg);
+            ret = msgbus_recv_timedwait(m_ctx, m_recv_ctx, m_timeout, &msg);
             if(ret == MSG_SUCCESS) {
                 // Received message
                 T* received = new T(msg);
@@ -502,9 +505,12 @@ public:
      * @param msgbus_config - Message bus context configuration
      * @param topic         - Topic to subscribe on
      * @param output_queue  - Output queue for received messages
+     * @param timeout       - (Optional) Timeout in microseconds for when to
+     *                        check if the thread should stop running (df: 250)
      */
     Subscriber(config_t* msgbus_config, std::condition_variable& err_cv,
-              std::string topic, MessageQueue* output_queue) :
+              std::string topic, MessageQueue* output_queue,
+              int timeout=250) :
         BaseMsgbusThread(msgbus_config, err_cv)
     {
         static_assert(std::is_base_of<Serializable, T>::value,
@@ -515,6 +521,7 @@ public:
         if(ret != MSG_SUCCESS) {
             throw "Failed to initialize subscriber context";
         }
+        m_timeout = timeout;
     };
 
     /**
