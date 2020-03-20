@@ -148,6 +148,10 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     // Initialize protocol context structure
     zmq_proto_ctx_t* zmq_proto_ctx = (zmq_proto_ctx_t*) malloc(
             sizeof(zmq_proto_ctx_t));
+    if(zmq_proto_ctx == NULL) {
+        LOG_ERROR_0("Out of memory initializing protocol");
+        return NULL;
+    }
 
     // Initialize all proto context values
     zmq_proto_ctx->zmq_context = zmq_ctx_new();
@@ -269,6 +273,11 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
         } else {
             zmq_proto_ctx->cfg.tcp.pub_mutex = (pthread_mutex_t*) malloc(
                     sizeof(pthread_mutex_t));
+            if(zmq_proto_ctx->cfg.tcp.pub_mutex == NULL) {
+                LOG_ERROR_0("Failed to malloc publish mutex");
+                goto err;
+            }
+
             int rc = pthread_mutex_init(
                     zmq_proto_ctx->cfg.tcp.pub_mutex, NULL);
             if(rc != 0) {
@@ -321,6 +330,10 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     }
 
     protocol_t* proto_ctx = (protocol_t*) malloc(sizeof(protocol_t));
+    if(proto_ctx == NULL) {
+        LOG_ERROR_0("Out of memory initializing protocol_t");
+        goto err;
+    }
     proto_ctx->proto_ctx = (void*) zmq_proto_ctx;
 
     proto_ctx->destroy = proto_zmq_destroy;
@@ -360,7 +373,6 @@ void proto_zmq_destroy(void* ctx) {
             config_value_destroy(zmq_ctx->cfg.tcp.pub_config);
 
             // Clean up the socket context object
-            //zmq_close(zmq_ctx->cfg.tcp.pub_socket);
             LOG_DEBUG_0("Destroying publisher shared socket");
             if(zmq_ctx->cfg.tcp.pub_socket != NULL) {
                 shared_sock_destroy(zmq_ctx->cfg.tcp.pub_socket);
@@ -579,6 +591,11 @@ msgbus_ret_t proto_zmq_subscriber_new(
 
     // Initialize subscriber receive context
     zmq_recv_ctx = (zmq_recv_ctx_t*) malloc(sizeof(zmq_recv_ctx_t));
+    if(zmq_recv_ctx == NULL) {
+        LOG_ERROR_0("Out of memory initializing receive context");
+        rc = MSG_ERR_NO_MEMORY;
+        goto err;
+    }
     zmq_recv_ctx->type = RECV_SUBSCRIBER;
     zmq_recv_ctx->sock_ctx = NULL;
 
@@ -673,6 +690,14 @@ msgbus_ret_t proto_zmq_service_get(
     void* socket = new_socket(zmq_ctx, service_uri, service_name, ZMQ_REQ);
     if(socket == NULL) { goto err; }
 
+    // Create shared socket
+    shared_socket = shared_sock_new(
+            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REQ);
+    if(shared_socket == NULL) {
+        LOG_ERROR_0("Failed to initialize new shared socket");
+        goto err;
+    }
+
     // Initialize context object
     zmq_recv_ctx = (zmq_recv_ctx_t*) malloc(sizeof(zmq_recv_ctx_t));
     if(zmq_recv_ctx == NULL) {
@@ -681,14 +706,10 @@ msgbus_ret_t proto_zmq_service_get(
         goto err;
     }
 
-    shared_socket = shared_sock_new(
-            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REQ);
-    if(shared_socket == NULL) {
-        LOG_ERROR_0("Failed to initialize new shared socket");
-        goto err;
-    }
-
+    // Assign initial values
     zmq_recv_ctx->type = RECV_SERVICE_REQ;
+    zmq_recv_ctx->sock_ctx = NULL;
+
     ret = sock_ctx_new(
             zmq_ctx->zmq_context, service_name, shared_socket,
             &zmq_recv_ctx->sock_ctx);
@@ -710,6 +731,9 @@ msgbus_ret_t proto_zmq_service_get(
     return ret;
 err:
     if(zmq_recv_ctx != NULL) {
+        if(zmq_recv_ctx->sock_ctx == NULL) {
+            shared_sock_destroy(shared_socket);
+        }
         proto_zmq_recv_ctx_destroy(ctx, zmq_recv_ctx);
     } else if(shared_socket != NULL) {
         shared_sock_destroy(shared_socket);
@@ -737,6 +761,15 @@ msgbus_ret_t proto_zmq_service_new(
 
     // Create ZeroMQ socket
     void* socket = new_socket(zmq_ctx, service_uri, service_name, ZMQ_REP);
+    if(socket == NULL) { goto err; }
+
+    // Create shared socket
+    shared_socket = shared_sock_new(
+            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REP);
+    if(shared_socket == NULL) {
+        LOG_ERROR_0("Out of memory initializing shared socket");
+        goto err;
+    }
 
     // Initialize context object
     zmq_recv_ctx = (zmq_recv_ctx_t*) malloc(sizeof(zmq_recv_ctx_t));
@@ -746,19 +779,10 @@ msgbus_ret_t proto_zmq_service_new(
         goto err;
     }
 
-    // Decrease the number of references to the shared socket, since the
-    // socket context that was just created should be the only reference
-    // going forward for the socket (i.e. the reference for this function after
-    // creating the shared socket is no longer needed)
-    shared_socket = shared_sock_new(
-            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REP);
-    if(shared_socket == NULL) {
-        LOG_ERROR_0("Out of memory initializing shared socket");
-        goto err;
-    }
-
+    // Assign initial values
     zmq_recv_ctx->sock_ctx = NULL;
     zmq_recv_ctx->type = RECV_SERVICE;
+
     ret = sock_ctx_new(
             zmq_ctx->zmq_context, service_name, shared_socket,
             &zmq_recv_ctx->sock_ctx);
@@ -766,6 +790,11 @@ msgbus_ret_t proto_zmq_service_new(
         LOG_ERROR_0("Failed to malloc socket context name");
         goto err;
     }
+
+    // Decrease the number of references to the shared socket, since the
+    // socket context that was just created should be the only reference
+    // going forward for the socket (i.e. the reference for this function after
+    // creating the shared socket is no longer needed)
     shared_sock_decref(shared_socket);
 
     (*service_ctx) = zmq_recv_ctx;
@@ -775,6 +804,9 @@ msgbus_ret_t proto_zmq_service_new(
     return ret;
 err:
     if(zmq_recv_ctx != NULL) {
+        if(zmq_recv_ctx->sock_ctx == NULL) {
+            shared_sock_destroy(shared_socket);
+        }
         proto_zmq_recv_ctx_destroy(zmq_ctx, zmq_recv_ctx);
     } else if(shared_socket != NULL) {
         shared_sock_destroy(shared_socket);
@@ -928,6 +960,10 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
         if((i + 1) == num_parts) {
             serialized_part_wrapper_t* wrap = (serialized_part_wrapper_t*)
                 malloc(sizeof(serialized_part_wrapper_t));
+            if(wrap == NULL) {
+                LOG_ERROR_0("Out of memory");
+                goto err;
+            }
             wrap->num_parts = num_parts;
             wrap->parts = parts;
 
@@ -1172,7 +1208,12 @@ static msgbus_ret_t base_recv(
             socket = new_socket(
                       zmq_ctx, ctx->shared_socket->uri, ctx->name,
                         ctx->shared_socket->socket_type);
-            if(socket == NULL) { return MSG_ERR_UNKNOWN; }
+            if(socket == NULL) {
+                if(sock_ctx_unlock(ctx) != 0) {
+                    LOG_ERROR_0("Failed to unlock socket contxt lock");
+                }
+                return MSG_ERR_UNKNOWN;
+            }
             sock_ctx_replace(ctx, zmq_ctx->zmq_context, socket);
             poll_items[0].socket = socket;
             if(sock_ctx_unlock(ctx) != 0) {
@@ -1412,6 +1453,10 @@ static char* create_uri(
         // Adding 1 for null termintator
         int port_len = snprintf(NULL, 0, "%ld", port_int) + 1;
         char* const port_str = (char*) malloc(sizeof(char) * port_len);
+        if(port_str == NULL) {
+            config_value_destroy(host);
+            return NULL;
+        }
 
         // This is the only required sprintf, it is the only portable way to
         // convert an integer to a string
