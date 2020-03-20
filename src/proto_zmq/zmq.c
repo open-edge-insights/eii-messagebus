@@ -47,7 +47,7 @@
 #define TCP_PREFIX_LEN 6
 #define ZEROMQ_HWM     "zmq_recv_hwm"
 #define ZEROMQ_RECONNECT_RETRIES "zmq_connect_retries"
-#define ZEROMQ_RECONNECT_RETRIES_DF 1000
+#define ZEROMQ_RECONNECT_RETRIES_DF 50
 
 /**
  * Internal ZeroMQ protocol context
@@ -1156,32 +1156,32 @@ static msgbus_ret_t base_recv(
                 sock_ctx_retries_reset(ctx);
             }
             break;
-        } else if(!indef_poll) {
-            return MSG_RECV_NO_MESSAGE;
         }
 
         switch(get_monitor_event(ctx->shared_socket->monitor, false)) {
-            case ZMQ_EVENT_HANDSHAKE_SUCCEEDED:
-                LOG_DEBUG_0("Handshake for the socket succeeded");
-                break;
-            case ZMQ_EVENT_CONNECT_DELAYED:
-                LOG_DEBUG_0("ZeroMQ connection delayed");
-                sock_ctx_retries_incr(ctx);
-                break;
-            case ZMQ_EVENT_CONNECTED:
-                LOG_DEBUG_0("ZeroMQ socket connected");
-                sock_ctx_retries_incr(ctx);
-                break;
+            // Events to increment retries count for recreating the socket
             case ZMQ_EVENT_DISCONNECTED:
-                LOG_WARN_0("ZeroMQ socket disconnected");
+            case ZMQ_EVENT_CONNECT_RETRIED:
+            case ZMQ_EVENT_CONNECT_DELAYED:
                 sock_ctx_retries_incr(ctx);
                 break;
+
             // All possible handshake failure events
             case ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL:
             case ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL:
             case ZMQ_EVENT_HANDSHAKE_FAILED_AUTH:
                 LOG_ERROR_0("ZeroMQ handshake failed");
                 return MSG_ERR_AUTH_FAILED;
+
+            // Events to ignore (NOTE: the event type is already logged)
+            case ZMQ_EVENT_HANDSHAKE_SUCCEEDED:
+            case ZMQ_EVENT_CONNECTED:
+            case ZMQ_EVENT_MONITOR_STOPPED:
+            case ZMQ_EVENT_CLOSE_FAILED:
+            case ZMQ_EVENT_ACCEPTED:
+            case ZMQ_EVENT_BIND_FAILED:
+            case ZMQ_EVENT_LISTENING:
+            case ZMQ_EVENT_CLOSED:
             default:
                 // No event received...
                 break;
@@ -1222,6 +1222,10 @@ static msgbus_ret_t base_recv(
             }
             sock_ctx_retries_reset(ctx);
             LOG_DEBUG_0("Finished re-initializing ZMQ socket");
+        }
+
+        if(!indef_poll) {
+            return MSG_RECV_NO_MESSAGE;
         }
     } while(indef_poll);
 
