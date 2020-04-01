@@ -43,7 +43,6 @@ typedef enum {
     MAP_OMEM           = -2,
     MAP_KEY_EXISTS     = -3,
     MAP_KEY_NOT_EXISTS = -4,
-    MAP_ERROR          = -255,
 } hashmap_ret_t;
 
 /**

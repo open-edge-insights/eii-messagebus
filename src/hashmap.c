@@ -292,7 +292,7 @@ static hashmap_ret_t rehash(hashmap_t* map) {
 
 err:
     free(curr);
-    return MAP_ERROR;
+    return status;
 }
 
 static hashmap_ret_t put_helper(
