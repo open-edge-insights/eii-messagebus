@@ -416,6 +416,7 @@ msgbus_ret_t proto_zmq_publisher_new(
     // Cast ptr to internal context type
     zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_sock_ctx_t* sock_ctx = NULL;
+    msgbus_ret_t ret = MSG_ERR_PUB_FAILED;
     void* socket = NULL;
     zmq_shared_sock_t* shared_socket = NULL;
 
@@ -425,7 +426,7 @@ msgbus_ret_t proto_zmq_publisher_new(
     char* topic_uri = create_uri(zmq_ctx, topic, true);
     if(topic_uri == NULL) {
         LOG_ERROR("Failed to create URI for topic: %s", topic);
-        return MSG_ERR_INIT_FAILED;
+        return MSG_ERR_PUB_FAILED;
     }
 
     LOG_DEBUG("ZeroMQ publisher URI: %s", topic_uri);
@@ -437,11 +438,11 @@ msgbus_ret_t proto_zmq_publisher_new(
             shared_socket = (zmq_shared_sock_t*) hashmap_get(
                     zmq_ctx->cfg.ipc.pub_sockets, topic_uri);
             if(shared_socket != NULL) {
-               msgbus_ret_t ret = sock_ctx_new(
+               ret = sock_ctx_new(
                        zmq_ctx->zmq_context, topic, shared_socket, &sock_ctx);
                if(ret != MSG_SUCCESS) {
                    LOG_ERROR_0("Failed to create a new socket context");
-                   return MSG_ERR_UNKNOWN;
+                   return ret;
                }
 
                *pub_ctx = sock_ctx;
@@ -468,9 +469,9 @@ msgbus_ret_t proto_zmq_publisher_new(
             goto err;
         }
 
-        msgbus_ret_t rc = sock_ctx_new(
+        ret = sock_ctx_new(
                 zmq_ctx->zmq_context, topic, shared_socket, &sock_ctx);
-        if(rc != MSG_SUCCESS) {
+        if(ret != MSG_SUCCESS) {
             LOG_ERROR_0("Failed to initailize socket context");
             goto err;
         }
@@ -481,17 +482,22 @@ msgbus_ret_t proto_zmq_publisher_new(
             zmq_ctx->cfg.tcp.pub_socket = shared_socket;
         } else {
             // Add the newly bound socket to the hashmap of bound sockets
-            hashmap_ret_t ret = hashmap_put(
+            hashmap_ret_t rc = hashmap_put(
                     zmq_ctx->cfg.ipc.pub_sockets, topic_uri,
                     shared_socket, free_sock_ctx);
-            if(ret != MAP_SUCCESS) {
+            if(rc != MAP_SUCCESS) {
                 LOG_ERROR("Failed to put IPC socket in hashmap: %d", ret);
+                // Translate hashmap error to a msgbus_ret_t error
+                if(rc == MAP_KEY_EXISTS)
+                    ret = MSG_ERR_ELEM_ALREADY_EXISTS;
+                else
+                    ret = MSG_ERR_NO_MEMORY;
                 goto err;
             }
         }
     } else {
         // Create new socket context for the shared TCP publisher socket
-        msgbus_ret_t ret = sock_ctx_new(
+        ret = sock_ctx_new(
                 zmq_ctx->zmq_context, topic, zmq_ctx->cfg.tcp.pub_socket,
                 &sock_ctx);
         if(ret != MSG_SUCCESS) {
@@ -518,7 +524,7 @@ err:
         zmq_close(socket);
     }
     free(topic_uri);
-    return MSG_ERR_INIT_FAILED;
+    return ret;
 }
 
 msgbus_ret_t proto_zmq_publisher_publish(
@@ -527,14 +533,19 @@ msgbus_ret_t proto_zmq_publisher_publish(
     zmq_sock_ctx_t* sock_ctx = (zmq_sock_ctx_t*) pub_ctx;
     if(sock_ctx_lock(sock_ctx) != 0) {
         LOG_ERROR_0("Failed to obtain socket context lock");
-        return MSG_ERR_UNKNOWN;
+        return MSG_ERR_PUB_FAILED;
     }
 
     msgbus_ret_t ret = send_message(sock_ctx, msg);
 
     if(sock_ctx_unlock(sock_ctx) != 0) {
         LOG_ERROR_0("Failed to unlock socket context lock");
-        return MSG_ERR_UNKNOWN;
+        if(ret != MSG_SUCCESS) {
+            // Propagating any underlying send_message() issues
+            return ret;
+        } else {
+            return MSG_ERR_PUB_FAILED;
+        }
     }
 
     return ret;
@@ -576,7 +587,7 @@ msgbus_ret_t proto_zmq_subscriber_new(
     char* topic_uri = create_uri(zmq_ctx, topic, false);
     if(topic_uri == NULL) {
         LOG_ERROR("Failed to create URI for topic: %s", topic);
-        return MSG_ERR_UNKNOWN;
+        return MSG_ERR_SUB_FAILED;
     }
 
     LOG_DEBUG("ZeroMQ creating socket for URI: %s", topic_uri);
@@ -633,11 +644,6 @@ err:
     return rc;
 }
 
-void msg_envelope_destroy_wrapper(void* data) {
-    msg_envelope_t* env = (msg_envelope_t*) data;
-    msgbus_msg_envelope_destroy(env);
-}
-
 void proto_zmq_recv_ctx_destroy(void* ctx, void* recv_ctx) {
     zmq_recv_ctx_t* zmq_recv_ctx = (zmq_recv_ctx_t*) recv_ctx;
     if(zmq_recv_ctx->sock_ctx != NULL) {
@@ -676,15 +682,14 @@ msgbus_ret_t proto_zmq_service_get(
     LOG_DEBUG("Getting service: %s", service_name);
     zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_shared_sock_t* shared_socket = NULL;
+    msgbus_ret_t ret = MSG_ERR_SERVICE_INIT_FAILED;
+    zmq_recv_ctx_t* zmq_recv_ctx = NULL;
 
     char* service_uri = create_uri(zmq_ctx, service_name, false);
     if(service_uri == NULL) {
         LOG_ERROR("Failed to create URI for service: %s", service_name);
         return MSG_ERR_SERVICE_INIT_FAILED;
     }
-
-    msgbus_ret_t ret = MSG_SUCCESS;
-    zmq_recv_ctx_t* zmq_recv_ctx = NULL;
 
     // Create ZeroMQ socket
     void* socket = new_socket(zmq_ctx, service_uri, service_name, ZMQ_REQ);
@@ -749,15 +754,14 @@ msgbus_ret_t proto_zmq_service_new(
     LOG_DEBUG("Create new service: %s", service_name);
     zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_shared_sock_t* shared_socket = NULL;
+    msgbus_ret_t ret = MSG_ERR_SERVICE_INIT_FAILED;
+    zmq_recv_ctx_t* zmq_recv_ctx = NULL;
 
     char* service_uri = create_uri(zmq_ctx, service_name, false);
     if(service_uri == NULL) {
         LOG_ERROR("Failed to create URI for service: %s", service_name);
         return MSG_ERR_SERVICE_INIT_FAILED;
     }
-
-    msgbus_ret_t ret = MSG_SUCCESS;
-    zmq_recv_ctx_t* zmq_recv_ctx = NULL;
 
     // Create ZeroMQ socket
     void* socket = new_socket(zmq_ctx, service_uri, service_name, ZMQ_REP);
@@ -931,6 +935,7 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
     msg_envelope_serialized_part_t* parts = NULL;
     zmq_msg_t* msgs = NULL;
     void* socket = ctx->shared_socket->socket;
+    msgbus_ret_t ret = MSG_ERR_MSG_SEND_FAILED;
 
     int num_parts = msgbus_msg_envelope_serialize(msg, &parts);
     if(num_parts < 0) {
@@ -952,6 +957,7 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
     msgs = (zmq_msg_t*) malloc(sizeof(zmq_msg_t) * num_parts);
     if(msg == NULL) {
         LOG_ERROR_0("Out of memory");
+        ret = MSG_ERR_NO_MEMORY;
         goto err;
     }
 
@@ -962,6 +968,7 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
                 malloc(sizeof(serialized_part_wrapper_t));
             if(wrap == NULL) {
                 LOG_ERROR_0("Out of memory");
+                ret = MSG_ERR_NO_MEMORY;
                 goto err;
             }
             wrap->num_parts = num_parts;
@@ -1051,7 +1058,7 @@ err:
     if(zmq_errno() == EINTR)
         return MSG_ERR_EINTR;
     else
-        return MSG_ERR_MSG_SEND_FAILED;
+        return ret;
 }
 
 /**
@@ -1192,7 +1199,7 @@ static msgbus_ret_t base_recv(
                        "initializing new ZeroMQ socket");
             if(sock_ctx_lock(ctx) != 0)  {
                 LOG_ERROR_0("Failed to obtain socket context lock");
-                return MSG_ERR_UNKNOWN;
+                return MSG_ERR_RECV_FAILED;
             }
             close_zero_linger(socket);
 
@@ -1212,13 +1219,13 @@ static msgbus_ret_t base_recv(
                 if(sock_ctx_unlock(ctx) != 0) {
                     LOG_ERROR_0("Failed to unlock socket contxt lock");
                 }
-                return MSG_ERR_UNKNOWN;
+                return MSG_ERR_RECV_FAILED;
             }
             sock_ctx_replace(ctx, zmq_ctx->zmq_context, socket);
             poll_items[0].socket = socket;
             if(sock_ctx_unlock(ctx) != 0) {
                 LOG_ERROR_0("Failed to unlock socket contxt lock");
-                return MSG_ERR_UNKNOWN;
+                return MSG_ERR_RECV_FAILED;
             }
             sock_ctx_retries_reset(ctx);
             LOG_DEBUG_0("Finished re-initializing ZMQ socket");
@@ -1271,7 +1278,9 @@ static msgbus_ret_t base_recv(
         LOG_ERROR_0("Error initializing serialized parts");
         if(parts)
             free(parts);
-        return MSG_ERR_RECV_FAILED;
+        // Propagate the issue which occured in creating the new serialized
+        // parts
+        return ret;
     }
 
     int part_idx = 0;
