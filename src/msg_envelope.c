@@ -265,9 +265,7 @@ msgbus_ret_t msgbus_msg_envelope_elem_object_remove(
     // Attempt to remove the element from the underlying hashmap
     hashmap_ret_t ret = hashmap_remove(obj->body.object, key);
     if(ret != MAP_SUCCESS) {
-        if(ret == MAP_KEY_NOT_EXISTS)
-            return MSG_ERR_ELEM_NOT_EXIST;
-        return MSG_ERR_UNKNOWN;
+        return MSG_ERR_ELEM_NOT_EXIST;
     }
 
     return MSG_SUCCESS;
@@ -358,10 +356,12 @@ msgbus_ret_t msgbus_msg_envelope_put(
         hashmap_ret_t put_ret = hashmap_put(
                 env->map, key, (void*) data, free_elem);
         if(put_ret != MAP_SUCCESS) {
+            // The only possible errors returned from hashmap_put() are
+            // MAP_OMEM and MAP_KEY_EXISTS
             if(put_ret == MAP_KEY_EXISTS) {
                 return MSG_ERR_ELEM_ALREADY_EXISTS;
             } else {
-                return MSG_ERR_UNKNOWN;
+                return MSG_ERR_NO_MEMORY;
             }
         }
     }
@@ -559,7 +559,7 @@ int msgbus_msg_envelope_serialize(
  * Helper function to recursivly deserialize JSON objects into
  * msg_envelope_elem_body_t structures.
  */
-msg_envelope_elem_body_t* deserialize_json(cJSON* obj) {
+static msg_envelope_elem_body_t* deserialize_json(cJSON* obj) {
     msg_envelope_elem_body_t* elem = NULL;
 
     if(cJSON_IsArray(obj)) {
@@ -636,7 +636,7 @@ msg_envelope_elem_body_t* deserialize_json(cJSON* obj) {
  * Helper function to deserialize a blob and add it to the given message
  * envelope.
  */
-msgbus_ret_t deserialize_blob(
+static msgbus_ret_t deserialize_blob(
         msg_envelope_t* msg, msg_envelope_serialized_part_t* part)
 {
 
@@ -687,25 +687,25 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
 {
     msgbus_ret_t ret = MSG_SUCCESS;
     msg_envelope_t* msg = msgbus_msg_envelope_new(ct);
-    if(msg == NULL) return MSG_ERR_UNKNOWN;
+    if(msg == NULL) return MSG_ERR_NO_MEMORY;
 
     if(ct == CT_BLOB) {
         if(num_parts > 1) {
             msgbus_msg_envelope_destroy(msg);
-            return MSG_ERR_UNKNOWN;
+            return MSG_ERR_DESERIALIZE_FAILED;
         }
 
         ret = deserialize_blob(msg, &parts[0]);
     } else if(ct == CT_JSON) {
         if(num_parts > 2) {
             msgbus_msg_envelope_destroy(msg);
-            return MSG_ERR_UNKNOWN;
+            return MSG_ERR_DESERIALIZE_FAILED;
         }
 
         cJSON* json = cJSON_Parse(parts[0].bytes);
         if(json == NULL) {
             msgbus_msg_envelope_destroy(msg);
-            return MSG_ERR_UNKNOWN;
+            return MSG_ERR_DESERIALIZE_FAILED;
         }
 
         // Start parsing the root level of the JSON object
@@ -713,7 +713,7 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
         cJSON_ArrayForEach(subobj, json) {
             msg_envelope_elem_body_t* elem = deserialize_json(subobj);
             if(elem == NULL) {
-                ret = MSG_ERR_UNKNOWN;
+                ret = MSG_ERR_DESERIALIZE_FAILED;
                 break;
             }
             ret = msgbus_msg_envelope_put(msg, subobj->string, elem);
