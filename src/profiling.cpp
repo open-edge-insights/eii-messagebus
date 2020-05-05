@@ -1,6 +1,4 @@
 #include "eis/utils/profiling.h"
-#include <safe_lib.h>
-#include <cstring>
 #include <algorithm>
 
 eis::utils::Profiling::Profiling() {
@@ -38,25 +36,14 @@ void eis::utils::Profiling::add_profiling_ts(msg_envelope_t* meta, const char* k
         long duration = value.count();
 
         msg_envelope_elem_body_t* curr_time_body = msgbus_msg_envelope_new_integer(duration);
+
         if (curr_time_body == NULL) {
             throw "Failed to create profiling timestamp element";
         }
-
         msgbus_ret_t ret = msgbus_msg_envelope_put(meta, key, curr_time_body);
-        int i = 0;
-        while(ret != MSG_SUCCESS) {
-            // Retry adding key by appending an incremented integer
-            if(ret == MSG_ERR_ELEM_ALREADY_EXISTS) {
-                i++;
-                // arr size is +3 to account for _ & integer
-                char spare_key[strlen(key) + 3];
-                snprintf(spare_key, strlen(key) + 3, "%s_%d", key, i);
-                ret = msgbus_msg_envelope_put(meta, spare_key, curr_time_body);
-            } else {
-                throw "Failed to wrap msgBody into meta-data envelope";
-            }
+        if(ret != MSG_SUCCESS) {
+            throw "Failed to wrap msgBody ito meta-data envelope";
         }
-
     } catch(std::exception& err){
         LOG_ERROR("exception: %s",err.what());
     }
