@@ -54,7 +54,7 @@ try:
         service.request(request)
         print('[INFO] Waiting for response')
         response = service.recv()
-        print(f'[INFO] Received response: {response}')
+        print(f'[INFO] Received response: {response.get_meta_data()}')
         time.sleep(1)
 except KeyboardInterrupt:
     print('[INFO] Quitting...')
