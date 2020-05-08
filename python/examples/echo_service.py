@@ -47,8 +47,8 @@ try:
     print('[INFO] Running...')
     while True:
         request = service.recv()
-        print(f'[INFO] Received request: {request}')
-        service.response(request)
+        print(f'[INFO] Received request: {request.get_meta_data()}')
+        service.response(request.get_meta_data())
 except KeyboardInterrupt:
     print('[INFO] Quitting...')
 finally:
