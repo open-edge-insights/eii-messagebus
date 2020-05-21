@@ -236,6 +236,7 @@ msgbus_ret_t msgbus_recv_nowait(
 #include <chrono>
 #include <condition_variable>
 #include <eis/utils/logger.h>
+#include <eis/utils/profiling.h>
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/msgbus/msg_envelope.h>
 
@@ -350,6 +351,12 @@ private:
     // Input message queue
     MessageQueue* m_input_queue;
 
+    // AppName variable
+    std::string m_service_name;
+
+    // Profiling variable
+    Profiling* m_profile = NULL;
+
 protected:
     /**
      * Publisher thread run method.
@@ -363,6 +370,11 @@ protected:
         msg_envelope_t* env = NULL;
         msgbus_ret_t ret = MSG_SUCCESS;
 
+        // Profiling related variables
+        float elapsed_time_ms = 0.0;
+        std::string serialization_time_diff = m_service_name + "_serialization_diff";
+        std::string publisher_ts_str = m_service_name + "_publisher_ts";
+
         while(!m_stop.load()) {
             if(m_input_queue->wait_for(duration)) {
                 // Pop the envelope off the top of the queue
@@ -375,15 +387,31 @@ protected:
 
                 try {
                     // Serialize message into a message envelope
-                    env = msg->serialize();
+                    if(this->m_profile) {
+                        auto t_start = std::chrono::high_resolution_clock::now();
+                        env = msg->serialize();
+                        auto t_end = std::chrono::high_resolution_clock::now();
+                        elapsed_time_ms = std::chrono::duration<float, std::milli>(t_end-t_start).count();
+                    } else {
+                        env = msg->serialize();
+                    }
                     if(env == NULL) {
                         delete msg;
                         msg = NULL;
-                        LOG_ERROR_0(
-                                "Failed to serialize message to msg envelope");
+                        LOG_ERROR_0("Failed to serialize message to msg envelope");
                         m_err_cv.notify_all();
                         break;
                     }
+
+                    if(this->m_profile) {
+                        msg_envelope_elem_body_t* serialization_time = msgbus_msg_envelope_new_floating(double(elapsed_time_ms));
+                        msgbus_ret_t ret = msgbus_msg_envelope_put(env, serialization_time_diff.c_str(), serialization_time);
+                        if(ret != MSG_SUCCESS) {
+                            throw "Failed to wrap msgBody ito meta-data envelope";
+                        }
+                        DO_PROFILING(this->m_profile, env, publisher_ts_str.c_str());
+                    }
+
                     // Publish message
                     ret = msgbus_publisher_publish(m_ctx, m_pub_ctx, env);
                     if(ret != MSG_SUCCESS) {
@@ -421,7 +449,7 @@ public:
      * @param input_queue   - Input queue of messages to publish
      */
     Publisher(config_t* msgbus_config, std::condition_variable& err_cv,
-              std::string topic, MessageQueue* input_queue) :
+              std::string topic, MessageQueue* input_queue, std::string service_name) :
         BaseMsgbusThread(msgbus_config, err_cv)
     {
         m_input_queue = input_queue;
@@ -430,6 +458,8 @@ public:
         if(ret != MSG_SUCCESS) {
             throw "Failed to initialize publisher context";
         }
+        m_service_name = service_name;
+        this->m_profile = new Profiling();
     };
 
     /**
@@ -439,6 +469,7 @@ public:
         this->stop();
         msgbus_publisher_destroy(m_ctx, m_pub_ctx);
         msgbus_destroy(m_ctx);
+        delete m_profile;
     };
 };
 
@@ -459,6 +490,12 @@ private:
     // signal has been sent
     int m_timeout;
 
+    // AppName variable
+    std::string m_service_name;
+
+    // Profiling variable
+    Profiling* m_profile;
+
 protected:
     /**
      * Subscriber thread run method.
@@ -469,21 +506,38 @@ protected:
         msg_envelope_t* msg = NULL;
         msgbus_ret_t ret = MSG_SUCCESS;
 
+        // Profiling related variables
+        std::string subscriber_ts = m_service_name + "_subscriber_ts";
+        std::string subscriber_blocked_ts = m_service_name + "_subscriber_blocked_ts";
+        msg_envelope_t* meta_data = NULL;
+
         while(!m_stop.load()) {
             ret = msgbus_recv_timedwait(m_ctx, m_recv_ctx, m_timeout, &msg);
             if(ret == MSG_SUCCESS) {
                 // Received message
                 T* received = new T(msg);
-                if(m_output_queue->push_wait(received) != QueueRetCode::SUCCESS) {
-                    LOG_ERROR_0("Failed to enqueue received message, "
-                                "message dropped");
-                    msgbus_msg_envelope_destroy(msg);
-                    m_err_cv.notify_all();
-                    break;
-                } else {
-                    // Dropping pointer to message here because the memory for
-                    // the envelope is not owned by the received variable
-                    msg = NULL;
+
+                // Add timestamp after message is received
+                // if profiling is enabled
+                if(this->m_profile) {
+                    meta_data = received->get_meta_data();
+                    DO_PROFILING(this->m_profile, meta_data, subscriber_ts.c_str());
+                }
+                QueueRetCode ret_queue = m_output_queue->push(received);
+                if(ret_queue == QueueRetCode::QUEUE_FULL) {
+                    if(m_output_queue->push_wait(received) != QueueRetCode::SUCCESS) {
+                        LOG_ERROR_0("Failed to enqueue received message, "
+                                    "message dropped");
+                        msgbus_msg_envelope_destroy(msg);
+                        m_err_cv.notify_all();
+                        break;
+                    } else {
+                        // Dropping pointer to message here because the memory for
+                        // the envelope is not owned by the received variable
+                        msg = NULL;
+                    }
+                    // Add timestamp which acts as a marker if queue if blocked
+                    DO_PROFILING(this->m_profile, meta_data, subscriber_blocked_ts.c_str());
                 }
             } else if(ret != MSG_RECV_NO_MESSAGE) {
                 LOG_ERROR("Error receiving message: %d", ret);
@@ -509,7 +563,7 @@ public:
      *                        check if the thread should stop running (df: 250)
      */
     Subscriber(config_t* msgbus_config, std::condition_variable& err_cv,
-              std::string topic, MessageQueue* output_queue,
+              std::string topic, MessageQueue* output_queue, std::string service_name,
               int timeout=250) :
         BaseMsgbusThread(msgbus_config, err_cv)
     {
@@ -522,6 +576,8 @@ public:
             throw "Failed to initialize subscriber context";
         }
         m_timeout = timeout;
+        m_service_name = service_name;
+        this->m_profile = new Profiling();
     };
 
     /**
@@ -531,6 +587,7 @@ public:
         this->stop();
         msgbus_recv_ctx_destroy(m_ctx, m_recv_ctx);
         msgbus_destroy(m_ctx);
+        delete m_profile;
     };
 };
 } // msgbus
