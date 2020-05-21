@@ -28,11 +28,11 @@ void eis::utils::Profiling::add_profiling_ts(msg_envelope_t* meta, const char* k
     try {
         using namespace std::chrono;
         using time_stamp = std::chrono::time_point<std::chrono::system_clock,
-                                           std::chrono::microseconds>;
-        time_stamp curr_time = std::chrono::time_point_cast<microseconds>(system_clock::now());
-        auto now_ms = std::chrono::time_point_cast<std::chrono::microseconds>(curr_time);
+                                           std::chrono::milliseconds>;
+        time_stamp curr_time = std::chrono::time_point_cast<milliseconds>(system_clock::now());
+        auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(curr_time);
         auto epoch = now_ms.time_since_epoch();
-        auto value = std::chrono::duration_cast<std::chrono::microseconds>(epoch);
+        auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
         long duration = value.count();
 
         msg_envelope_elem_body_t* curr_time_body = msgbus_msg_envelope_new_integer(duration);
