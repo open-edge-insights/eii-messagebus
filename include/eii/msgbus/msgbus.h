@@ -355,7 +355,7 @@ private:
     std::string m_service_name;
 
     // Profiling variable
-    Profiling* m_profile = NULL;
+    Profiling* m_profile;
 
 protected:
     /**
@@ -371,8 +371,9 @@ protected:
         msgbus_ret_t ret = MSG_SUCCESS;
 
         // Profiling related variables
-        float elapsed_time_ms = 0.0;
-        std::string serialization_time_diff = m_service_name + "_serialization_diff";
+        int64_t serilization_start= 0;
+        std::string serialization_start_ts_str = m_service_name + "_serialization_entry";
+        std::string serialization_end_ts_str = m_service_name + "_serialization_exit";
         std::string publisher_ts_str = m_service_name + "_publisher_ts";
 
         while(!m_stop.load()) {
@@ -387,11 +388,12 @@ protected:
 
                 try {
                     // Serialize message into a message envelope
-                    if(this->m_profile) {
-                        auto t_start = std::chrono::high_resolution_clock::now();
+                    if(this->m_profile->is_profiling_enabled()) {
+                        // Getting the current timestamp since DO_PROFILNG can't be used
+                        // with msg
+                        serilization_start = this->m_profile->get_curr_time_as_int_epoch();
                         env = msg->serialize();
-                        auto t_end = std::chrono::high_resolution_clock::now();
-                        elapsed_time_ms = std::chrono::duration<float, std::milli>(t_end-t_start).count();
+                        DO_PROFILING(this->m_profile, env, serialization_end_ts_str.c_str());
                     } else {
                         env = msg->serialize();
                     }
@@ -399,15 +401,26 @@ protected:
                         delete msg;
                         msg = NULL;
                         LOG_ERROR_0("Failed to serialize message to msg envelope");
+                        msgbus_msg_envelope_destroy(env);
                         m_err_cv.notify_all();
                         break;
                     }
 
-                    if(this->m_profile) {
-                        msg_envelope_elem_body_t* serialization_time = msgbus_msg_envelope_new_floating(double(elapsed_time_ms));
-                        msgbus_ret_t ret = msgbus_msg_envelope_put(env, serialization_time_diff.c_str(), serialization_time);
+                    if(this->m_profile->is_profiling_enabled()) {
+                        // Adding the obtained start serialization timestamp to meta-data
+                        msg_envelope_elem_body_t* serialization_time_start = msgbus_msg_envelope_new_integer(serilization_start);
+                        if (serialization_time_start == NULL) {
+                            LOG_ERROR_0("Failed to create profiling timestamp element");
+                            msgbus_msg_envelope_destroy(env);
+                            m_err_cv.notify_all();
+                            break;
+                        }
+                        ret = msgbus_msg_envelope_put(env, serialization_start_ts_str.c_str(), serialization_time_start);
                         if(ret != MSG_SUCCESS) {
-                            throw "Failed to wrap msgBody ito meta-data envelope";
+                            LOG_ERROR_0("Failed to add profiling timestamp to message envelope...");
+                            msgbus_msg_envelope_destroy(env);
+                            m_err_cv.notify_all();
+                            break;
                         }
                         DO_PROFILING(this->m_profile, env, publisher_ts_str.c_str());
                     }
@@ -508,8 +521,8 @@ protected:
 
         // Profiling related variables
         std::string subscriber_ts = m_service_name + "_subscriber_ts";
+        std::string subscriber_exit_ts = m_service_name + "_subscriber_exit_ts";
         std::string subscriber_blocked_ts = m_service_name + "_subscriber_blocked_ts";
-        msg_envelope_t* meta_data = NULL;
 
         while(!m_stop.load()) {
             ret = msgbus_recv_timedwait(m_ctx, m_recv_ctx, m_timeout, &msg);
@@ -519,15 +532,19 @@ protected:
 
                 // Add timestamp after message is received
                 // if profiling is enabled
-                if(this->m_profile) {
-                    meta_data = received->get_meta_data();
-                    DO_PROFILING(this->m_profile, meta_data, subscriber_ts.c_str());
+                if(this->m_profile->is_profiling_enabled()) {
+                    DO_PROFILING(this->m_profile, msg, subscriber_ts.c_str());
                 }
                 QueueRetCode ret_queue = m_output_queue->push(received);
                 if(ret_queue == QueueRetCode::QUEUE_FULL) {
+                    // Add timestamp which acts as a marker if queue if blocked
+                    if(this->m_profile->is_profiling_enabled()) {
+                        DO_PROFILING(this->m_profile, msg, subscriber_blocked_ts.c_str());
+                    }
                     if(m_output_queue->push_wait(received) != QueueRetCode::SUCCESS) {
                         LOG_ERROR_0("Failed to enqueue received message, "
                                     "message dropped");
+                        delete received;
                         msgbus_msg_envelope_destroy(msg);
                         m_err_cv.notify_all();
                         break;
@@ -536,8 +553,10 @@ protected:
                         // the envelope is not owned by the received variable
                         msg = NULL;
                     }
-                    // Add timestamp which acts as a marker if queue if blocked
-                    DO_PROFILING(this->m_profile, meta_data, subscriber_blocked_ts.c_str());
+                }
+                // Add timestamp for subscriber exit
+                if(this->m_profile->is_profiling_enabled()) {
+                    DO_PROFILING(this->m_profile, msg, subscriber_exit_ts.c_str());
                 }
             } else if(ret != MSG_RECV_NO_MESSAGE) {
                 LOG_ERROR("Error receiving message: %d", ret);
