@@ -58,3 +58,17 @@ if(WITH_EXAMPLES)
     # examples
     configure_file(${EXAMPLE_SOURCE_IN} ${EXAMPLE_SOURCE})
 endif()
+
+if(WITH_TESTS)
+    set(TEST_SOURCE_IN "${CMAKE_CURRENT_SOURCE_DIR}/tests/source.sh.in")
+    set(TEST_SOURCE    "${PROJECT_BINARY_DIR}/tests/source.sh")
+
+    message("-- Copying over Python tests")
+    file(GLOB PY_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.py")
+    file(COPY ${PY_TESTS}
+         DESTINATION "${PROJECT_BINARY_DIR}/tests")
+
+    # Configure file for sourcing the PYTHONPATH to be able to use the Python
+    # tests
+    configure_file(${TEST_SOURCE_IN} ${TEST_SOURCE})
+endif()
