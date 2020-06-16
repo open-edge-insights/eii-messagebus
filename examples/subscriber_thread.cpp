@@ -34,6 +34,7 @@
 #include "eis/msgbus/msgbus.h"
 
 #define TOPIC "publish_test"
+#define SERVICE_NAME "sub-thread-example"
 
 using namespace eis::utils;
 using namespace eis::msgbus;
@@ -129,10 +130,10 @@ int main(int argc, char** argv) {
 
     if(argc == 3) {
         subscriber = new Subscriber<ExampleMessage>(
-                sub_config, err_cv, argv[2], output_queue);
+                sub_config, err_cv, argv[2], output_queue, SERVICE_NAME);
     } else {
         subscriber = new Subscriber<ExampleMessage>(
-                sub_config, err_cv, TOPIC, output_queue);
+                sub_config, err_cv, TOPIC, output_queue, SERVICE_NAME);
     }
 
     subscriber->start();
