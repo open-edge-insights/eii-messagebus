@@ -33,6 +33,8 @@
 #include <eis/utils/json_config.h>
 #include "eis/msgbus/msgbus.h"
 
+#define SERVICE_NAME "pubsub-threads"
+
 using namespace eis::utils;
 using namespace eis::msgbus;
 
@@ -196,9 +198,11 @@ int main(int argc, char** argv) {
     g_input_queue = new MessageQueue(-1);
     g_output_queue = new MessageQueue(-1);
     g_publisher = new Publisher(
-            pub_config, err_cv, "PUBSUB_TOPIC", g_input_queue);
+            pub_config, err_cv, "PUBSUB_TOPIC", g_input_queue,
+            SERVICE_NAME);
     g_subscriber = new Subscriber<ExampleMessage>(
-            sub_config, err_cv, "PUBSUB_TOPIC", g_output_queue);
+            sub_config, err_cv, "PUBSUB_TOPIC", g_output_queue,
+            SERVICE_NAME);
 
     g_publisher->start();
     g_subscriber->start();
