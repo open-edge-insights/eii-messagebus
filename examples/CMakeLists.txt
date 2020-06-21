@@ -41,28 +41,49 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/gen_tcp_sub_conf.py"
 
 # Add publisher example
 add_executable(publisher "publisher.c")
-target_link_libraries(publisher eismsgbus)
+target_link_libraries(publisher eismsgbus
+                                eisutils
+                                eismsgenv
+                                pthread)
 
 # Add subscriber example
 add_executable(subscriber "subscriber.c")
-target_link_libraries(subscriber eismsgbus)
+target_link_libraries(subscriber eismsgbus
+                                 eisutils
+                                 eismsgenv
+                                 pthread)
 
 # Add echo service example
 add_executable(echo-service "echo_service.c")
-target_link_libraries(echo-service eismsgbus)
+target_link_libraries(echo-service eismsgbus
+                                   eisutils
+                                   eismsgenv
+                                   pthread)
 
 # Add echo service client example
 add_executable(echo-client "echo_client.c")
-target_link_libraries(echo-client eismsgbus)
+target_link_libraries(echo-client eismsgbus
+                                  eisutils
+                                  eismsgenv
+                                  pthread)
 
 # Add publisher many example
 add_executable(publisher-many "publisher_many.c")
-target_link_libraries(publisher-many eismsgbus)
+target_link_libraries(publisher-many eismsgbus
+                                     eisutils
+                                     eismsgenv
+                                     pthread)
 
 # Add pubsub c++ example
 add_executable(pubsub-threads "pubsub_threads.cpp")
-target_link_libraries(pubsub-threads eismsgbus)
+target_link_libraries(pubsub-threads eismsgbus
+                                     eisutils
+                                     eismsgenv
+                                     pthread)
 
 # Add subscriber thread C++ example
 add_executable(thread-subscriber "subscriber_thread.cpp")
-target_link_libraries(thread-subscriber eismsgbus)
+target_link_libraries(thread-subscriber eismsgbus
+                                        eisutils
+                                        eismsgenv
+                                        pthread)

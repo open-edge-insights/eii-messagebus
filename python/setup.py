@@ -41,24 +41,24 @@ setup(
     description='EIS message bus Python wrapper',
     keywords='msgbus eis zeromq',
     url='',
-    long_description=read('${CMAKE_CURRENT_SOURCE_DIR}/README.md'),
+    long_description=read('../README.md'),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Operating System :: POSIX',
         'Intended Audience :: Developers',
         'Topic :: System :: Networking',
     ],
-    package_dir={'': '${CMAKE_CURRENT_SOURCE_DIR}'},
+    package_dir={'': '.'},
     packages=['eis'],
     ext_modules = cythonize([
             Extension(
                 '*',
-                ['${CMAKE_CURRENT_SOURCE_DIR}/eis/*.pyx'],
+                ['./eis/*.pyx'],
                 include_dirs=['${PROJECT_SOURCE_DIR}/include'],
                 library_dirs=['${PROJECT_BINARY_DIR}/'],
                 libraries=['eismsgbus', 'eisutils', 'eismsgenv'])
         ],
-        build_dir='${CMAKE_CURRENT_BINARY_DIR}/build/cython',
+        build_dir='./build/cython',
         compiler_directives={'language_level': 3}
     )
 )
