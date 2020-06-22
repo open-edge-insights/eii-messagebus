@@ -19,17 +19,11 @@
 # IN THE SOFTWARE.
 
 cmake_minimum_required(VERSION 3.11)
-project(eis-messagebus VERSION 1.0.0 LANGUAGES C CXX)
+project(eis-messagebus VERSION 2.3.0 LANGUAGES C CXX)
 
 # Define CMake options
-option(WITH_EXAMPLES "Compile with examples" OFF)
 option(WITH_TESTS    "Compile with unit tests" OFF)
-option(WITH_PYTHON   "Compile with Python bindings" OFF)
-option(WITH_GO       "Install Go bindings with the message bus installation" OFF)
 option(WITH_DOCS     "Generate message bus documentation" OFF)
-
-# Globals
-set(EIS_COMMON_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake")
 
 # Set C standard to C11
 set(CMAKE_C_STANDARD 11)
@@ -41,7 +35,7 @@ set(CMAKE_C_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -D_F
 set(CMAKE_SHARED_LINKER_FLAGS "-z noexecstack -z relro -z now")
 
 # Add cmake module path
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "${EIS_COMMON_CMAKE}")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
@@ -62,7 +56,6 @@ find_package(IntelSafeString REQUIRED)
 # Include header directories
 include_directories(
     include/
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../util/cpuid/
     ${EISMsgEnv_INCLUDE}
     ${EISUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
@@ -74,8 +67,7 @@ file(GLOB SOURCES "src/*.c" "src/*/*.c")
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
 add_library(eismsgbus SHARED
-    ${SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../util/cpuid/cpuid-check.c")
+    ${SOURCES})
 target_link_libraries(eismsgbus
     PUBLIC
         pthread
@@ -91,12 +83,6 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     target_compile_definitions(eismsgbus PRIVATE DEBUG=1)
 endif()
 
-if(WITH_EXAMPLES)
-    add_subdirectory(examples/)
-endif()
-if(WITH_PYTHON)
-    add_subdirectory(python/)
-endif()
 if(WITH_TESTS)
     add_subdirectory(tests/)
 endif()
@@ -134,25 +120,6 @@ install(
     DESTINATION
         ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
-
-# Install Go package if specified to
-if(WITH_GO)
-    message("-- Configuring Go package installation")
-
-    # Verify the $GOPATH environmental variable exists
-    if("$ENV{GOPATH}" STREQUAL "")
-        message(FATAL_ERROR "-- $GOPATH envronmental variable is not set")
-    endif()
-
-    # Configure install command to copy the Go EIS Message Bus library to the
-    # user's $GOPATH
-    install(
-        DIRECTORY
-            ${CMAKE_CURRENT_SOURCE_DIR}/go/EISMessageBus
-        DESTINATION
-            $ENV{GOPATH}/src/
-    )
-endif()
 
 # Export targets to a script
 install(EXPORT eismsgbus-targets
@@ -238,65 +205,15 @@ if(WITH_DOCS)
     # List of docs dependency targets
     set(DOCS_TARGETS doxygen-docs doxygen-docs-pdf)
 
-    if(WITH_PYTHON)
-        message("       Configuring Python API documentation")
-
-        # Find Sphinx commands
-        find_package(Sphinx REQUIRED)
-
-        set(PY_DOCS_DIR "${DOCS_DIR}/python")
-        set(CONF_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/python/docs/conf.py.in")
-        set(CONF_PY_OUT "${PY_DOCS_DIR}/conf.py")
-
-        # Create documentation directories
-        file(MAKE_DIRECTORY "${PY_DOCS_DIR}")
-        file(MAKE_DIRECTORY "${PY_DOCS_DIR}/_cache")
-
-        # Configure conf.py file
-        configure_file(${CONF_PY_IN} ${CONF_PY_OUT} @ONLY)
-
-        # Generate API documentation
-        add_custom_target(python-gen-api-docs
-            COMMENT "Generating Python API documentation"
-            COMMAND ${SPHINX_APIDOC_BIN}
-                -f -o ${CMAKE_CURRENT_SOURCE_DIR}/python/docs
-                ${CMAKE_CURRENT_SOURCE_DIR}/python/eis/
-            VERBATIM)
-
-        # Generate API latex
-        add_custom_target(python-gen-latex
-            COMMENT "Generating Python API latex"
-            DEPENDS py-eis-msgbus python-gen-api-docs
-            COMMAND ${CMAKE_COMMAND}
-                -E env PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}/python/build/lib.linux-x86_64-3.6
-                ${SPHINX_BUILD_BIN}
-                    -q -b latex
-                    -c "${PY_DOCS_DIR}"
-                    -d "${PY_DOCS_DIR}/_cache"
-                    ${CMAKE_CURRENT_SOURCE_DIR}/python/docs/
-                    ${PY_DOCS_DIR}/latex
-            VERBATIM)
-
-        # Generate PDF
-        add_custom_target(python-docs-pdf
-            COMMENT "Generating Python API PDF"
-            DEPENDS doxygen-docs
-            COMMAND ${CMAKE_COMMAND} -E remove "${PDFS_DIR}/EIS_MsgBus_Python_Reference_${PROJECT_VERSION}.pdf"
-            COMMAND ${PDFLATEX}
-                -interaction=nonstopmode
-                -output-directory ${PDFS_DIR}
-                EIS_MsgBus_Python_Reference_${PROJECT_VERSION}.tex
-            WORKING_DIRECTORY ${DOCS_DIR}/python/latex/
-            VERBATIM)
-
-        # Append new target dependencies
-        list(APPEND DOCS_TARGETS py-eis-msgbus python-gen-api-docs
-                python-gen-latex python-docs-pdf)
-    endif()
-
     # Final target for compiling all EIS Message Bus documentation with make docs
     add_custom_target(docs
         COMMENT "Generating EIS Message Bus documentation"
         DEPENDS ${DOCS_TARGETS}
         VERBATIM)
 endif()
+
+# Generate DEB package for EISMessageBus
+set(CPACK_GENERATOR "DEB")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "EIS")
+set(CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+include(CPack)
