@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright (c) 2019 Intel Corporation.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,11 +18,12 @@
 # FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-## Simple source script used for running the Python examples from the
-## build directory
+# Find libzmq
+find_path(ZMQ_INCLUDE_DIR zmq.h)
+find_library(ZMQ_LIBRARY NAMES zmq)
 
-# TODO: Will need to generalize the "lib.linux-x86_64-3.6" eventually
+set(ZMQ_LIBRARIES ${ZMQ_LIBRARY})
+set(ZMQ_INCLUDE_DIRS ${ZMQ_INCLUDE_DIRS})
 
-echo "-- PYTHON EIS MSGBUS ENV VARS SET"
-export PYTHONPATH=$PYTHONPATH:${CMAKE_CURRENT_BINARY_DIR}/build/lib.linux-x86_64-3.6
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PROJECT_BINARY_DIR}
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(ZMQ DEFAULT_MSG ZMQ_LIBRARY ZMQ_INCLUDE_DIR)

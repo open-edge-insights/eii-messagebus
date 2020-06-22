@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright (c) 2019 Intel Corporation.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,11 +18,18 @@
 # FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-## Simple source script used for running the Python examples from the
-## build directory
+cmake_minimum_required(VERSION 2.8.2)
 
-# TODO: Will need to generalize the "lib.linux-x86_64-3.6" eventually
+project(googletest-download NONE)
 
-echo "-- PYTHON EIS MSGBUS ENV VARS SET"
-export PYTHONPATH=$PYTHONPATH:${CMAKE_CURRENT_BINARY_DIR}/build/lib.linux-x86_64-3.6
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PROJECT_BINARY_DIR}
+include(ExternalProject)
+ExternalProject_Add(googletest
+  GIT_REPOSITORY    https://github.com/google/googletest.git
+  GIT_TAG           release-1.8.1
+  SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-src"
+  BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-build"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND     ""
+  INSTALL_COMMAND   ""
+  TEST_COMMAND      ""
+)

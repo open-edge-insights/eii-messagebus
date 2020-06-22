@@ -1,4 +1,0 @@
-{
-    "type": "zmq_ipc",
-    "socket_dir": "${CMAKE_CURRENT_BINARY_DIR}/.socks"
-}

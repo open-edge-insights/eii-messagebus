@@ -713,3 +713,26 @@ To disable all encryption and authentication for TCP communication do not
 specify any of the configuration keys documented above. This will cause the
 message bus to initialize the ZeroMQ protocol without any of the CurveZMQ
 security primitives.
+
+### Generating EISMessageBus DEB package
+
+To generate EISMessageBus DEB package, please ensure you have IEdgeInsights
+setup on your system as a pre-requisite and that you have run the
+eis_libs_installer.sh script present in [IEdgeInsights/common] referring its
+README atleast once. This is required to install the pre-requisites of
+EISMessageBus namely EISMsgEnv & EISUtils.
+
+Once the pre-requisites are enabled, please run these commands to generate the
+DEB package in build directory.
+
+```sh
+$ mkdir build
+$ cd build
+$ cmake ..
+$ cpack
+```
+
+> **NOTE:** Since creating the DEB package requires only eismsgenv & eismsgbus,
+> if the eis_libs_installer.sh breaks while installing eismsgbus, it is recommended
+> to generate the DEB package here and replace the existing one in [IEdgeInsights]
+> repo.
