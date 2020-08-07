@@ -33,8 +33,7 @@ void eis::utils::Profiling::add_profiling_ts(msg_envelope_t* meta, const char* k
         auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(curr_time);
         auto epoch = now_ms.time_since_epoch();
         auto value = std::chrono::duration_cast<std::chrono::milliseconds>(epoch);
-        long duration = value.count();
-
+        int64_t duration = value.count();
         msg_envelope_elem_body_t* curr_time_body = msgbus_msg_envelope_new_integer(duration);
 
         if (curr_time_body == NULL) {
@@ -42,12 +41,15 @@ void eis::utils::Profiling::add_profiling_ts(msg_envelope_t* meta, const char* k
         }
         msgbus_ret_t ret = msgbus_msg_envelope_put(meta, key, curr_time_body);
         if(ret != MSG_SUCCESS) {
-            throw "Failed to wrap msgBody ito meta-data envelope";
+            throw "Failed to wrap msgBody into meta-data envelope";
         }
-    } catch(std::exception& err){
-        LOG_ERROR("exception: %s",err.what());
+    } catch(const char *err) {
+        LOG_ERROR("Exception: %s", err);
+    } catch(std::exception& err) {
+        LOG_ERROR("Exception: %s",err.what());
+    } catch(...) {
+        LOG_ERROR("Generic Exception Occured");
     }
-
 }
 
 
