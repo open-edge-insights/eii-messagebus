@@ -575,16 +575,17 @@ For example, the ZeroMQ TCP protocol uses the identifier `zmq_tcp`. Using this
 type name, the EIS Message Bus knows how to load the protocol in the
 `msgbus_initialize()` method.
 
-Currently, the addition and loading of new protocols must be added directly
-to the source code for the EIS Message Bus. In the future, the message bus will
-include a feature for dynamically loading protocol plugins. All protocols are
-expected to have an initialize method which follows the prototype:
-`protocol_t* proto_<type>_initialize(const char* type, config_t* config)`. This
-method is expected to initialize the underlying messaging library using the
-given `config` parameter and then return a pointer to a `protocol_t` structure
-which has pointers for all of the various messaging functions. This method
-must then be added manually to the `msgbus_initialize()` function in
-`src/msgbus.c`.
+The EIS Message Bus has the ability to dynamically load protocol plugins. It
+does this by searching the system's `LD_LIBRARY_PATH` environmental variable
+for a library following the naming scheme, "lib{TYPE}.so", where, "{TYPE}", is
+the value retrieved from the `type` configuration key.
+
+Once it has found the library, it calls `dlopen()` on the shared object and
+extracts the `PROTO_EXPORTS` symbol from the binary. The `PROTO_EXPORTS` symbol
+must be a global of the `protocol_exports_t` structure. This structure contains
+a single function pointer `initialize()` which points to the initialization
+function of the protocol plugin. The initialization function is responsible for
+creating and populating the `protocol_t` structure.
 
 The `protocol_t` structure is defined below.
 
@@ -638,17 +639,12 @@ The rest of this section will cover the initial setup of a project to add a new
 protocol to the EIS Message Bus, including the ideal code structure for the C
 source code file.
 
-For the purposes of this tutorial, the name of the proctol to be added will be
-named `example`. To start, create a new header file in the `include/eis/msgbus`
-directory and a new C file in the `src` directory.
+The code will be split into a single header and C source file, `example.h` and
+`example.c` respectively.
 
-```sh
-$ touch include/eis/msgbus/example.h
-$ touch src/example.c
-```
-> **NOTE:** The names of the files above should be the name of your protocol.
-
-Once these files are created, add the following to the `example.h` file.
+The header file is shown below. The `protocol.h` header file in the EIS Message
+Bus includes a helpful macro for generating all of the function prototypes
+needed for a protocol. The usage of this is shown in the code below.
 
 ```c
 // C include guards to prevent multiple definition from files including the
@@ -663,12 +659,14 @@ extern "C" {
 
 // Include the protocol.h to get the protocol_t and config_t structure
 // definitions
-#include "eis/msgbus/protocol.h"
+#include <eis/msgbus/protocol.h>
 
 /**
- * Method to initialize the example protocol.
+ * The following macro generates all of the necessary function prototypes for
+ * initialization and all of the messaging primitives. In addition, it adds the
+ * `PROTO_EXPORTS` symbol as well.
  */
-protocol_t* proto_example_initialize(const char* type, config_t* config);
+EIS_MSGBUS_PROTO(example)
 
 #ifdef __cplusplus
 }
@@ -677,115 +675,43 @@ protocol_t* proto_example_initialize(const char* type, config_t* config);
 #endif // _EIS_MESSAGE_BUS_EXAMPLE_H
 ```
 
-The code above defines the initialization method for initializing the `example`
-protocol.
+The `EIS_MSGBUS_PROTO()` macro in the code above creates function prototypes of
+the structure:
 
-Next, modify the `src/msgbus.c` file to call the new `proto_example_intiialize()`
-method if the type configuration parameter is set to `example`.
-
-First, include the `example.h` header file on line 36 in the `src/msgbus.c`
-file.
-
-```c
-#include "eis/msgbus/example.h"
+```
+proto_<NAME>_<METHOD>()
 ```
 
-Then, add the following code at after line 210.
+Where `<NAME>` is the string given to the macro and `<METHOD>` is the protocol
+function which must be implemented using the desired networking library.
+
+The macro also creates a function called `proto_<NAME>_initialize()`, which
+is used to create the context for a given protocol plugin.
+
+In addition to this, it adds the `PROTO_EXPORTS` symbol mentioned before
+and points the initialization function to the correct value in the structure.
+This means, that the macro will generate a line of code that looks as
+follows:
 
 ```c
-int ind_example;
-strcmp_s(value->body.string, strlen("example"), "example", &ind_example);
+protocol_exports_t PROTO_EXPORTS = { .initialize=proto_example_initialize };
 ```
 
-Next, extend the `if...else...` block from lines 212 to 219 to add an `else if`
-clause for if the the protocol type is `example`. The entire code block should
-look as follows in the end.
+Once you have your header defined, you must implement the corresponding C
+code for the function prototypes generated by the macro.
 
-```c
-if(ind_ipc == 0 ||ind_tcp == 0) {
-
-    proto = proto_zmq_initialize(value->body.string, config);
-    if(proto == NULL)
-        goto err;
-} else if(ind_example ==0) {
-    proto = proto_example_initialize(value->body.string, config);
-    if(proto == NULL)
-        goto err;
-} else {
-    LOG_ERROR("Unknown protocol type: %s", value->body.string);
-    goto err;
-}
-```
-
-Once these steps are completed, switch to the `src/example.c` file to add the
-protocol implementation. The recommended structure of the code in this file
-is shown below.
-
-The code below first defines a set of common header file includes, including
-the `example.h` header file. Following this are the function prototypes for
-all of the needed function pointers in the `protocol_t` structure.
-
-After these definitions lies the implementation for the `proto_example_initialize()`
-function. The `TODO` comments represent areas where code must be added depending
-on the protocol being added to the EIS Message Bus. The code then intializes
-the `protocol_t` struct and assigns all of the proper pointers.
-
-After the implementation for the `proto_example_initialize()` function are all
-of the function imlementations for the prototypes defined at the top of the
-file.
-
-Once this file is saved as `src/example.c`, compile the EIS Message Bus. The
-examples should all work, however, they should immediately return or potentially
-raise an error, since this is an empty protocol implementation and none of the
-return objects are being initialized.
+The code below is an example of a stubbed out implementation of all of the
+functions generated by the protocol macro.
 
 ```c
 // Standard C includes
 #include <stdlib.h>
 
+// Include the logger.h for helper logging macros
+#include <eis/utils/logger.h>
+
 // Include the example.h header file
 #include "eis/msgbus/example.h"
-
-// Include the logger.h for helper logging macros
-#include "eis/msgbus/logger.h"
-
-// Function prototypes
-void proto_example_destroy(void* ctx);
-
-msgbus_ret_t proto_example_publisher_new(
-        void* ctx, const char* topic, void** pub_ctx);
-
-msgbus_ret_t proto_example_publisher_publish(
-        void* ctx, void* pub_ctx, msg_envelope_t* msg);
-
-void proto_example_publisher_destroy(void* ctx, void* pub_ctx);
-
-msgbus_ret_t proto_example_subscriber_new(
-    void* ctx, const char* topic, void** subscriber);
-
-void proto_example_recv_ctx_destroy(void* ctx, void* recv_ctx);
-
-msgbus_ret_t proto_example_recv_wait(
-        void* ctx, void* recv_ctx, msg_envelope_t** message);
-
-msgbus_ret_t proto_example_recv_timedwait(
-        void* ctx, void* recv_ctx, int timeout, msg_envelope_t** message);
-
-msgbus_ret_t proto_example_recv_nowait(
-        void* ctx, void* recv_ctx, msg_envelope_t** message);
-
-msgbus_ret_t proto_example_service_get(
-        void* ctx, const char* service_name, void** service_ctx);
-
-msgbus_ret_t proto_example_service_new(
-        void* ctx, const char* service_name, void** service_ctx);
-
-msgbus_ret_t proto_example_request(
-        void* ctx, void* service_ctx, msg_envelope_t* msg);
-
-msgbus_ret_t proto_example_response(
-        void* ctx, void* service_ctx, msg_envelope_t* message);
-
 
 // proto_example_initialize() method implementation
 protocol_t* proto_example_initialize(const char* type, config_t* config) {

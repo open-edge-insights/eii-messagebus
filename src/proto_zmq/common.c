@@ -37,55 +37,63 @@ bool verify_key_len(const char* key) {
     return true;
 }
 
-char* concat_s(size_t dst_len, int num_strs, ...) {
-    char* dst = (char*) malloc(sizeof(char) * dst_len);
-    if(dst == NULL) {
-        LOG_ERROR_0("Failed to initialize dest for string concat");
-        return NULL;
-    }
-
-    va_list ap;
-    size_t curr_len = 0;
-    int ret = 0;
-
-    va_start(ap, num_strs);
-
-    // First element must be copied into dest
-    char* src = va_arg(ap, char*);
-    size_t src_len = strlen(src);
-    ret = strncpy_s(dst, dst_len, src, src_len);
-    if(ret != 0) {
-        LOG_ERROR("Concatincation failed (errno: %d)", ret);
-        free(dst);
-        va_end(ap);
-        return NULL;
-    }
-    curr_len += src_len;
-
-    for(int i = 1; i < num_strs; i++) {
-        src = va_arg(ap, char*);
-        src_len = strlen(src);
-        LOG_DEBUG("%s", src);
-        ret = strncat_s(dst + curr_len, dst_len, src, src_len);
-        if(ret != 0) {
-            LOG_ERROR("Concatincation failed (errno: %d)", ret);
-            free(dst);
-            dst = NULL;
-            break;
-        }
-        curr_len += src_len;
-        dst[curr_len] = '\0';
-    }
-    va_end(ap);
-
-    if(dst == NULL)
-        return NULL;
-    else
-        return dst;
-}
-
 void close_zero_linger(void* socket) {
     int linger = 0;
     zmq_setsockopt(socket, ZMQ_LINGER, &linger, sizeof(linger));
     zmq_close(socket);
+}
+
+const char* get_event_str(int event) {
+    switch(event) {
+        case ZMQ_EVENT_CONNECTED:       return "ZMQ_EVENT_CONNECTED";
+        case ZMQ_EVENT_CONNECT_DELAYED: return "ZMQ_EVENT_CONNECT_DELAYED";
+        case ZMQ_EVENT_CONNECT_RETRIED: return "ZMQ_EVENT_CONNECT_RETRIED";
+        case ZMQ_EVENT_LISTENING:       return "ZMQ_EVENT_LISTENING";
+        case ZMQ_EVENT_BIND_FAILED:     return "ZMQ_EVENT_BIND_FAILED";
+        case ZMQ_EVENT_ACCEPTED:        return "ZMQ_EVENT_ACCEPTED";
+        case ZMQ_EVENT_CLOSED:          return "ZMQ_EVENT_CLOSED";
+        case ZMQ_EVENT_CLOSE_FAILED:    return "ZMQ_EVENT_CLOSE_FAILED";
+        case ZMQ_EVENT_DISCONNECTED:    return "ZMQ_EVENT_DISCONNECTED";
+        case ZMQ_EVENT_MONITOR_STOPPED: return "ZMQ_EVENT_MONITOR_STOPPED";
+        case ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL:
+            return "ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL";
+        case ZMQ_EVENT_HANDSHAKE_SUCCEEDED:
+            return "ZMQ_EVENT_HANDSHAKE_SUCCEEDED";
+        case ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL:
+            return "ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL";
+        case ZMQ_EVENT_HANDSHAKE_FAILED_AUTH:
+            return "ZMQ_EVENT_HANDSHAKE_FAILED_AUTH";
+        default: return "";
+    }
+}
+
+int get_monitor_event(void* monitor, bool block) {
+    zmq_msg_t msg;
+    zmq_msg_init(&msg);
+
+    int flag = ZMQ_DONTWAIT;
+    if(block)
+        flag = 0;
+
+    if(zmq_msg_recv(&msg, monitor, flag) == -1) {
+        zmq_msg_close(&msg);
+        if(zmq_errno() == EAGAIN && !block) {
+            return 0;
+        }
+        return -1;
+    }
+
+    // Get the event which occurred
+    uint16_t event = *(uint16_t*)((uint8_t*) zmq_msg_data(&msg));
+    zmq_msg_close(&msg);
+
+    LOG_DEBUG("ZeroMQ socket event: %s", get_event_str(event));
+
+    // Retrieve second frame
+    zmq_msg_init(&msg);
+    // Ignore any errors since we do not care about the contents of the message
+    zmq_msg_recv(&msg, monitor, 0);
+    zmq_msg_close(&msg);
+
+    return event;
 }

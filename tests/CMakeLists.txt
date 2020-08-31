@@ -65,3 +65,9 @@ configure_file(${IPC_CONFIG_IN} ${IPC_CONFIG})
 # Copy JSON configuration for msgbus-tests
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tcp_unittest_config.json"
      DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/dyn_unittest_config.json"
+     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+
+# Compile test protocol plugin library
+add_library(test-proto SHARED "test_proto_plugin.c")
+target_link_libraries(test-proto eismsgbus ${EISUtils_LIBRARIES})

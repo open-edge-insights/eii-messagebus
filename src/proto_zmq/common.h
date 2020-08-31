@@ -56,20 +56,27 @@
 bool verify_key_len(const char* key);
 
 /**
- * Secure helper function for concatinating a list of c-strings.
- *
- * @param dst_len  - Final length of the concatinated string
- * @param num_strs - Number of input strings to concatinate
- * @return Concatinated string
- */
-char* concat_s(size_t dst_len, int num_strs, ...);
-
-/**
  * ZeroMQ helper function to close a socket with no linger for currently
  * sending messages.
  *
  * @param socket - ZeroMQ socket pointer
  */
 void close_zero_linger(void* socket);
+
+/**
+ * Helper function to get a string for the name of a ZeroMQ event.
+ *
+ * @param event - ZeroMQ event ID
+ */
+const char* get_event_str(int event);
+
+/**
+ * Helper method to see if any events occured on a given socket.
+ *
+ * @param monitor - ZeroMQ monitor socket
+ * @param block   - Flag for whether or not to block until an event occurs
+ * @return ZeroMQ event ID
+ */
+int get_monitor_event(void* monitor, bool block);
 
 #endif // _EIS_MESSAGE_BUS_ZMQ_COMMON_H

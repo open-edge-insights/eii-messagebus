@@ -26,28 +26,35 @@
 // Enable use of timeit utility
 #define WITH_TIMEIT
 
+#include <limits.h>
 #include <gtest/gtest.h>
-#include "eis/msgbus/msgbus.h"
 #include <eis/utils/logger.h>
+#include <eis/utils/string.h>
+#include "eis/msgbus/msgbus.h"
 #include "eis/utils/timeit.h"
 #include "eis/utils/logger.h"
 #include "eis/utils/json_config.h"
 
 #define PUB_SUB_TOPIC "unittest-pubsub"
 #define SERVICE_NAME  "unittest-service"
-
+#define LD_PATH_SET   "LD_LIBRARY_PATH="
+#define LD_SEP        ":"
 #define IPC_CONFIG "./ipc_unittest_config.json"
 #define TCP_CONFIG "./tcp_unittest_config.json"
+#define DYN_CONFIG "./dyn_unittest_config.json"
 
 #define TEST_BLOB "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09"
 
 // Global flag for using TCP communication
 bool g_use_tcp;
 
+// Prototypes
+static char* update_ld_library_path();
+
 /**
  * Helper to create the config_t object.
  */
-config_t* create_config() {
+static config_t* create_config() {
     if(g_use_tcp)
         return json_config_new(TCP_CONFIG);
     else
@@ -402,12 +409,51 @@ TEST(msgbus_test, msgbus_request_response) {
     msgbus_destroy(ctx);
 }
 
+TEST(msgbus_test, msgbus_load_proto) {
+    // Update the LD_LIBRARY_PATH with the CWD to load the test proto plugin
+    char* ld_lib_path = update_ld_library_path();
+
+    // Load JSON configuration
+    config_t* config = json_config_new(DYN_CONFIG);
+    void* ctx = msgbus_initialize(config);
+    if(ctx == NULL)
+        FAIL() << "Failed to initlize msgbus";
+
+    recv_ctx_t* recv_ctx;
+
+    // Exercise all msgbus methods to make sure everything was loaded correctly
+    msgbus_publisher_new(ctx, "TOPIC", NULL);
+    msgbus_publisher_publish(ctx, NULL, NULL);
+    msgbus_publisher_destroy(ctx, NULL);
+
+    msgbus_subscriber_new(ctx, "TOPIC", NULL, &recv_ctx);
+    msgbus_recv_ctx_destroy(ctx, recv_ctx);
+    recv_ctx = NULL;
+
+    msgbus_service_get(ctx, "NAME", NULL, &recv_ctx);
+    msgbus_request(ctx, recv_ctx, NULL);
+    msgbus_recv_ctx_destroy(ctx, recv_ctx);
+    recv_ctx = NULL;
+
+    msgbus_service_new(ctx, "NAME", NULL, &recv_ctx);
+    msgbus_response(ctx, recv_ctx, NULL);
+    msgbus_recv_wait(ctx, recv_ctx, NULL);
+    msgbus_recv_timedwait(ctx, recv_ctx, 0, NULL);
+    msgbus_recv_nowait(ctx, recv_ctx, NULL);
+    msgbus_recv_ctx_destroy(ctx, recv_ctx);
+    recv_ctx = NULL;
+
+    msgbus_destroy(ctx);
+    free(ld_lib_path);
+}
+
 /**
  * Overridden GTest main method
  */
 GTEST_API_ int main(int argc, char** argv) {
     // Parse out gTest command line parameters
     ::testing::InitGoogleTest(&argc, argv);
+    set_log_level(LOG_LVL_DEBUG);
 
     if(argc == 2) {
         if(strcmp(argv[1], "--tcp") == 0) {
@@ -423,4 +469,40 @@ GTEST_API_ int main(int argc, char** argv) {
     }
 
     return RUN_ALL_TESTS();
+}
+
+/**
+ * Helper method to add the current working directory to the LD_LIBRARY_PATH.
+ *
+ * Note that this function returns the string for the environmental variable is
+ * returned. This memory needs to stay allocated until that variable is no
+ * longer needed.
+ *
+ * @return char*
+ */
+static char* update_ld_library_path() {
+    const char* ld_library_path = getenv("LD_LIBRARY_PATH");
+    size_t len = (ld_library_path != NULL) ? strlen(ld_library_path) : 0;
+
+    // Get current working directory
+   char cwd[PATH_MAX];
+   assert(getcwd(cwd, sizeof(cwd)) != NULL);
+
+   size_t dest_len = strlen(LD_PATH_SET) + strlen(cwd) + len + 2;
+   char* env_str = NULL;
+
+   if(ld_library_path == NULL) {
+       // Setting the environmental variable from scratch
+       env_str = concat_s(dest_len, 3, LD_PATH_SET, LD_SEP, cwd);
+   } else {
+       // Setting the environmental variable with existing path
+       env_str = concat_s(
+               dest_len, 4, LD_PATH_SET, ld_library_path, LD_SEP, cwd);
+   }
+   assert(env_str != NULL);
+
+   // Put the new LD_LIBRARY_PATH into the environment
+   putenv(env_str);
+
+   return env_str;
 }
