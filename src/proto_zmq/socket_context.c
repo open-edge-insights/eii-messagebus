@@ -27,6 +27,7 @@
 #include <string.h>
 #include <safe_lib.h>
 #include <eis/utils/logger.h>
+#include <eis/utils/string.h>
 // Include libzmq zmq.h
 #include <zmq.h>
 
@@ -299,6 +300,18 @@ void shared_sock_destroy(zmq_shared_sock_t* shared_sock) {
         // send before closing the socket
         zmq_close(shared_sock->socket);
 
+        // Close monitor socket
+        if(shared_sock->monitor != NULL) {
+            // Before closing the socket, the monitor must finish receiving all
+            // queued events for the socket until ZeroMQ has stopped the
+            // monitor, otherwise, there is a potential for a memory leak
+            int ev = 0;
+            do {
+                ev = get_monitor_event(shared_sock->monitor, true);
+            } while(ev !=  ZMQ_EVENT_MONITOR_STOPPED);
+            close_zero_linger(shared_sock->monitor);
+        }
+
         // Destroy the pthread mutex
         if(pthread_mutex_destroy(shared_sock->mtx) != 0) {
             LOG_ERROR_0("Failed to destroy shared socket mutex");
@@ -307,10 +320,6 @@ void shared_sock_destroy(zmq_shared_sock_t* shared_sock) {
 
         // Free URI
         free(shared_sock->uri);
-
-        // Close monitor socket
-        if(shared_sock->monitor != NULL)
-            close_zero_linger(shared_sock->monitor);
 
         // The final free
         free(shared_sock);

@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 cmake_minimum_required(VERSION 3.11)
-project(eis-messagebus VERSION 2.3.0 LANGUAGES C CXX)
+project(eis-messagebus VERSION 2.4.0 LANGUAGES C CXX)
 
 # Define CMake options
 option(WITH_TESTS    "Compile with unit tests" OFF)
@@ -52,6 +52,7 @@ find_package(cJSON REQUIRED)
 find_package(EISUtils REQUIRED)
 find_package(EISMsgEnv REQUIRED)
 find_package(IntelSafeString REQUIRED)
+find_package(DynLibLoad REQUIRED)
 
 # Include header directories
 include_directories(
@@ -60,20 +61,21 @@ include_directories(
     ${EISUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
+    ${DYNLIBLOAD_INCLUDE}
     ${IntelSafeString_INCLUDE})
 
 # Get all source files
 file(GLOB SOURCES "src/*.c" "src/*/*.c")
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
 
-add_library(eismsgbus SHARED
-    ${SOURCES})
+add_library(eismsgbus SHARED ${SOURCES})
 target_link_libraries(eismsgbus
     PUBLIC
         pthread
         ${EISUtils_LIBRARIES}
         ${EISMsgEnv_LIBRARIES}
     PRIVATE
+        ${DYNLIBLOAD_LIBRARIES}
         ${ZMQ_LIBRARIES}
         ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
