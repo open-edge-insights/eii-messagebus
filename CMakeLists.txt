@@ -52,7 +52,7 @@ find_package(cJSON REQUIRED)
 find_package(EISUtils REQUIRED)
 find_package(EISMsgEnv REQUIRED)
 find_package(IntelSafeString REQUIRED)
-find_package(DynLibLoad REQUIRED)
+find_package(EISDynLibLoad REQUIRED)
 
 # Include header directories
 include_directories(
@@ -61,7 +61,7 @@ include_directories(
     ${EISUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
-    ${DYNLIBLOAD_INCLUDE}
+    ${EISDYNLIBLOAD_INCLUDE}
     ${IntelSafeString_INCLUDE})
 
 # Get all source files
@@ -75,7 +75,7 @@ target_link_libraries(eismsgbus
         ${EISUtils_LIBRARIES}
         ${EISMsgEnv_LIBRARIES}
     PRIVATE
-        ${DYNLIBLOAD_LIBRARIES}
+        ${EISDYNLIBLOAD_LIBRARIES}
         ${ZMQ_LIBRARIES}
         ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
