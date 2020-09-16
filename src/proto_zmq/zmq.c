@@ -42,6 +42,7 @@
 #define SOCKET_FILE    "socket_file"
 #define PORT           "port"
 #define HOST           "host"
+#define BROKERED       "brokered"
 #define IPC_PREFIX     "ipc://"
 #define IPC_PREFIX_LEN 6
 #define TCP_PREFIX     "tcp://"
@@ -69,6 +70,7 @@ typedef struct {
         struct {
             config_value_t* pub_host;
             int64_t pub_port;
+            bool pub_brokered;
             zmq_shared_sock_t* pub_socket;
             pthread_mutex_t* pub_mutex;
             config_value_t* pub_config;
@@ -138,7 +140,7 @@ static msgbus_ret_t init_curve_client_socket(
 static void free_sock_ctx(void* vargs);
 static void* new_socket(
         zmq_proto_ctx_t* zmq_ctx, const char* uri, const char* name,
-        int socket_type);
+        int socket_type, bool brokered);
 
 protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     // TODO: Clean up method to make sure all memeory is fully freed always
@@ -166,6 +168,7 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     // Initialize TCP configuration values
     zmq_proto_ctx->cfg.tcp.pub_host = NULL;
     zmq_proto_ctx->cfg.tcp.pub_port = 0;
+    zmq_proto_ctx->cfg.tcp.pub_brokered = false;
     zmq_proto_ctx->cfg.tcp.pub_socket = NULL;
     zmq_proto_ctx->cfg.tcp.pub_config = NULL;
     zmq_proto_ctx->cfg.tcp.pub_mutex = NULL;
@@ -315,6 +318,26 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
                 goto err;
             }
 
+            config_value_t* brokered = config->get_config_value(
+                    conf_obj->body.object->object, BROKERED);
+            if(brokered != NULL) {
+                if(brokered->type != CVT_BOOLEAN) {
+                    LOG_ERROR_0("Brokered must be a boolean");
+                    config_value_destroy(host);
+                    config_value_destroy(port);
+                    config_value_destroy(conf_obj);
+                    goto err;
+                }
+
+                zmq_proto_ctx->cfg.tcp.pub_brokered = brokered->body.boolean;
+                if (zmq_proto_ctx->cfg.tcp.pub_brokered) {
+                    LOG_DEBUG_0("PUBLISHERS WILL BE BROKERED");
+                } else {
+                    LOG_DEBUG_0("PUBLISHERS WILL NOT BE BROKERED");
+                }
+                config_value_destroy(brokered);
+            }
+
             zmq_proto_ctx->cfg.tcp.pub_host = host;
             zmq_proto_ctx->cfg.tcp.pub_port = port->body.integer;
             zmq_proto_ctx->cfg.tcp.pub_socket = NULL;
@@ -431,6 +454,9 @@ msgbus_ret_t proto_zmq_publisher_new(
     LOG_DEBUG("ZeroMQ publisher URI: %s", topic_uri);
 
     if(zmq_ctx->is_ipc || zmq_ctx->cfg.tcp.pub_socket == NULL) {
+        // Flag for if the new socket (if one is created) will be brokered
+        bool brokered = false;
+
         // Check if the application has already bound an IPC for the given
         // publisher
         if(zmq_ctx->is_ipc) {
@@ -446,10 +472,47 @@ msgbus_ret_t proto_zmq_publisher_new(
 
                *pub_ctx = sock_ctx;
                return MSG_SUCCESS;
+            } else {
+                // Check if the new socket that should be brokered
+                // Check if a specific socket file has been given for the IPC socket
+                config_value_t* ipc_cfg_obj = config_get(
+                        zmq_ctx->config, topic);
+                if(ipc_cfg_obj != NULL) {
+                    if(ipc_cfg_obj->type != CVT_OBJECT) {
+                        LOG_ERROR(
+                            "Configuration for '%s' must be an object", topic);
+                        config_value_destroy(ipc_cfg_obj);
+                        goto err;
+                    }
+
+                    // Check if brokered specified in the object
+                    config_value_t* cvt_brokered = config_value_object_get(
+                            ipc_cfg_obj, BROKERED);
+                    if (cvt_brokered != NULL) {
+                        if (cvt_brokered->type != CVT_BOOLEAN) {
+                            config_value_destroy(ipc_cfg_obj);
+                            config_value_destroy(cvt_brokered);
+                            LOG_ERROR_0("Brokered must be a boolean");
+                            goto err;
+                        }
+
+                        brokered = cvt_brokered->body.boolean;
+                        config_value_destroy(cvt_brokered);
+                    }
+
+                    // Destroy the object
+                    config_value_destroy(ipc_cfg_obj);
+                }
             }
+        } else {
+            // Going to create a new TCP socket, check if it should be
+            // brokered
+            brokered = zmq_ctx->cfg.tcp.pub_brokered;
         }
 
-        socket = new_socket(zmq_ctx, topic_uri, topic, ZMQ_PUB);
+        // No existing socket, creating a new one
+
+        socket = new_socket(zmq_ctx, topic_uri, topic, ZMQ_PUB, brokered);
         if(socket == NULL) { goto err; }
 
         LOG_DEBUG_0("ZeroMQ publisher created");
@@ -591,7 +654,7 @@ msgbus_ret_t proto_zmq_subscriber_new(
 
     LOG_DEBUG("ZeroMQ creating socket for URI: %s", topic_uri);
 
-    void* socket = new_socket(zmq_ctx, topic_uri, topic, ZMQ_SUB);
+    void* socket = new_socket(zmq_ctx, topic_uri, topic, ZMQ_SUB, false);
     if(socket == NULL) { goto err; }
 
     // Initialize shared socket
@@ -691,7 +754,8 @@ msgbus_ret_t proto_zmq_service_get(
     }
 
     // Create ZeroMQ socket
-    void* socket = new_socket(zmq_ctx, service_uri, service_name, ZMQ_REQ);
+    void* socket = new_socket(
+            zmq_ctx, service_uri, service_name, ZMQ_REQ, false);
     if(socket == NULL) { goto err; }
 
     // Create shared socket
@@ -763,7 +827,8 @@ msgbus_ret_t proto_zmq_service_new(
     }
 
     // Create ZeroMQ socket
-    void* socket = new_socket(zmq_ctx, service_uri, service_name, ZMQ_REP);
+    void* socket = new_socket(
+            zmq_ctx, service_uri, service_name, ZMQ_REP, false);
     if(socket == NULL) { goto err; }
 
     // Create shared socket
@@ -1213,7 +1278,7 @@ static msgbus_ret_t base_recv(
             socket = NULL;
             socket = new_socket(
                       zmq_ctx, ctx->shared_socket->uri, ctx->name,
-                        ctx->shared_socket->socket_type);
+                        ctx->shared_socket->socket_type, false);
             if(socket == NULL) {
                 if(sock_ctx_unlock(ctx) != 0) {
                     LOG_ERROR_0("Failed to unlock socket contxt lock");
@@ -1392,6 +1457,9 @@ static char* create_uri(
                     config_value_destroy(ipc_cfg_obj);
                     return NULL;
                 }
+
+                config_value_destroy(cv_sock_file);
+                config_value_destroy(ipc_cfg_obj);
 
                 return uri;
             } else {
@@ -1695,11 +1763,12 @@ err:
  * @param uri         - Socket URI
  * @param name        - Service name or topic string
  * @param socket_type - ZMQ_* constant for the type of socket
+ * @param brokered    - Only applicable for ZMQ_PUB, flag for if it is brokered
  * @return ZeroMQ socket, NULL if an error occurs
  */
 static void* new_socket(
         zmq_proto_ctx_t* zmq_ctx, const char* uri, const char* name,
-        int socket_type) {
+        int socket_type, bool brokered) {
     // Bind / connect method to use on the socket
     int (*connect_fn)(void*,const char*) = zmq_bind;
     int ret = 0;
@@ -1727,9 +1796,31 @@ static void* new_socket(
         // Binding socket types
         case ZMQ_PUB:
             if(!zmq_ctx->is_ipc) {
-                msgbus_ret_t rc = init_curve_server_socket(
-                        socket, zmq_ctx->config, zmq_ctx->cfg.tcp.pub_config);
-                if(rc != MSG_SUCCESS) { goto err; }
+                // Check if the publisher is connecting to a broker
+                if(brokered) {
+                    // Attempt to initialize the publisher socket as a CURVE
+                    // client
+                    msgbus_ret_t rc = init_curve_client_socket(
+                            socket, zmq_ctx->config,
+                            zmq_ctx->cfg.tcp.pub_config);
+                    if(rc != MSG_SUCCESS) { goto err; }
+
+                    // If the connection is brokered, then the broker bound to
+                    // the (host, port) and the publisher should connect
+                    connect_fn = zmq_connect;
+                } else {
+                    // Attempt to initialize the publisher socket as a CURVE
+                    // server, since it will be binding to it's (host, port)
+                    msgbus_ret_t rc = init_curve_server_socket(
+                            socket, zmq_ctx->config,
+                            zmq_ctx->cfg.tcp.pub_config);
+                    if(rc != MSG_SUCCESS) { goto err; }
+                }
+            } else if (brokered) {
+                // If it is IPC and the connection is to be brokered, then
+                // change the connect_fn to be zmq_connect() rather than
+                // zmq_bind()
+                connect_fn = zmq_connect;
             }
             break;
         case ZMQ_REP:
