@@ -63,14 +63,14 @@ static void* zap_run(void* vargs) {
     zmq_pollitem_t poll_items[] = {{ zap_ctx->socket, 0, ZMQ_POLLIN, 0 }};
 
     // ZAP fields (All fields have a max size of 255, see ZAP spec)
-    char version[255];
-    char request_id[255];
-    char domain[255];
-    char address[255];
-    char identity[255];
-    char mechanism[255];
-    uint8_t client_public_key[32];
-    char encoded_key[41];
+    char version[255] = {0};
+    char request_id[255] = {0};
+    char domain[255] = {0};
+    char address[255] = {0};
+    char identity[255] = {0};
+    char mechanism[255] = {0};
+    uint8_t client_public_key[32] = {0};
+    char encoded_key[41] = {0};
 
     LOG_DEBUG_0("ZeroMQ ZAP thread started");
 
