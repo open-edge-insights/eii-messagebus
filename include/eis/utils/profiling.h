@@ -21,7 +21,6 @@
 /**
  * @file
  * @brief C++ Profiling Library
- * @author Nagdeep GK <nagdeep.gk@intel.com>
  */
 
 #ifndef _EIS_UTILS_PROFILING_H
