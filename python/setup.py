@@ -37,7 +37,6 @@ setup(
     name='eis-msgbus',
     version='${PACKAGE_VERSION}',
     author='Kevin Midkiff',
-    author_email='kevin.midkiff@intel.com',
     description='EIS message bus Python wrapper',
     keywords='msgbus eis zeromq',
     url='',
