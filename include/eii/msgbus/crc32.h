@@ -20,7 +20,6 @@
 
 /**
  * @brief Simple CRC32 hashing function
- * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
 #ifndef _EIS_MESSAGE_BUS_CRC32_H

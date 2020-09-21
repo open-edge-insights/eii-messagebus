@@ -21,7 +21,6 @@
 /**
  * @file
  * @brief C hashmap implementation
- * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
 #ifndef _EIS_MSGENV_HASHMAP_H
