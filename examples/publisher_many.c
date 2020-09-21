@@ -20,7 +20,6 @@
 
 /**
  * @brief Message bus application example with many publishers
- * @author Kevin Midkiff (kevin.midkiff@intel.com)
  */
 
 #include <signal.h>

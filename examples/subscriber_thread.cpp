@@ -20,7 +20,6 @@
 
 /**
  * @brief EIS Message Bus example using the C++ thread helper classes.
- * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
 #include <chrono>

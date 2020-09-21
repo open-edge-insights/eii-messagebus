@@ -20,7 +20,6 @@
 
 /**
  * @brief Message bus subscriber example
- * @author Kevin Midkiff (kevin.midkiff@intel.com)
  */
 
 #include <signal.h>

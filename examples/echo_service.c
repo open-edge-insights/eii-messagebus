@@ -20,7 +20,6 @@
 
 /**
  * @brief Message bus echo service example
- * @author Kevin Midkiff (kevin.midkiff@intel.com)
  */
 
 #include <signal.h>
