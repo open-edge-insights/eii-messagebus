@@ -20,7 +20,6 @@
 
 /**
  * @brief Simple CRC32 hashing function implementation
- * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
 #include "eis/msgbus/crc32.h"

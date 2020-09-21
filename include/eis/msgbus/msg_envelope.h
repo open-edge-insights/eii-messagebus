@@ -21,7 +21,6 @@
 /**
  * @file
  * @brief Messaging envelope abstraction
- * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
 #ifndef _EIS_MESSAGE_BUS_MSGENV_H

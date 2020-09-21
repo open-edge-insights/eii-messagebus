@@ -20,7 +20,6 @@
 
 /**
  * @brief Message envelope tests
- * @author Kevin Midkiff (kevin.midkiff@intel.com)
  */
 
 // Enable use of timeit utility

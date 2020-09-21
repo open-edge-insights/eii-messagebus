@@ -20,7 +20,6 @@
 
 /**
  * @brief CRC32 Tests
- * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
 // Enable use of timeit utility

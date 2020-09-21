@@ -21,7 +21,6 @@
 /**
  * @file
  * @brief Messaging return codes
- * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
 #ifndef _EIS_MESSAGE_BUS_MSGRET_H
