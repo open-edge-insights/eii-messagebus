@@ -354,11 +354,11 @@ The command above uses the `tcp_publisher_no_security.json` for the `publisher-m
 configuration. Then it generates all 5 topics and outputs them into the
 `output.json` file.
 
-After generating this configuration, you can use the `subscribe.c` example as
+After generating this configuration, you can use the `subscriber.c` example as
 shown below to subscribe to the `pub-1` topic:
 
 ```sh
-$ ./subscribe output.json pub-1
+$ ./subscriber output.json pub-1
 ```
 
 Similiarly for IPC mode of communicatin with multi topics, the sample JSON configuration would look like below:
