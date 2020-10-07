@@ -47,7 +47,8 @@
 static char* generate_random_str(int len);
 
 zmq_shared_sock_t* shared_sock_new(
-        void* zmq_ctx, const char* uri, void* socket, int socket_type) {
+        void* zmq_ctx, const char* uri, void* socket, int socket_type,
+        bool brokered) {
     // Verify socket type
     if(socket_type != ZMQ_PUB && socket_type != ZMQ_SUB
             && socket_type != ZMQ_REQ && socket_type != ZMQ_REP) {
@@ -65,6 +66,7 @@ zmq_shared_sock_t* shared_sock_new(
 
     shared_sock->socket = socket;
     shared_sock->socket_type = socket_type;
+    shared_sock->brokered = brokered;
     shared_sock->refcount = 1;
     shared_sock->retries = 0;
     shared_sock->monitor = NULL;
@@ -229,6 +231,14 @@ void shared_sock_replace(
     char* monitor_uri = NULL;
     shared_sock->socket = socket;
 
+    // Clear out old ZeroMQ monitor events... This can potentially cause the
+    // connection of the new socket to fail.
+    LOG_DEBUG_0("Clearing old events on the socket monitor");
+    int ev = 0;
+    do {
+        ev = get_monitor_event(shared_sock->monitor, true);
+    } while(ev !=  ZMQ_EVENT_MONITOR_STOPPED);
+
     // Closing old ZeroMQ monitor for the old socket
     close_zero_linger(shared_sock->monitor);
 
@@ -277,6 +287,9 @@ void shared_sock_replace(
         goto err;
     }
 
+    // Since this is a new socket, reset the number of retries to 0
+    shared_sock->retries = 0;
+
     free(monitor_uri);
     return;
 err:
@@ -298,7 +311,8 @@ void shared_sock_destroy(zmq_shared_sock_t* shared_sock) {
 
         // NOTE: This way of closing will allow for all pending messages to
         // send before closing the socket
-        zmq_close(shared_sock->socket);
+        // zmq_close(shared_sock->socket);
+        close_zero_linger(shared_sock->socket);
 
         // Close monitor socket
         if(shared_sock->monitor != NULL) {

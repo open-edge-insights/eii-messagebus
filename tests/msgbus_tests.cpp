@@ -486,7 +486,8 @@ static char* update_ld_library_path() {
 
     // Get current working directory
    char cwd[PATH_MAX];
-   assert(getcwd(cwd, sizeof(cwd)) != NULL);
+   char* result = getcwd(cwd, PATH_MAX);
+   assert(result != NULL);
 
    size_t dest_len = strlen(LD_PATH_SET) + strlen(cwd) + len + 2;
    char* env_str = NULL;

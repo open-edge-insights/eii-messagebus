@@ -96,6 +96,20 @@ typedef struct {
     zmq_sock_ctx_t* sock_ctx;
 } zmq_recv_ctx_t;
 
+/**
+ * Internal return type for checking the monitor events of a ZeroMQ socket.
+ */
+typedef enum {
+    M_EV_OK = 0,
+    M_EV_RECONNECT = 1,
+    M_EV_RETRY_INCR = 2,
+    M_EV_RETRY_RESET = 3,
+    M_EV_NONE = 4,
+    M_EV_AUTH_FAILED = 5,
+    M_EV_DISCONNECTED = 6,
+    M_EV_CONNECT_DELAYED = 7,
+} monitor_event_ret_t;
+
 // Prototypes
 void proto_zmq_destroy(void* ctx);
 msgbus_ret_t proto_zmq_publisher_new(
@@ -125,7 +139,8 @@ msgbus_ret_t proto_zmq_response(
 static char* create_uri(
         zmq_proto_ctx_t* ctx, const char* name, bool is_publisher);
 static bool set_rcv_hwm(void* socket, int zmq_rcvhwm);
-static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg);
+static msgbus_ret_t send_message(
+        zmq_proto_ctx_t* zmq_ctx, zmq_sock_ctx_t* ctx, msg_envelope_t* msg);
 static int send_zmq_msg(void* socket, zmq_msg_t* msg, int flags);
 static int send_zmq(void* socket, void* buf, size_t buf_size, int flags);
 static int recv_zmq(void* socket, void* buf, size_t buf_size);
@@ -141,6 +156,8 @@ static void free_sock_ctx(void* vargs);
 static void* new_socket(
         zmq_proto_ctx_t* zmq_ctx, const char* uri, const char* name,
         int socket_type, bool brokered);
+static monitor_event_ret_t check_monitor_events(
+        zmq_proto_ctx_t* zmq_ctx, zmq_sock_ctx_t* ctx);
 
 protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
     // TODO: Clean up method to make sure all memeory is fully freed always
@@ -331,9 +348,9 @@ protocol_t* proto_zmq_initialize(const char* type, config_t* config) {
 
                 zmq_proto_ctx->cfg.tcp.pub_brokered = brokered->body.boolean;
                 if (zmq_proto_ctx->cfg.tcp.pub_brokered) {
-                    LOG_DEBUG_0("PUBLISHERS WILL BE BROKERED");
+                    LOG_DEBUG_0("TCP ZeroMQ brokeres will be brokered");
                 } else {
-                    LOG_DEBUG_0("PUBLISHERS WILL NOT BE BROKERED");
+                    LOG_DEBUG_0("TCP ZeroMQ brokeres will NOT be brokered");
                 }
                 config_value_destroy(brokered);
             }
@@ -525,7 +542,8 @@ msgbus_ret_t proto_zmq_publisher_new(
 
         // Create shared socket for the newly created ZeroMQ socket
         shared_socket = shared_sock_new(
-                zmq_ctx->zmq_context, topic_uri, socket, ZMQ_PUB);
+                zmq_ctx->zmq_context, topic_uri, socket, ZMQ_PUB,
+                brokered);
         if(shared_socket == NULL) {
             LOG_ERROR_0("Failed to create shared socket");
             goto err;
@@ -592,13 +610,14 @@ err:
 msgbus_ret_t proto_zmq_publisher_publish(
         void* ctx, void* pub_ctx, msg_envelope_t* msg)
 {
+    zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_sock_ctx_t* sock_ctx = (zmq_sock_ctx_t*) pub_ctx;
     if(sock_ctx_lock(sock_ctx) != 0) {
         LOG_ERROR_0("Failed to obtain socket context lock");
         return MSG_ERR_PUB_FAILED;
     }
 
-    msgbus_ret_t ret = send_message(sock_ctx, msg);
+    msgbus_ret_t ret = send_message(zmq_ctx, sock_ctx, msg);
 
     if(sock_ctx_unlock(sock_ctx) != 0) {
         LOG_ERROR_0("Failed to unlock socket context lock");
@@ -659,7 +678,7 @@ msgbus_ret_t proto_zmq_subscriber_new(
 
     // Initialize shared socket
     shared_socket = shared_sock_new(
-            zmq_ctx->zmq_context, topic_uri, socket, ZMQ_SUB);
+            zmq_ctx->zmq_context, topic_uri, socket, ZMQ_SUB, false);
     if(shared_socket == NULL) { goto err; }
 
     // Initialize subscriber receive context
@@ -718,25 +737,83 @@ msgbus_ret_t proto_zmq_recv_wait(
         void* ctx, void* recv_ctx, msg_envelope_t** message) {
     zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_recv_ctx_t* zmq_recv_ctx = (zmq_recv_ctx_t*) recv_ctx;
-    return base_recv(
+
+    if(sock_ctx_lock(zmq_recv_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to obtain socket context lock");
+        return MSG_ERR_RECV_FAILED;
+    }
+
+    msgbus_ret_t ret = base_recv(
             zmq_recv_ctx->type, zmq_ctx, zmq_recv_ctx->sock_ctx, -1, message);
+
+    if(sock_ctx_unlock(zmq_recv_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to unlock socket context lock");
+        if(ret != MSG_SUCCESS) {
+            // Propagating any underlying send_message() issues
+            return ret;
+        } else {
+            return MSG_ERR_RECV_FAILED;
+        }
+    }
+
+    // All is good, return the response code from base_recv()
+    return ret;
 }
 
 msgbus_ret_t proto_zmq_recv_timedwait(
         void* ctx, void* recv_ctx, int timeout, msg_envelope_t** message) {
     zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_recv_ctx_t* zmq_recv_ctx = (zmq_recv_ctx_t*) recv_ctx;
-    return base_recv(
-            zmq_recv_ctx->type, zmq_ctx, zmq_recv_ctx->sock_ctx, timeout,
-            message);
+
+    if(sock_ctx_lock(zmq_recv_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to obtain socket context lock");
+        return MSG_ERR_RECV_FAILED;
+    }
+
+    msgbus_ret_t ret = base_recv(
+            zmq_recv_ctx->type, zmq_ctx, zmq_recv_ctx->sock_ctx,
+            timeout, message);
+
+    if(sock_ctx_unlock(zmq_recv_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to unlock socket context lock");
+        if(ret != MSG_SUCCESS) {
+            // Propagating any underlying send_message() issues
+            return ret;
+        } else {
+            return MSG_ERR_RECV_FAILED;
+        }
+    }
+
+    // All is good, return the response code from base_recv()
+    return ret;
 }
 
 msgbus_ret_t proto_zmq_recv_nowait(
         void* ctx, void* recv_ctx, msg_envelope_t** message) {
     zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_recv_ctx_t* zmq_recv_ctx = (zmq_recv_ctx_t*) recv_ctx;
-    return base_recv(
-            zmq_recv_ctx->type, zmq_ctx, zmq_recv_ctx->sock_ctx, 0, message);
+
+    if(sock_ctx_lock(zmq_recv_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to obtain socket context lock");
+        return MSG_ERR_RECV_FAILED;
+    }
+
+    msgbus_ret_t ret = base_recv(
+            zmq_recv_ctx->type, zmq_ctx, zmq_recv_ctx->sock_ctx,
+            0, message);
+
+    if(sock_ctx_unlock(zmq_recv_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to unlock socket context lock");
+        if(ret != MSG_SUCCESS) {
+            // Propagating any underlying send_message() issues
+            return ret;
+        } else {
+            return MSG_ERR_RECV_FAILED;
+        }
+    }
+
+    // All is good, return the response code from base_recv()
+    return ret;
 }
 
 msgbus_ret_t proto_zmq_service_get(
@@ -760,7 +837,7 @@ msgbus_ret_t proto_zmq_service_get(
 
     // Create shared socket
     shared_socket = shared_sock_new(
-            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REQ);
+            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REQ, false);
     if(shared_socket == NULL) {
         LOG_ERROR_0("Failed to initialize new shared socket");
         goto err;
@@ -833,7 +910,7 @@ msgbus_ret_t proto_zmq_service_new(
 
     // Create shared socket
     shared_socket = shared_sock_new(
-            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REP);
+            zmq_ctx->zmq_context, service_uri, socket, ZMQ_REP, false);
     if(shared_socket == NULL) {
         LOG_ERROR_0("Out of memory initializing shared socket");
         goto err;
@@ -887,24 +964,60 @@ err:
 
 msgbus_ret_t proto_zmq_request(
         void* ctx, void* service_ctx, msg_envelope_t* msg) {
+    zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_recv_ctx_t* req_ctx = (zmq_recv_ctx_t*) service_ctx;
     if(req_ctx->type != RECV_SERVICE_REQ) {
         LOG_ERROR_0("Incorrect service context, must be for requests");
         return MSG_ERR_REQ_FAILED;
     }
 
-    return send_message(req_ctx->sock_ctx, msg);
+    if(sock_ctx_lock(req_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to obtain socket context lock");
+        return MSG_ERR_PUB_FAILED;
+    }
+
+    msgbus_ret_t ret = send_message(zmq_ctx, req_ctx->sock_ctx, msg);
+
+    if(sock_ctx_unlock(req_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to unlock socket context lock");
+        if(ret != MSG_SUCCESS) {
+            // Propagating any underlying send_message() issues
+            return ret;
+        } else {
+            return MSG_ERR_PUB_FAILED;
+        }
+    }
+
+    return ret;
 }
 
 msgbus_ret_t proto_zmq_response(
         void* ctx, void* service_ctx, msg_envelope_t* msg) {
+    zmq_proto_ctx_t* zmq_ctx = (zmq_proto_ctx_t*) ctx;
     zmq_recv_ctx_t* resp_ctx = (zmq_recv_ctx_t*) service_ctx;
     if(resp_ctx->type != RECV_SERVICE) {
         LOG_ERROR_0("Incorrect service context, must be for receiving reqs");
         return MSG_ERR_REQ_FAILED;
     }
 
-    return send_message(resp_ctx->sock_ctx, msg);
+    if(sock_ctx_lock(resp_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to obtain socket context lock");
+        return MSG_ERR_PUB_FAILED;
+    }
+
+    msgbus_ret_t ret = send_message(zmq_ctx, resp_ctx->sock_ctx, msg);
+
+    if(sock_ctx_unlock(resp_ctx->sock_ctx) != 0) {
+        LOG_ERROR_0("Failed to unlock socket context lock");
+        if(ret != MSG_SUCCESS) {
+            // Propagating any underlying send_message() issues
+            return ret;
+        } else {
+            return MSG_ERR_PUB_FAILED;
+        }
+    }
+
+    return ret;
 }
 
 typedef struct {
@@ -991,11 +1104,13 @@ static int send_zmq(void* socket, void* buf, size_t buf_size, int flags) {
  *
  * \note @c zmq_sock_ctx_t is an internal structure and not in the libzmq lib
  *
- * @param ctx - ZeroMQ socket context
- * @param msg - Message envelope to transmit
+ * @param zmq_ctx - Internal ZeroMQ protocol structure
+ * @param ctx     - ZeroMQ socket context
+ * @param msg     - Message envelope to transmit
  * @return @c msgbus_ret_t
  */
-static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
+static msgbus_ret_t send_message(
+        zmq_proto_ctx_t* zmq_ctx, zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
     msg_envelope_serialized_part_t* parts = NULL;
     zmq_msg_t* msgs = NULL;
     void* socket = ctx->shared_socket->socket;
@@ -1103,6 +1218,84 @@ static msgbus_ret_t send_message(zmq_sock_ctx_t* ctx, msg_envelope_t* msg) {
     }
     free(msgs);
 
+    // Check if various message sends worked...
+    monitor_event_ret_t ev_ret = check_monitor_events(zmq_ctx, ctx);
+    if (ev_ret != M_EV_OK && ev_ret != M_EV_NONE) {
+        if (ev_ret == M_EV_AUTH_FAILED) {
+            return MSG_ERR_AUTH_FAILED;
+        }
+
+        // Because it may have been awhile since the last publish, flush out
+        // the events to get the latest one
+        monitor_event_ret_t prev_ev = ev_ret;
+        while (ev_ret != M_EV_NONE) {
+            prev_ev = ev_ret;
+            ev_ret = check_monitor_events(zmq_ctx, ctx);
+
+            // If at any point an authentication failed event is received,
+            // return immediately
+            if (ev_ret == M_EV_AUTH_FAILED) {
+                return MSG_ERR_AUTH_FAILED;
+            }
+        }
+
+        // NOTE: The following will only happen for brokered publishers and
+        // for the client-side sockets for request/response. There is no
+        // such thing as a reconnect when the socket was bound.
+        if (prev_ev == M_EV_RECONNECT) {
+            // WARNING: This could result in dropped messages if the sender
+            // has queued up a lot of messages before the disconnect happened.
+            // Currently, this can only happen for brokered publishers if the
+            // broker goes down.
+            LOG_WARN_0("Reached max retries on the socket connect, "
+                       "initializing new ZeroMQ socket");
+
+            // Close the socket with 0 linger for any incoming messages
+            // (clearly there are none, since this error is happening...)
+            LOG_DEBUG_0("Closing old socket");
+            close_zero_linger(socket);
+
+            // Clear out old events, this must be done for memory leak
+            // purposes
+            LOG_DEBUG_0("Clearing old events on the socket monitor");
+            while (ev_ret != M_EV_NONE) {
+                ev_ret = check_monitor_events(zmq_ctx, ctx);
+            }
+
+            // Give the socket time to fully close... If not enough time is
+            // given the socket could fail during creation
+            struct timespec sleep_time;
+            sleep_time.tv_sec = 0;
+            sleep_time.tv_nsec = 5000000L;
+            nanosleep(&sleep_time, NULL);
+
+            // Set old references to NULL
+            ctx->shared_socket->socket = NULL;
+            socket = NULL;
+
+            // Initialize a new ZeroMQ socket
+            socket = new_socket(
+                      zmq_ctx, ctx->shared_socket->uri, ctx->name,
+                      ctx->shared_socket->socket_type,
+                      ctx->shared_socket->brokered);
+            if(socket == NULL) {
+                return MSG_ERR_MSG_SEND_FAILED;
+            }
+
+            // Replace the socket in the underlying shared socket
+            sock_ctx_replace(ctx, zmq_ctx->zmq_context, socket);
+
+            LOG_DEBUG_0("Finished re-initializing ZMQ socket");
+        }
+    } else if (ctx->shared_socket->retries != 0) {
+        // If the only events which occurred were good or none happened, then
+        // make sure that the count of error events which would lead to
+        // re-creating the socket is 0.
+        ctx->shared_socket->retries = 0;
+    }
+    // Else, everything happened successfully and there is not need to check
+    // all of the events which have happened (if any) on the socket.
+
     return MSG_SUCCESS;
 err:
     // If the msgs variable has been initialized, then the serialized parts
@@ -1196,6 +1389,67 @@ static int recv_zmq(void* socket, void* buf, size_t buf_size) {
     return rc;
 }
 
+/**
+ * Helper functio to check the monitor events on the given socket context.
+ *
+ * \note It is assumed that the caller already has the lock for the underlying
+ *      shared socket.
+ *
+ * @param zmq_ctx - ZeroMQ protocol context
+ * @param ctx     - ZeroMQ socket context
+ * @return @c monitor_event_ret_t
+ */
+static monitor_event_ret_t check_monitor_events(
+        zmq_proto_ctx_t* zmq_ctx, zmq_sock_ctx_t* ctx) {
+    monitor_event_ret_t ev_ret = M_EV_OK;
+
+    // Check the latest ZMQ monitor socket event (if there was one)
+    switch(get_monitor_event(ctx->shared_socket->monitor, false)) {
+        // Events to increment retries count for recreating the socket
+        case ZMQ_EVENT_DISCONNECTED:
+            ev_ret = M_EV_DISCONNECTED;
+            break;
+        case ZMQ_EVENT_CONNECT_DELAYED:
+            ev_ret = M_EV_CONNECT_DELAYED;
+            break;
+        case ZMQ_EVENT_CONNECT_RETRIED:
+            // Manually increasing number of tries, it is assumed that the
+            // calling function already has the lock for the shared socket.
+            ctx->shared_socket->retries++;
+            ev_ret = M_EV_RETRY_INCR;
+            LOG_DEBUG("Number of retries: %d", ctx->shared_socket->retries);
+            break;
+
+        // All possible handshake failure events
+        case ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL:
+        case ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL:
+        case ZMQ_EVENT_HANDSHAKE_FAILED_AUTH:
+            LOG_ERROR_0("ZeroMQ handshake failed");
+            return M_EV_AUTH_FAILED;
+
+        // Events to ignore (NOTE: the event type is already logged)
+        case ZMQ_EVENT_HANDSHAKE_SUCCEEDED:
+        case ZMQ_EVENT_CONNECTED:
+        case ZMQ_EVENT_MONITOR_STOPPED:
+        case ZMQ_EVENT_CLOSE_FAILED:
+        case ZMQ_EVENT_ACCEPTED:
+        case ZMQ_EVENT_BIND_FAILED:
+        case ZMQ_EVENT_LISTENING:
+        case ZMQ_EVENT_CLOSED:
+            break;
+        default:
+            // No event received...
+            return M_EV_NONE;
+    }
+
+    if(ctx->shared_socket->retries >= zmq_ctx->zmq_connect_retries) {
+        return M_EV_RECONNECT;
+    }
+
+    return ev_ret;
+}
+
+// TODO(kmidkiff): Remove recv_type_t, it is not needed anymore
 static msgbus_ret_t base_recv(
         recv_type_t type, zmq_proto_ctx_t* zmq_ctx, zmq_sock_ctx_t* ctx,
         int timeout, msg_envelope_t** env)
@@ -1204,6 +1458,7 @@ static msgbus_ret_t base_recv(
     void* socket = ctx->shared_socket->socket;
     bool indef_poll = timeout < 0;
     timeout = (indef_poll) ? 1000 : timeout;
+    msgbus_ret_t ret = MSG_SUCCESS;
 
     zmq_pollitem_t poll_items[1];
     poll_items[0].socket = socket;
@@ -1218,87 +1473,114 @@ static msgbus_ret_t base_recv(
             }
             LOG_ZMQ_ERROR("Error while polling indefinitley");
             return MSG_ERR_RECV_FAILED;
-        } else if(rc > 0) {
-            // Got message!
-            if(ctx->shared_socket->retries != 0) {
-                // Reset the number of retries if there are any (the if
-                // statement exists because locking a mutex in the function
-                // call is expensive)
-                sock_ctx_retries_reset(ctx);
-            }
-            break;
         }
 
-        switch(get_monitor_event(ctx->shared_socket->monitor, false)) {
-            // Events to increment retries count for recreating the socket
-            case ZMQ_EVENT_DISCONNECTED:
-            case ZMQ_EVENT_CONNECT_RETRIED:
-            case ZMQ_EVENT_CONNECT_DELAYED:
-                sock_ctx_retries_incr(ctx);
-                break;
+        // Get the monitor event, but skip the connection delayed, because this
+        // is not always an error. If the socket is new, then this will happen,
+        // skip ahead to a different event
+        monitor_event_ret_t ev_ret = M_EV_OK;
+        do {
+            ev_ret = check_monitor_events(zmq_ctx, ctx);
+        } while (ev_ret == M_EV_CONNECT_DELAYED);
 
-            // All possible handshake failure events
-            case ZMQ_EVENT_HANDSHAKE_FAILED_NO_DETAIL:
-            case ZMQ_EVENT_HANDSHAKE_FAILED_PROTOCOL:
-            case ZMQ_EVENT_HANDSHAKE_FAILED_AUTH:
-                LOG_ERROR_0("ZeroMQ handshake failed");
-                return MSG_ERR_AUTH_FAILED;
+        if (ev_ret == M_EV_OK || ev_ret == M_EV_NONE) {
+            if (rc > 0) {
+                // No error events have occurred on the socket, and we've
+                // received a new message, therefore, break out of the
+                // do...while... loop to process and return the message
 
-            // Events to ignore (NOTE: the event type is already logged)
-            case ZMQ_EVENT_HANDSHAKE_SUCCEEDED:
-            case ZMQ_EVENT_CONNECTED:
-            case ZMQ_EVENT_MONITOR_STOPPED:
-            case ZMQ_EVENT_CLOSE_FAILED:
-            case ZMQ_EVENT_ACCEPTED:
-            case ZMQ_EVENT_BIND_FAILED:
-            case ZMQ_EVENT_LISTENING:
-            case ZMQ_EVENT_CLOSED:
-            default:
-                // No event received...
-                break;
-        }
-
-        if(ctx->shared_socket->retries == zmq_ctx->zmq_connect_retries) {
-            LOG_WARN_0("Reached max retries on the socket connect, "
-                       "initializing new ZeroMQ socket");
-            if(sock_ctx_lock(ctx) != 0)  {
-                LOG_ERROR_0("Failed to obtain socket context lock");
-                return MSG_ERR_RECV_FAILED;
-            }
-            close_zero_linger(socket);
-
-            // Give the socket time to fully close... If not enough time is
-            // given the socket could fail during creation
-            struct timespec sleep_time;
-            sleep_time.tv_sec = 0;
-            sleep_time.tv_nsec = 5000000L;
-            nanosleep(&sleep_time, NULL);
-
-            ctx->shared_socket->socket = NULL;
-            socket = NULL;
-            socket = new_socket(
-                      zmq_ctx, ctx->shared_socket->uri, ctx->name,
-                        ctx->shared_socket->socket_type, false);
-            if(socket == NULL) {
-                if(sock_ctx_unlock(ctx) != 0) {
-                    LOG_ERROR_0("Failed to unlock socket contxt lock");
+                // If there were previous errors, like a disconnect and then
+                // the socket successfully reconnected on its own, then set
+                // the retries to 0, so that the ZMQ protocol plugin knows that
+                // the socket is healthy again
+                if (ctx->shared_socket->retries > 0) {
+                    ctx->shared_socket->retries = 0;
                 }
-                return MSG_ERR_RECV_FAILED;
+
+                // Break out of the do...while... loop to process the message
+                break;
             }
-            sock_ctx_replace(ctx, zmq_ctx->zmq_context, socket);
-            poll_items[0].socket = socket;
-            if(sock_ctx_unlock(ctx) != 0) {
-                LOG_ERROR_0("Failed to unlock socket contxt lock");
-                return MSG_ERR_RECV_FAILED;
+            // else, no message was received and no error occurred, continue
+            // based on whether or not the receiving function should
+            // indefinitely loop
+        } else if (ev_ret == M_EV_AUTH_FAILED) {
+            // If authentication failed, then immediately let the calling
+            // application know that the handshake was bad
+            return MSG_ERR_AUTH_FAILED;
+        } else {
+            // Else, a different error has occurred on the socket. Check if we
+            // are behind on events from the socket, and see what mitigation
+            // is required.
+
+            monitor_event_ret_t prev_ev = ev_ret;
+            while (ev_ret != M_EV_NONE) {
+                prev_ev = ev_ret;
+                ev_ret = check_monitor_events(zmq_ctx, ctx);
+
+                // If at any point an authentication failed event is received,
+                // return immediately
+                if (ev_ret == M_EV_AUTH_FAILED) {
+                    return MSG_ERR_AUTH_FAILED;
+                }
             }
-            sock_ctx_retries_reset(ctx);
-            LOG_DEBUG_0("Finished re-initializing ZMQ socket");
+
+            if (prev_ev == M_EV_RECONNECT && rc == 0) {
+                // If events occurred to which a reconnect should be done for the
+                // socket receiving messages and no messages were received from the
+                // queue, then reconnect the ZeroMQ socket to its endpoint
+
+                LOG_WARN_0("Reached max retries on the socket connect, "
+                           "initializing new ZeroMQ socket");
+
+                // Close the socket with 0 linger for any incoming messages
+                // (clearly there are none, since this error is happening...)
+                close_zero_linger(socket);
+
+                // Set old references to NULL
+                ctx->shared_socket->socket = NULL;
+                socket = NULL;
+
+                // Give the socket time to fully close... If not enough time is
+                // given the socket could fail during creation
+                struct timespec sleep_time;
+                sleep_time.tv_sec = 0;
+                sleep_time.tv_nsec = 5000000L;
+                nanosleep(&sleep_time, NULL);
+
+                // Initialize a new ZeroMQ socket
+                socket = new_socket(
+                          zmq_ctx, ctx->shared_socket->uri, ctx->name,
+                          ctx->shared_socket->socket_type, false);
+                if(socket == NULL) {
+                    return MSG_ERR_RECV_FAILED;
+                }
+
+                // Change out the poll item socket
+                poll_items[0].socket = socket;
+
+                // Replace the socket in the underlying shared socket
+                sock_ctx_replace(ctx, zmq_ctx->zmq_context, socket);
+
+                LOG_DEBUG_0("Finished re-initializing ZMQ socket");
+            } else if (rc > 0) {
+                // Yes, an error occurred, however, messages are still queued.
+                // Keep dealing the queued messages to the application until
+                // we run out, then re-create the socket, if needed.
+                LOG_WARN_0("Error occurred on ZMQ socket, however, queue still"
+                           " has messages, returning from internal ZMQ queue");
+
+                // Break to process the message
+                break;
+            }
         }
 
         if(!indef_poll) {
             return MSG_RECV_NO_MESSAGE;
         }
     } while(indef_poll);
+
+    // Successfully polled, set retries to 0
+    ctx->shared_socket->retries = 0;
 
     LOG_DEBUG_0("Receiving all of the message");
 
@@ -1336,8 +1618,7 @@ static msgbus_ret_t base_recv(
 
     // Receive body of the message
     msg_envelope_serialized_part_t* parts = NULL;
-    msgbus_ret_t ret = msgbus_msg_envelope_serialize_parts_new(
-            num_parts, &parts);
+    ret = msgbus_msg_envelope_serialize_parts_new(num_parts, &parts);
     if(ret != MSG_SUCCESS) {
         LOG_ERROR_0("Error initializing serialized parts");
         if(parts)
@@ -1789,6 +2070,7 @@ static void* new_socket(
         LOG_ZMQ_ERROR("Failed setting ZMQ_LINGER");
         goto err;
     }
+
     // Set the receive high watermark (if it is set for the protocol)
     if(!set_rcv_hwm(socket, zmq_ctx->zmq_recv_hwm)) { goto err; }
 
