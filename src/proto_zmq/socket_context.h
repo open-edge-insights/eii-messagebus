@@ -40,6 +40,9 @@ typedef struct {
     // ZeroMQ socket type (ZMQ_PUB, ZMQ_SUB, ZMQ_REQ, or ZMQ_REP)
     int socket_type;
 
+    // Boolean flag for if the socket is brokered (only applies to ZMQ_PUB)
+    bool brokered;
+
     // Number of references to the shared socket
     int refcount;
 
@@ -81,10 +84,12 @@ typedef struct {
  * @param uri         - URI for the socket
  * @param socket      - ZeroMQ socket
  * @param socket_type - ZeroMQ socket type
+ * @param brokered    - Whether the socket shall be brokered (only for ZMQ_PUB)
  * @return @c zmq_shared_sock_t, or NULL if an error occurs
  */
 zmq_shared_sock_t* shared_sock_new(
-        void* zmq_ctx, const char* uri, void* socket, int socket_type);
+        void* zmq_ctx, const char* uri, void* socket, int socket_type,
+        bool brokered);
 
 /**
  * Increase the number of references that exist for the given shared socket.

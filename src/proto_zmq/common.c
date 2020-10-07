@@ -84,7 +84,14 @@ int get_monitor_event(void* monitor, bool block) {
     }
 
     // Get the event which occurred
-    uint16_t event = *(uint16_t*)((uint8_t*) zmq_msg_data(&msg));
+    uint8_t* data = (uint8_t*) zmq_msg_data(&msg);
+    uint16_t event = *(uint16_t*)(data);
+
+    if (event == ZMQ_EVENT_CONNECT_RETRIED) {
+        int value = *(uint32_t*) (data + 2);
+        LOG_DEBUG("Reconnect interval: %dms", value);
+    }
+
     zmq_msg_close(&msg);
 
     LOG_DEBUG("ZeroMQ socket event: %s", get_event_str(event));
