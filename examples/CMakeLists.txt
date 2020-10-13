@@ -25,6 +25,8 @@ set(IPC_CONFIG_IN "${CMAKE_CURRENT_SOURCE_DIR}/configs/ipc_example_config.json.i
 set(IPC_CONFIG    "${CMAKE_CURRENT_BINARY_DIR}/configs/ipc_example_config.json")
 set(IPC_CONFIG_MULTI_IN "${CMAKE_CURRENT_SOURCE_DIR}/configs/ipc_example_config_multi_topics.json.in")
 set(IPC_CONFIG_MULTI    "${CMAKE_CURRENT_BINARY_DIR}/configs/ipc_example_config_multi_topics.json")
+set(IPC_CONFIG_PUB_BROKERED "${CMAKE_CURRENT_SOURCE_DIR}/configs/ipc_publisher_brokered.json")
+set(IPC_CONFIG_SUB_BROKERED "${CMAKE_CURRENT_SOURCE_DIR}/configs/ipc_subscriber_brokered.json")
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/.socks")
 configure_file(${IPC_CONFIG_IN} ${IPC_CONFIG})

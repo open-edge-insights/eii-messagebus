@@ -3,8 +3,8 @@
     "publish_test": {
         "host": "127.0.0.1",
         "port": 5569,
-        "server_public_key": "}>3bvvU22<Jp&7IL?jO5*Um[q[7d:-{zw.VhAJ@B",
-        "client_secret_key": "eJOAi6wJBkrOtJWl9!x+1iNydA14xEa7[Sj7xcnv",
-        "client_public_key": "4J4?(I13cwJgqi+T5nxg:Dyr5)l&reK]cxxTfa9V"
+        "server_public_key": "121JPFTMGj.wJL8{{SO>?AL0=(a6/a8FyG#=OeYQ",
+        "client_secret_key": "vxJD1x?-v]Y=a>uv<<hR]?B$Pf(U9r4<SU9J+1cF",
+        "client_public_key": "y-G]27SC}{!mC4(]}=c=KH1M{x)Kd/{i%o]j7YT3"
     }
 }
