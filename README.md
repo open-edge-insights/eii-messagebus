@@ -48,7 +48,7 @@ $ sudo -E ./install.sh --cython
 The EISMessageBus is a pre-configured DEB package, it can be installed by running the command (as shown below).
 
 ```sh
-$ sudo apt install ./eis-messagebus-2.3.0-Linux.deb
+$ sudo apt install ./eis-messagebus-2.4.0-Linux.deb
 ```
 
 If you wish to install the Python bindings, then run command (as shown below).
@@ -138,6 +138,58 @@ attribute: `socket_dir`. The value of this attribute specifies the directory
 where the message bus should create the Unix socket files to establish the IPC
 based communication.
 
+The ZeroMQ IPC protocol also supports a few optional configuration properties.
+For all communication patterns (request/response and publisher/subscribe), the
+`socket_file` property can be specified for any service name or publish/subscribe
+topic. This makes it so that all communication happens over the specified socket
+file, instead of the default, which is for the message bus to use the topic/service
+name for the socket file name. This enables two specific use cases:
+
+1. Having a single application publish multiple topics over a single IPC socket
+    file
+2. Connecting ZeroMQ IPC publishers to the EIS ZeroMQ Broker
+
+For the second use case, there is an additional property which must be specified;
+the `brokered` configuration value. This is must be a boolean value, with `true`
+telling the publisher to connect to the broker and `false` for not connecting.
+Note that this value is not required. If it is `false` or is not specified, then
+the publisher will not connect to a broker and will bind to the given `socket_file`
+value.
+
+**IMPORTANT NOTE:**
+
+The `socket_file` value should only be the name of a file. The socket itself
+will still be created in the specified `socket_dir` directory.
+
+Also, both the `socket_file` and `brokered` values must be specified in the
+configuration under an object with its key being the topic or service name.
+An example of this is shown below.
+
+```javascript
+{
+    // Specifies the ZeroMQ IPC protocol
+    "type": "zmq_ipc",
+
+    // Specifies the socket directory
+    "socket_dir": "/tmp/socks",
+
+    // The key, "example-topic", is the topic which the publisher shall publish
+    // on. This could also be a service name.
+    "example-topic": {
+        // For the example-topic, the below property specifies the socket file
+        // to use
+        "socket_file": "socket-filename",
+
+        // The below property is only supported by publishers, this specifies
+        // that the given publisher will be brokered through the EIS ZeroMQ Broker
+        "brokered": true
+    }
+}
+```
+
+The example above uses JSON to represent the EIS Message Bus configuration.
+See the, "Examples", below section for more details and more examples.
+
 ### ZeroMQ TCP Configuration
 
 The ZeroMQ TCP protocol has several configuration attributes which must be
@@ -150,15 +202,20 @@ For an application which wishes to publish messages over specific topics, the
 configuration must contain the key `zmq_tcp_publish`. This attribute must be
 an object which has the following keys:
 
-|          Key        |   Type   | Required |                         Description                      |
-| :-----------------: | -------- | -------- | -------------------------------------------------------- |
-| `host`              | `string` | Yes      | Specifies the host to publish as                         |
-| `port`              | `int`    | Yes      | Specifies the port to publish messages on                |
-| `server_secret_key` | `string` | No       | Specifies the secret key for the port for authentication |
+|          Key        |    Type   | Required |                         Description                          |
+| :-----------------: | --------- | -------- | ------------------------------------------------------------ |
+| `host`              | `string`  | Yes      | Specifies the host to publish as                             |
+| `port`              | `int`     | Yes      | Specifies the port to publish messages on                    |
+| `server_secret_key` | `string`  | No       | Specifies the secret key for the port for authentication     |
+| `brokered`          | `boolean` | No       | Specifies whether or not to connect to the EIS ZeroMQ Broker |
 
 The `server_secret_key` must be a Curve Z85 encoded string value that is
 specified if the application wishes to use CurveZMQ authentication with to
 secure incoming connections from subscribers.
+
+The `brokered` key must be a boolean value. This will determine whether or not
+the publishers attempt to bind or connect to the given  TCP (host, port)
+combination.
 
 #### Subscribers
 
@@ -237,27 +294,34 @@ file to configure the EIS Message Bus. There are several example configurations
 provided with the message bus for running in IPC and TCP mode accross the
 various different messaging patterns (i.e. Publish/Subscribe and Request/Response).
 All of these example configurations are in the `examples/configs/` directory.
-However, all of them are copied into the `build/examples/configs/` directory
-as well when you build the message bus.
+However, all of them are copied into the `examples/build/configs/` directory
+as well when build the examples.
 
 The table below specifies all of the provided example configurations.
 
 |                 Configuration                   |                                     Description                                     |
 | :---------------------------------------------: | ----------------------------------------------------------------------------------- |
 | ipc_example_config.json                         | Configuration for IPC based communication. Works with all examples.                 |
-| ipc_example_config_multi_topics.json                         | Configuration for IPC based communications to be used with multi-topic publishing/subscribing. Works with publisher-many & subscriber examples.                 |
+| ipc_example_config_multi_topics.json            | Configuration for IPC based communication to be used with multi-topic publishing/subscribing. Works with publisher-many & subscriber examples. |
+| ipc_publisher_brokered.json                     | Publisher configuration for IPC based communication using the EIS ZeroMQ Broker.    |
+| ipc_subscriber_brokered.json                    | Subscriber configuration for IPC based communication using the EIS ZeroMQ Broker.   |
+| tcp_publisher_brokered_no_security.json         | TCP configuration for publishing with no security through the EIS ZeroMQ Broker.    |
 | tcp_publisher_no_security.json                  | TCP configuration for publishing with no security.                                  |
 | tcp_publisher_with_security_no_auth.json        | TCP configuration for publishing with key based auth without ZAP auth.              |
 | tcp_publisher_with_security_with_auth.json      | TCP configuration for publishing with key based auth and ZAP auth.                  |
 | tcp_subscriber_no_security.json                 | TCP configuration for subscribing to a topic with no security.                      |
-| tcp_subscriber_no_security_prefix_match.json                 | TCP configuration for subscribing to multiple topics which share a common prefix, with no security.                                        |
+| tcp_subscriber_no_security_prefix_match.json    | TCP configuration for subscribing to multiple topics which share a common prefix, with no security. |
 | tcp_subscriber_with_security.json               | TCP configuration for subscribing to a topic with security enabled.                 |
-| tcp_subscriber_with_security_prefix_match.json                 | TCP configuration for subscribing to multiple topics which share a common prefix, with security.                                        |
+| tcp_subscriber_with_security_prefix_match.json  | TCP configuration for subscribing to multiple topics which share a common prefix, with security. |
 | tcp_service_server_no_security.json             | TCP configuration for a service server side (i.e. `echo-service`) without security. |
 | tcp_service_server_with_security_no_auth.json   | TCP configuration for a service server side with key based auth without ZAP auth.   |
 | tcp_service_server_with_security_with_auth.json | TCP configuration for a service server side with key based auth and ZAP auth.       |
 | tcp_service_client_no_security.json             | TCP configuration for a service client side (i.e. `echo-client`) with no security.  |
 | tcp_service_client_with_security.json           | TCP configuration for a service client side with security enabled.                  |
+
+> **NOTE:** When using the brokered examples, you must also launch the broker
+> first. For more information on the broker and how to use it, see the
+> EISZmqBroker/README.md.
 
 You will notice that for the publisher configurations and service server side
 configurations there are 3 configurations each, where as subscribers and service
@@ -472,6 +536,75 @@ that this is the absolute path.
 
 Once you have exported these variables, once you have done these steps, you can
 run any of the Go examples as specified in the previous section.
+
+### Brokered Publish/Subscribe
+
+EIS provides a ZeroMQ Broker. Any of the publisher and subscriber examples can
+be used with this broker. There are three example JSON configuration provided
+to showcase the required configuration of the publishers/subscribers to connect
+to the broker. These examples are listed below:
+
+1. `ipc_publisher_brokered.json` - IPC brokered publisher configuration
+2. `ipc_subscriber_brokered.json` - IPC brokered subscriber configuration
+3. `tcp_publisher_brokered_no_security.json` - TCP brokered publisher configuration
+
+Note that there is not TCP brokered subscriber configuration. This is because
+no configuration change is needed to connect a subscriber to the broker.
+
+For the publisher side of the configuration, it is important to note that in the
+IPC configuration, under the `publish-test` JSON object the configuration key
+`brokered` is set to `true`. Similarly, in the TCP configuration, under the
+`zmq_tcp_publish` JSON object the key `brokered` is also set to true. This
+tells the publisher to connect to the broker (vs. binding to the given socket
+configuration).
+
+Since there is no code change to use a brokered publisher or subscriber, the
+examples can be ran the same as before, just with these brokered configurations.
+An example of this is shown below:
+
+**IPC Example:**
+
+```sh
+# Start the publisher
+$ ./publisher ./configs/ipc_publisher_brokered.json
+
+# Start the subscriber
+$ ./subscriber ./configs/ipc_subscriber_brokered.json
+```
+
+> **NOTE:** These configurations work with the, "examples/ipc_frontend_example.json",
+> and, "examples/ipc_backend_example.json", examples provided with the EIS
+> ZeroMQ Broker.
+
+**TCP Example:**
+
+```sh
+# Start the publisher
+$ ./publisher ./configs/tcp_publisher_brokered_with_security.json
+
+# Start the subscriber
+$ ./subscriber ./configs/tcp_subscriber_with_security.json
+```
+
+> **NOTE:** These configurations work with the, "examples/tcp_frontend_example.json",
+> and, "examples/tcp_backend_example.json", examples provided with the EIS
+> ZeroMQ Broker.
+
+**IMPORTANT NOTE:**
+
+Before runnint the examples below, you must start the EIS ZeroMQ Broker. See
+the EISZmqBroker/README.md for more details on configuring/launching the broker.
+Keep in mind that your broker configuration will impact the configuration
+needed for these examples.
+
+For example, in the `ipc_publisher_brokered.json` configuration file, if the
+socket for publishers to connect to is not named `frontend-sock` then this
+configuration file needs to be changed to reflect the different socket file
+name.
+
+To make this easy, the EIS ZeroMQ Broker provides example configurations for TCP
+and IPC which use the same socket directory / files and (host, port) combinations
+to easily try out this feature.
 
 ## Security
 
