@@ -486,6 +486,7 @@ must contain a JSON object similar to the following:
 
 ```json
 {
+    "type": "zmq_tcp",
     "publish_test": {
         "host": "127.0.0.1",
         "port": 3000
