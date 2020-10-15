@@ -98,6 +98,7 @@ cdef class MsgbusContext:
     """EIS Message Bus context object
     """
     cdef void* context
+    cdef dict py_config
 
     def __init__(self, config):
         """Constructor
@@ -106,6 +107,12 @@ cdef class MsgbusContext:
         :type: dict
         """
         cdef config_t* conf
+
+        # Keeping reference to the Python dictionary for the configuration.
+        # This way, the memory for the Python configuration is not freed if
+        # the calling code does not keep it alive.
+        self.py_config = config
+
         conf = config_new(<void*> config, free_conf, get_config_value)
         self.context =  msgbus_initialize(conf)
         if self.context == NULL:
