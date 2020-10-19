@@ -35,6 +35,7 @@ Additionally, EISMessageBus depends on the below libraries. Follow their documen
 * [IntelSafeString](../IntelSafeString/README.md)
 * [EISMsgEnv](../EISMsgEnv/README.md)
 * [EISUtils](../../util/c/README.md)
+* [DynLibLoad](../DynLibLoad/README.md)
 
 If you wish to compile the Python binding as well, then run the `install.sh`
 script with the `--cython` flag (as shown below).
