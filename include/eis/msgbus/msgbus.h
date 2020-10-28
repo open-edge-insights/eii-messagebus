@@ -379,8 +379,7 @@ protected:
         while(!m_stop.load()) {
             if(m_input_queue->wait_for(duration)) {
                 // Pop the envelope off the top of the queue
-                msg = m_input_queue->front();
-                m_input_queue->pop();
+                msg = m_input_queue->pop();
                 if(msg == NULL) {
                     LOG_WARN_0("Got NULL serializable message...");
                     continue;
