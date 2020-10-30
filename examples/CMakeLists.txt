@@ -20,6 +20,9 @@
 cmake_minimum_required(VERSION 3.11)
 project(eis-messagebus-examples VERSION 2.3.0 LANGUAGES C CXX)
 
+find_package(IntelSafeString REQUIRED)
+include_directories(${IntelSafeString_INCLUDE})
+
 # Configure and copy over IPC configuration file
 set(IPC_CONFIG_IN "${CMAKE_CURRENT_SOURCE_DIR}/configs/ipc_example_config.json.in")
 set(IPC_CONFIG    "${CMAKE_CURRENT_BINARY_DIR}/configs/ipc_example_config.json")
@@ -46,6 +49,7 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/gen_tcp_sub_conf.py"
 # Add publisher example
 add_executable(publisher "publisher.c")
 target_link_libraries(publisher eismsgbus
+                                ${IntelSafeString_LIBRARIES}
                                 eisutils
                                 eismsgenv
                                 pthread)
@@ -53,6 +57,7 @@ target_link_libraries(publisher eismsgbus
 # Add subscriber example
 add_executable(subscriber "subscriber.c")
 target_link_libraries(subscriber eismsgbus
+                                 ${IntelSafeString_LIBRARIES}
                                  eisutils
                                  eismsgenv
                                  pthread)
@@ -60,6 +65,7 @@ target_link_libraries(subscriber eismsgbus
 # Add echo service example
 add_executable(echo-service "echo_service.c")
 target_link_libraries(echo-service eismsgbus
+                                   ${IntelSafeString_LIBRARIES}
                                    eisutils
                                    eismsgenv
                                    pthread)
@@ -67,6 +73,7 @@ target_link_libraries(echo-service eismsgbus
 # Add echo service client example
 add_executable(echo-client "echo_client.c")
 target_link_libraries(echo-client eismsgbus
+                                  ${IntelSafeString_LIBRARIES}
                                   eisutils
                                   eismsgenv
                                   pthread)
@@ -74,6 +81,7 @@ target_link_libraries(echo-client eismsgbus
 # Add publisher many example
 add_executable(publisher-many "publisher_many.c")
 target_link_libraries(publisher-many eismsgbus
+                                     ${IntelSafeString_LIBRARIES}
                                      eisutils
                                      eismsgenv
                                      pthread)
@@ -81,6 +89,7 @@ target_link_libraries(publisher-many eismsgbus
 # Add pubsub c++ example
 add_executable(pubsub-threads "pubsub_threads.cpp")
 target_link_libraries(pubsub-threads eismsgbus
+                                     ${IntelSafeString_LIBRARIES}
                                      eisutils
                                      eismsgenv
                                      pthread)
@@ -88,6 +97,7 @@ target_link_libraries(pubsub-threads eismsgbus
 # Add subscriber thread C++ example
 add_executable(thread-subscriber "subscriber_thread.cpp")
 target_link_libraries(thread-subscriber eismsgbus
+                                        ${IntelSafeString_LIBRARIES}
                                         eisutils
                                         eismsgenv
                                         pthread)
