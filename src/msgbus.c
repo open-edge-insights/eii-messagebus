@@ -122,7 +122,9 @@ void* msgbus_initialize(config_t* config) {
         }
 
         // Free no longer needed string for the library name
+        // and set it to NULL
         free(lib_name);
+        lib_name = NULL;
 
         // Attempt to initlize the protocol
 
