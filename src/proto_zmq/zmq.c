@@ -1222,7 +1222,25 @@ static msgbus_ret_t send_message(
     monitor_event_ret_t ev_ret = check_monitor_events(zmq_ctx, ctx);
     if (ev_ret != M_EV_OK && ev_ret != M_EV_NONE) {
         if (ev_ret == M_EV_AUTH_FAILED) {
-            return MSG_ERR_AUTH_FAILED;
+            // Before returning an authentication failed response, check if
+            // it is a publisher. If it is and is not brokered, then
+            // ignore the auth failed event, because that just means a
+            // subscriber failed to authenticate with the publisher.
+            // Publisher's do not care about that, only subscribers do.
+            //
+            // Similarly, the same rules applies if the socket is a
+            // ZMQ_REP, because that just means a client failed to connect
+            // to the server.
+
+            // Get the variables to make the following logic more concise
+            int socket_type = ctx->shared_socket->socket_type;
+            bool brokered = ctx->shared_socket->brokered;
+            if ((socket_type != ZMQ_PUB && socket_type != ZMQ_REP)
+                    || (socket_type == ZMQ_PUB && brokered)) {
+                return MSG_ERR_AUTH_FAILED;
+            }
+            // else, ignore the auth failure, because it represents a client
+            // failing to connect (should be handled on their side)
         }
 
         // Because it may have been awhile since the last publish, flush out
@@ -1235,7 +1253,25 @@ static msgbus_ret_t send_message(
             // If at any point an authentication failed event is received,
             // return immediately
             if (ev_ret == M_EV_AUTH_FAILED) {
-                return MSG_ERR_AUTH_FAILED;
+                // Before returning an authentication failed response, check if
+                // it is a publisher. If it is and is not brokered, then
+                // ignore the auth failed event, because that just means a
+                // subscriber failed to authenticate with the publisher.
+                // Publisher's do not care about that, only subscribers do.
+                //
+                // Similarly, the same rules applies if the socket is a
+                // ZMQ_REP, because that just means a client failed to connect
+                // to the server.
+
+                // Get the variables to make the following logic more concise
+                int socket_type = ctx->shared_socket->socket_type;
+                bool brokered = ctx->shared_socket->brokered;
+                if ((socket_type != ZMQ_PUB && socket_type != ZMQ_REP)
+                        || (socket_type == ZMQ_PUB && brokered)) {
+                    return MSG_ERR_AUTH_FAILED;
+                }
+                // else, ignore the auth failure, because it represents a
+                // client failing to connect (should be handled on their side)
             }
         }
 
@@ -1505,8 +1541,15 @@ static msgbus_ret_t base_recv(
             // indefinitely loop
         } else if (ev_ret == M_EV_AUTH_FAILED) {
             // If authentication failed, then immediately let the calling
-            // application know that the handshake was bad
-            return MSG_ERR_AUTH_FAILED;
+            // application know that the handshake was bad, however, if the
+            // ZeroMQ socket is a ZMQ_REP socket, then this authentication
+            // failure means a client failed to authenticate and is not an
+            // error on the server-side, but on the client's side, therefore,
+            // the error can be ignored.
+            if (ctx->shared_socket->socket_type != ZMQ_REP) {
+                return MSG_ERR_AUTH_FAILED;
+            }
+            // else, ignoring the error
         } else {
             // Else, a different error has occurred on the socket. Check if we
             // are behind on events from the socket, and see what mitigation
@@ -1517,11 +1560,16 @@ static msgbus_ret_t base_recv(
                 prev_ev = ev_ret;
                 ev_ret = check_monitor_events(zmq_ctx, ctx);
 
-                // If at any point an authentication failed event is received,
-                // return immediately
-                if (ev_ret == M_EV_AUTH_FAILED) {
+                // If authentication failed, then immediately let the calling
+                // application know that the handshake was bad, however, if the
+                // ZeroMQ socket is a ZMQ_REP socket, then this authentication
+                // failure means a client failed to authenticate and is not an
+                // error on the server-side, but on the client's side,
+                // therefore, the error can be ignored.
+                if (ctx->shared_socket->socket_type != ZMQ_REP) {
                     return MSG_ERR_AUTH_FAILED;
                 }
+                // else, ignoring the error
             }
 
             if (prev_ev == M_EV_RECONNECT && rc == 0) {
