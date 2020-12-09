@@ -1,9 +1,9 @@
 {
     "type": "zmq_tcp",
-    "allowed_clients": ["4J4?(I13cwJgqi+T5nxg:Dyr5)l&reK]cxxTfa9V"],
+    "allowed_clients": ["y-G]27SC}{!mC4(]}=c=KH1M{x)Kd/{i%o]j7YT3"],
     "zmq_tcp_publish": {
         "host": "127.0.0.1",
         "port": 5569,
-        "server_secret_key": "H[J1%f:#?0Y1cpUL<nEkPKm.]:n@JI>j]*!u3N#9"
+        "server_secret_key": "qydUsM#PP4r<E*2]<]kbLRwk1IX:H^y{Gk56e:tc"
     }
 }
