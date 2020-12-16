@@ -30,6 +30,7 @@ from .receive_context cimport ReceiveContext
 from .service cimport Service
 from .service_requester cimport ServiceRequester
 from cpython cimport bool
+import cython.parallel
 
 
 # Forward declaration of the get_array_value method
