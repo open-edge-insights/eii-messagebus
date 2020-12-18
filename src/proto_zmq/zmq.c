@@ -1560,14 +1560,17 @@ static msgbus_ret_t base_recv(
                 prev_ev = ev_ret;
                 ev_ret = check_monitor_events(zmq_ctx, ctx);
 
-                // If authentication failed, then immediately let the calling
-                // application know that the handshake was bad, however, if the
-                // ZeroMQ socket is a ZMQ_REP socket, then this authentication
-                // failure means a client failed to authenticate and is not an
-                // error on the server-side, but on the client's side,
-                // therefore, the error can be ignored.
-                if (ctx->shared_socket->socket_type != ZMQ_REP) {
-                    return MSG_ERR_AUTH_FAILED;
+                if (ev_ret == M_EV_AUTH_FAILED) {
+                    // If authentication failed, then immediately let the
+                    // calling application know that the handshake was bad,
+                    // however, if the ZeroMQ socket is a ZMQ_REP socket, then
+                    // this authentication failure means a client failed to
+                    // authenticate and is not an error on the server-side, but
+                    // on the client's side, therefore, the error can be
+                    // ignored.
+                    if (ctx->shared_socket->socket_type != ZMQ_REP) {
+                        return MSG_ERR_AUTH_FAILED;
+                    }
                 }
                 // else, ignoring the error
             }
