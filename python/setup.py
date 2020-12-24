@@ -31,13 +31,18 @@ def read(fname):
     """
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
+eii_version = os.getenv("EII_VERSION", "None")
+eii_messagebus_version = eii_version
+
+cmake_install_prefix = os.getenv('CMAKE_INSTALL_PREFIX', '/usr/local')
 
 # Main package setup
 setup(
     name='eii-msgbus',
-    version='v2.4',
+    version=eii_messagebus_version,
+    author='Kevin Midkiff',
     description='EII message bus Python wrapper',
-    keywords='msgbus eii zeromq',
+    keywords='msgbus zeromq',
     url='',
     long_description=read('../README.md'),
     classifiers=[
@@ -48,12 +53,12 @@ setup(
     ],
     package_dir={'': '.'},
     packages=['eii'],
-    ext_modules = cythonize([
+    ext_modules=cythonize([
             Extension(
                 '*',
                 ['./eii/*.pyx'],
-                include_dirs=['../include'],
-                library_dirs=['../build/'],
+                include_dirs=[cmake_install_prefix + '/include'],
+                library_dirs=[cmake_install_prefix + '/lib'],
                 libraries=['eiimsgbus', 'eiiutils', 'eiimsgenv'])
         ],
         build_dir='./build/cython',
