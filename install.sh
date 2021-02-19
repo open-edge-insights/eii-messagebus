@@ -48,6 +48,9 @@ function check_error() {
     fi
 }
 
+INSTALL_PATH="/usr/local/lib"
+ORIGINAL_CURRENT_DIR=`pwd`
+
 # Library versions
 zeromq_version="4.3.1"
 cjson_version="1.7.12"
@@ -67,78 +70,88 @@ check_error "Failed to change to dependencies directory"
 if [ "$1" == "--cython" ] ; then
     # Installing Python dependencies
     log_info "Installing Cython for Python bindings"
-    pip3 install cython
+    pip3 install -r $ORIGINAL_CURRENT_DIR/python/requirements.txt
     check_error "Failed to install Cython"
 fi
 
+echo "$INSTALL_PATH/libzmq.so.${zeromq_version}"
+
 # Installing ZeroMQ dependency
-if [ ! -f "zeromq.tar.gz" ] ; then
-    log_info "Downloading libzmq source"
-    wget $zeromq_url -O zeromq.tar.gz
-    check_error "Failed to download zeromq"
+if [ -f "$INSTALL_PATH/libzmq.so" ]; then
+    log_info "libzmq ${zeromq_version} already installed"
+else
+    if [ ! -f "zeromq.tar.gz" ] ; then
+        log_info "Downloading libzmq source"
+        wget -q --show-progress $zeromq_url -O zeromq.tar.gz
+        check_error "Failed to download zeromq"
+    fi
+
+    zeromq_dir="zeromq-${zeromq_version}"
+
+    if [ ! -d "$zeromq_dir" ] ; then
+       log_info "Extracting libzmq"
+       tar xf zeromq.tar.gz
+       check_error "Failed to extract library"
+    fi
+
+    cd $zeromq_dir/
+    check_error "Failed to change to libzmq directory"
+
+    log_info "Configuring libzmq for building"
+    ./configure
+    check_error "Configuring libzmq build failed"
+
+    log_info "Compiling libzmq library"
+    make -j$(nproc --ignore=2)
+    check_error "Failed to compile libzmq"
+
+    log_info "Installing libzmq"
+    make install
+    check_error "Failed to install libzmq"
+
+    cd ..
 fi
-
-zeromq_dir="zeromq-${zeromq_version}"
-
-if [ ! -d "$zeromq_dir" ] ; then
-    log_info "Extracting libzmq"
-    tar xf zeromq.tar.gz
-    check_error "Failed to extract library"
-fi
-
-cd $zeromq_dir/
-check_error "Failed to change to libzmq directory"
-
-log_info "Configuring libzmq for building"
-./configure
-check_error "Configuring libzmq build failed"
-
-log_info "Compiling libzmq library"
-make -j$(nproc --ignore=2)
-check_error "Failed to compile libzmq"
-
-log_info "Installing libzmq"
-make install
-check_error "Failed to install libzmq"
-
-cd ..
 
 # Installing cJSON dependency
-if [ ! -f "cjson.tar.gz" ] ; then
-    log_info "Downloading cJSON source"
-    wget $cjson_url -O cjson.tar.gz
-    check_error "Failed to download cJSON source"
+if [ -f "$INSTALL_PATH/libcjson.so.${cjson_version}" ]; then
+    log_info "libcjson ${cjson_version} already installed"
+else
+    if [ ! -f "cjson.tar.gz" ] ; then
+        log_info "Downloading cJSON source"
+        wget -q --show-progress $cjson_url -O cjson.tar.gz
+        check_error "Failed to download cJSON source"
+    fi
+
+    cjson_dir="cJSON-${cjson_version}"
+
+    if [ ! -d "$cjson_dir" ] ; then
+        log_info "Extracting cJSON"
+        tar xf cjson.tar.gz
+        check_error "Failed to extract cJSON"
+    fi
+
+    cd $cjson_dir
+    check_error "Failed to change to cJSON directory"
+
+    if [ ! -d "build" ] ; then
+        mkdir build
+        check_error "Failed to create build directory"
+    fi
+
+    cd build
+    check_error "Failed to change to build directory"
+
+    log_info "Configuring cJSON for compilation"
+    cmake ..
+    check_error "Failed to configure cJSON"
+
+    log_info "Compiling cJSON library"
+    make -j$(nproc --ignore=2)
+    check_error "Failed to compile cJSON library"
+
+    log_info "Installing cJSON library"
+    make install
+    check_error "Failed to install cJSON library"
 fi
-
-cjson_dir="cJSON-${cjson_version}"
-
-if [ ! -d "$cjson_dir" ] ; then
-    log_info "Extracting cJSON"
-    tar xf cjson.tar.gz
-    check_error "Failed to extract cJSON"
-fi
-
-cd $cjson_dir
-check_error "Failed to change to cJSON directory"
-
-if [ ! -d "build" ] ; then
-    mkdir build
-    check_error "Failed to create build directory"
-fi
-
-cd build
-check_error "Failed to change to build directory"
-
-log_info "Configuring cJSON for compilation"
-cmake ..
-check_error "Failed to configure cJSON"
-
-log_info "Compiling cJSON library"
-make -j$(nproc --ignore=2)
-check_error "Failed to compile cJSON library"
-
-log_info "Installing cJSON library"
-make install
-check_error "Failed to install cJSON library"
 
 log_info "Done."
