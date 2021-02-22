@@ -61,3 +61,27 @@ tests.
 $ ./msg-envelope-tests
 $ ./crc32-tests
 ```
+
+## Known issues
+
+Due to certain limitations imposed by cJSON, there is no proper distinction
+between an integer and a floating point in EISMsgEnv. As a result of this limitation,
+the floating point values defined as whole numbers(1.0, 50.00 etc) are always deserialized
+as integers(1, 50 etc).
+
+The workaround for this limitation in the C APIs is to check for the type of
+`msg_envelope_elem_body_t` struct before accessing the respective type's data. One such example
+is provided below:
+
+```c
+msg_envelope_elem_body_t* data;
+msgbus_ret_t ret = msgbus_msg_envelope_get(msg, "key", &data);
+if (ret != MSG_SUCCESS) {
+    LOG_ERROR_0("Failed to retreive message");
+}
+if (data->type == MSG_ENV_DT_INT) {
+    LOG_INFO("Received integer: %d", data->body.integer);
+} else if (data->type == MSG_ENV_DT_FLOATING) {
+    LOG_INFO("Received float: %f", data->body.floating);
+}
+```
