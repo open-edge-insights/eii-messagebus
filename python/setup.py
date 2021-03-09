@@ -35,8 +35,7 @@ def read(fname):
 # Main package setup
 setup(
     name='eis-msgbus',
-    version='${PACKAGE_VERSION}',
-    author='Kevin Midkiff',
+    version='v2.4',
     description='EIS message bus Python wrapper',
     keywords='msgbus eis zeromq',
     url='',
@@ -53,8 +52,8 @@ setup(
             Extension(
                 '*',
                 ['./eis/*.pyx'],
-                include_dirs=['${PROJECT_SOURCE_DIR}/include'],
-                library_dirs=['${PROJECT_BINARY_DIR}/'],
+                include_dirs=['../include'],
+                library_dirs=['../build/'],
                 libraries=['eismsgbus', 'eisutils', 'eismsgenv'])
         ],
         build_dir='./build/cython',
