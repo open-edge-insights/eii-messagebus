@@ -1,0 +1,7 @@
+{
+    "type": "zmq_ipc",
+    "socket_dir": "/tmp",
+    "publish_test": {
+        "socket_file": "backend-sock"
+    }
+}
