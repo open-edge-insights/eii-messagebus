@@ -69,3 +69,20 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/dyn_unittest_config.json"
 # Compile test protocol plugin library
 add_library(test-proto SHARED "test_proto_plugin.c")
 target_link_libraries(test-proto eismsgbus ${EISUtils_LIBRARIES})
+
+# Compile tests for message envelopes and the supporting utilities
+add_executable(msg-envelope-tests "msg_envelope_tests.cpp")
+target_link_libraries(msg-envelope-tests eismsgenv gtest_main)
+add_test(NAME msg-envelope-tests COMMAND msg-envelope-tests)
+
+add_executable(crc32-tests "crc32_tests.cpp")
+target_link_libraries(crc32-tests eismsgenv gtest_main)
+add_test(NAME crc32-tests COMMAND crc32-tests)
+
+add_executable(hashmap-tests "hashmap_tests.cpp")
+target_link_libraries(hashmap-tests eismsgenv gtest_main)
+add_test(NAME hashmap-tests COMMAND hashmap-tests)
+
+add_executable(linkedlist-tests "linkedlist_tests.cpp")
+target_link_libraries(linkedlist-tests eismsgenv gtest_main)
+add_test(NAME linkedlist-tests COMMAND linkedlist-tests)

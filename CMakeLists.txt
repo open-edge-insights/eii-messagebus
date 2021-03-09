@@ -51,30 +51,43 @@ find_package(ZMQ REQUIRED)
 find_package(Threads REQUIRED)
 find_package(cJSON REQUIRED)
 find_package(EISUtils REQUIRED)
-find_package(EISMsgEnv REQUIRED)
 find_package(IntelSafeString REQUIRED)
 find_package(EISDynLibLoad REQUIRED)
 
 # Include header directories
 include_directories(
     include/
-    ${EISMsgEnv_INCLUDE}
     ${EISUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
     ${EISDYNLIBLOAD_INCLUDE}
     ${IntelSafeString_INCLUDE})
 
-# Get all source files
-file(GLOB SOURCES "src/*.c" "src/*/*.c")
-set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE C)
+# List out all source files for the EISMsgEnv library
+set(MSGENV_SRC
+    "src/msg_envelope.c"
+    "src/hashmap.c"
+    "src/linkedlist.c"
+    "src/crc32.c")
+set_source_files_properties(${MSGENV_SRC} PROPERTIES LANGUAGE C)
 
-add_library(eismsgbus SHARED ${SOURCES})
+add_library(eismsgenv SHARED ${MSGENV_SRC})
+target_link_libraries(eismsgenv
+    PRIVATE
+        ${CJSON_LIBRARIES}
+        ${IntelSafeString_LIBRARIES})
+
+# Get all source files
+file(GLOB ZMQ_SOURCE "src/proto_zmq/*.c")
+set(MSGBUS_SRC "src/msgbus.c" "src/cpuid-check.c" "src/msgbus.c" ${ZMQ_SOURCE})
+set_source_files_properties(${MSGBUS_SRC} PROPERTIES LANGUAGE C)
+
+add_library(eismsgbus SHARED ${MSGBUS_SRC})
 target_link_libraries(eismsgbus
     PUBLIC
         pthread
+        eismsgenv
         ${EISUtils_LIBRARIES}
-        ${EISMsgEnv_LIBRARIES}
     PRIVATE
         ${EISDYNLIBLOAD_LIBRARIES}
         ${ZMQ_LIBRARIES}
@@ -95,73 +108,17 @@ if(WITH_EXAMPLES)
 endif()
 
 ##
-## Configure pkg-config file to be installed for the EIS Message Bus
+## Include CMake script for initializing all of the necessary pieces to install
+## the EISMsgEnv library
 ##
-set(PKG_CONFIG_IN  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/libeismsgbus.pc.in")
-set(PKG_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/libeismsgbus.pc")
-set(DEST_DIR       "${CMAKE_INSTALL_PREFIX}")
-set(PRIVATE_LIBS   "-lzmq -lcjson")
-
-configure_file(${PKG_CONFIG_IN} ${PKG_CONFIG_OUT} @ONLY)
+include("cmake/InstallMsgEnv.cmake")
 
 ##
-## Add CMake configuration for installing the library including files for other
-## projects finding the library using CMake
+## Include CMake script for initializing all of the necessary pieces to install
+## the EISMessageBus library
 ##
+include("cmake/InstallMsgbus.cmake")
 
-include(GNUInstallDirs)
-set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/EISMessageBus)
-
-install(TARGETS eismsgbus
-    EXPORT eismsgbus-targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
-set_target_properties(eismsgbus PROPERTIES EXPORT_NAME EISMessageBus)
-install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-# Install pkg-config libeismsgbus.pc file
-install(
-    FILES
-        ${PKG_CONFIG_OUT}
-    DESTINATION
-        ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-)
-
-# Export targets to a script
-install(EXPORT eismsgbus-targets
-    FILE
-        EISMessageBusTargets.cmake
-    DESTINATION
-        ${INSTALL_CONFIGDIR}
-)
-
-# Create a ConfigVersion.cmake file
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY AnyNewerVersion
-)
-
-configure_package_config_file(
-    ${CMAKE_CURRENT_LIST_DIR}/cmake/EISMessageBusConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusConfig.cmake
-    INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
-)
-
-# Install the config, configversion and custom find modules
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusConfigVersion.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusConfig.cmake
-    DESTINATION ${INSTALL_CONFIGDIR}
-)
-
-export(EXPORT eismsgbus-targets
-    FILE ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusTargets.cmake)
-
-# Register package in user's package registry
-export(PACKAGE EISMessageBus)
 
 ##
 ## Documentation generation
