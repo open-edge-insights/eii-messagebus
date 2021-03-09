@@ -24,6 +24,7 @@ project(eis-messagebus VERSION 2.4.0 LANGUAGES C CXX)
 # Define CMake options
 option(WITH_TESTS    "Compile with unit tests" OFF)
 option(WITH_DOCS     "Generate message bus documentation" OFF)
+option(WITH_EXAMPLES "Compile with examples" OFF)
 
 # Set C standard to C11
 set(CMAKE_C_STANDARD 11)
@@ -87,6 +88,10 @@ endif()
 
 if(WITH_TESTS)
     add_subdirectory(tests/)
+endif()
+
+if(WITH_EXAMPLES)
+    add_subdirectory(examples/)
 endif()
 
 ##
