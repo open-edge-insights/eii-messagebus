@@ -542,19 +542,56 @@ TEST(msgbus_test, msgbus_subscriber_first) {
 GTEST_API_ int main(int argc, char** argv) {
     // Parse out gTest command line parameters
     ::testing::InitGoogleTest(&argc, argv);
-    set_log_level(LOG_LVL_DEBUG);
+    // set_log_level(LOG_LVL_DEBUG);
 
-    if(argc == 2) {
-        if(strcmp(argv[1], "--tcp") == 0) {
-            LOG_INFO_0("Running msgbus tests over TCP");
-            g_use_tcp = true;
-        } else {
-            LOG_ERROR("Unknown parameter: %s", argv[1]);
-            return -1;
+    log_lvl_t log_lvl = LOG_LVL_INFO;
+
+    if(argc > 1) {
+        int idx = 1;
+
+        while(argc != 1) {
+            if(strcmp(argv[idx], "--tcp") == 0) {
+                LOG_INFO_0("Running msgbus tests over TCP");
+                g_use_tcp = true;
+                idx++;
+                argc--;
+            } else if(strcmp(argv[idx], "--log-level") == 0) {
+                if(argc < 3) {
+                    LOG_ERROR_0("Too few arguments");
+                    return -1;
+                }
+
+                char* log_level = argv[idx + 1];
+                if (strcmp(log_level, "INFO") == 0) {
+                    log_lvl = LOG_LVL_INFO;
+                } else if (strcmp(log_level, "DEBUG") == 0) {
+                    log_lvl = LOG_LVL_DEBUG;
+                } else if (strcmp(log_level, "ERROR") == 0) {
+                    log_lvl = LOG_LVL_ERROR;
+                } else if (strcmp(log_level, "WARN") == 0) {
+                    log_lvl = LOG_LVL_WARN;
+                } else {
+                    LOG_ERROR("Unknown log level: %s", log_lvl);
+                    return -1;
+                }
+
+                idx += 2;
+                argc -= 2;
+            } else {
+                LOG_ERROR("Unknown parameter: %s", argv[1]);
+                return -1;
+            }
         }
     } else {
-        LOG_INFO_0("Running msgbus tests over IPC");
         g_use_tcp = false;
+    }
+
+    set_log_level(log_lvl);
+
+    if(g_use_tcp) {
+        LOG_INFO_0("Running msgbus tests over TCP");
+    } else {
+        LOG_INFO_0("Running msgbus tests over IPC");
     }
 
     return RUN_ALL_TESTS();
