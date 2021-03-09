@@ -453,88 +453,88 @@ TEST(msgbus_test, msgbus_load_proto) {
 /**
  * Thread run method used in the msgbus_subscriber_first test.
  */
-void deplayed_publisher(
-        void* msgbus_ctx, const char* topic, int sec_sleep) {
-    LOG_INFO_0("Publsher thread started");
-
-    // Sleeping publisher thread
-    auto sleep_time  = std::chrono::seconds(sec_sleep);
-    std::this_thread::sleep_for(sleep_time);
-
-    // Initialize the publisher
-    publisher_ctx_t* pub_ctx = NULL;
-    msgbus_ret_t ret = msgbus_publisher_new(msgbus_ctx, topic, &pub_ctx);
-    if (ret != MSG_SUCCESS) {
-        LOG_ERROR("(rc: %d) Failed to initialize publisher", ret);
-        return;
-    }
-
-    // Give publisher time to initialize
-    sleep(1);
-
-    // Creating message to be published
-    // NOTE: Other tests check that the following is successful
-    msg_envelope_t* msg = NULL;
-    msg_envelope_elem_body_t* integer = msgbus_msg_envelope_new_integer(42);
-    msg_envelope_elem_body_t* fp = msgbus_msg_envelope_new_floating(55.5);
-    msg = msgbus_msg_envelope_new(CT_JSON);
-    msgbus_msg_envelope_put(msg, "hello", integer);
-    msgbus_msg_envelope_put(msg, "world", fp);
-
-    // Publish the message
-    LOG_INFO_0("Publishing message");
-    ret = msgbus_publisher_publish(msgbus_ctx, pub_ctx, msg);
-    if (ret != MSG_SUCCESS) {
-        LOG_ERROR("(rc: %d) Failed to publish message", ret);
-        // NOTE: Not returning so that the clean up below happens for the
-        // initialized memory in this thread.
-    }
-
-    // Clean up memory
-    msgbus_msg_envelope_destroy(msg);
-    msgbus_publisher_destroy(msgbus_ctx, pub_ctx);
-}
-
-/**
- * A unittest which purposefully starts the subscriber first to make sure the
- * underlying protocol does not error out if a given publisher does not exist
- * on the network yet.
- *
- * \note This may only apply to ZeroMQ, further looking into whether this
- *      applies to other protocols should be done.
- */
-TEST(msgbus_test, msgbus_subscriber_first) {
-    // Initialize message bus context
-    msgbus_ret_t ret = MSG_SUCCESS;
-    msg_envelope_t* received = NULL;
-    config_t* config = create_config();
-    void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
-        FAIL() << "Init failed";
-    }
-
-    // Initialize subscriber
-    recv_ctx_t* sub_ctx = NULL;
-    ret = msgbus_subscriber_new(ctx, PUB_SUB_TOPIC, NULL, &sub_ctx);
-    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to create subscriber";
-    sleep(1);  // Allow time for subscriber to start
-
-    // Start publisher thread - delayed start for 1 second
-    std::thread pub_th(deplayed_publisher, ctx, PUB_SUB_TOPIC, 3);
-
-    // Wait for message
-    // ret = msgbus_recv_timedwait(ctx, sub_ctx, 10 * 1000, &received);
-    ret = msgbus_recv_wait(ctx, sub_ctx, &received);
-    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to receive publication";
-
-    // Join with publisher thread
-    pub_th.join();
-
-    // Clean up memory
-    msgbus_msg_envelope_destroy(received);
-    msgbus_recv_ctx_destroy(ctx, sub_ctx);
-    msgbus_destroy(ctx);
-}
+// void deplayed_publisher(
+//         void* msgbus_ctx, const char* topic, int sec_sleep) {
+//     LOG_INFO_0("Publsher thread started");
+//
+//     // Sleeping publisher thread
+//     auto sleep_time  = std::chrono::seconds(sec_sleep);
+//     std::this_thread::sleep_for(sleep_time);
+//
+//     // Initialize the publisher
+//     publisher_ctx_t* pub_ctx = NULL;
+//     msgbus_ret_t ret = msgbus_publisher_new(msgbus_ctx, topic, &pub_ctx);
+//     if (ret != MSG_SUCCESS) {
+//         LOG_ERROR("(rc: %d) Failed to initialize publisher", ret);
+//         return;
+//     }
+//
+//     // Give publisher time to initialize
+//     sleep(1);
+//
+//     // Creating message to be published
+//     // NOTE: Other tests check that the following is successful
+//     msg_envelope_t* msg = NULL;
+//     msg_envelope_elem_body_t* integer = msgbus_msg_envelope_new_integer(42);
+//     msg_envelope_elem_body_t* fp = msgbus_msg_envelope_new_floating(55.5);
+//     msg = msgbus_msg_envelope_new(CT_JSON);
+//     msgbus_msg_envelope_put(msg, "hello", integer);
+//     msgbus_msg_envelope_put(msg, "world", fp);
+//
+//     // Publish the message
+//     LOG_INFO_0("Publishing message");
+//     ret = msgbus_publisher_publish(msgbus_ctx, pub_ctx, msg);
+//     if (ret != MSG_SUCCESS) {
+//         LOG_ERROR("(rc: %d) Failed to publish message", ret);
+//         // NOTE: Not returning so that the clean up below happens for the
+//         // initialized memory in this thread.
+//     }
+//
+//     // Clean up memory
+//     msgbus_msg_envelope_destroy(msg);
+//     msgbus_publisher_destroy(msgbus_ctx, pub_ctx);
+// }
+//
+// /**
+//  * A unittest which purposefully starts the subscriber first to make sure the
+//  * underlying protocol does not error out if a given publisher does not exist
+//  * on the network yet.
+//  *
+//  * \note This may only apply to ZeroMQ, further looking into whether this
+//  *      applies to other protocols should be done.
+//  */
+// TEST(msgbus_test, msgbus_subscriber_first) {
+//     // Initialize message bus context
+//     msgbus_ret_t ret = MSG_SUCCESS;
+//     msg_envelope_t* received = NULL;
+//     config_t* config = create_config();
+//     void* ctx = msgbus_initialize(config);
+//     if(ctx == NULL) {
+//         FAIL() << "Init failed";
+//     }
+//
+//     // Initialize subscriber
+//     recv_ctx_t* sub_ctx = NULL;
+//     ret = msgbus_subscriber_new(ctx, PUB_SUB_TOPIC, NULL, &sub_ctx);
+//     ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to create subscriber";
+//     sleep(1);  // Allow time for subscriber to start
+//
+//     // Start publisher thread - delayed start for 1 second
+//     std::thread pub_th(deplayed_publisher, ctx, PUB_SUB_TOPIC, 3);
+//
+//     // Wait for message
+//     // ret = msgbus_recv_timedwait(ctx, sub_ctx, 10 * 1000, &received);
+//     ret = msgbus_recv_wait(ctx, sub_ctx, &received);
+//     ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to receive publication";
+//
+//     // Join with publisher thread
+//     pub_th.join();
+//
+//     // Clean up memory
+//     msgbus_msg_envelope_destroy(received);
+//     msgbus_recv_ctx_destroy(ctx, sub_ctx);
+//     msgbus_destroy(ctx);
+// }
 
 /**
  * Overridden GTest main method
