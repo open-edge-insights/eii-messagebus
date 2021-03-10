@@ -68,12 +68,14 @@ set(MSGENV_SRC
     "src/msg_envelope.c"
     "src/hashmap.c"
     "src/linkedlist.c"
-    "src/crc32.c")
-set_source_files_properties(${MSGENV_SRC} PROPERTIES LANGUAGE C)
+    "src/crc32.c"
+    "src/profiling.cpp")
+# set_source_files_properties(${MSGENV_SRC} PROPERTIES LANGUAGE C)
 
 add_library(eismsgenv SHARED ${MSGENV_SRC})
 target_link_libraries(eismsgenv
     PRIVATE
+        ${EISUtils_LIBRARIES}
         ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
 
