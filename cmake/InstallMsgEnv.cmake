@@ -51,7 +51,7 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 # Install pkg-config libeismsgenv.pc file
 install(
     FILES
-        ${PKG_CONFIG_OUT}
+    ${MSGENV_PKG_CONFIG_OUT}
     DESTINATION
         ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
