@@ -35,7 +35,6 @@
 #include "eis/msgbus/msgbus.h"
 #include "eis/msgbus/protocol.h"
 #include "proto_zmq/zmq.h"
-#include "cpuid-check.h"
 
 #define INTEL_VENDOR "GenuineIntel"
 #define INTEL_VENDOR_LENGTH 12
@@ -54,19 +53,6 @@ typedef struct {
 } msgbus_ctx_t;
 
 void* msgbus_initialize(config_t* config) {
-    LOG_DEBUG_0("Checking if vendor is Intel");
-    char* vendor = get_vendor();
-
-    int ind_vendor;
-    strcmp_s(vendor, INTEL_VENDOR_LENGTH, INTEL_VENDOR, &ind_vendor);
-    if(ind_vendor != 0) {
-        LOG_ERROR("EIS can only be used on Intel HW, you are running on %s",
-        vendor);
-        return NULL;
-    }
-
-    LOG_DEBUG("Running on %s", vendor);
-
     LOG_DEBUG_0("Initilizing message bus");
     char* lib_name = NULL;
     protocol_t* proto = NULL;

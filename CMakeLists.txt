@@ -81,7 +81,7 @@ target_link_libraries(eismsgenv
 
 # Get all source files
 file(GLOB ZMQ_SOURCE "src/proto_zmq/*.c")
-set(MSGBUS_SRC "src/msgbus.c" "src/cpuid-check.c" "src/msgbus.c" ${ZMQ_SOURCE})
+set(MSGBUS_SRC "src/msgbus.c" "src/msgbus.c" ${ZMQ_SOURCE})
 set_source_files_properties(${MSGBUS_SRC} PROPERTIES LANGUAGE C)
 
 add_library(eismsgbus SHARED ${MSGBUS_SRC})
