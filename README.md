@@ -82,8 +82,6 @@ be given to CMake for building the EIS Message Bus.
 
 |       Flag      | Default |                                       Description                                    |
 | :-------------: | :-----: | ------------------------------------------------------------------------------------ |
-| `WITH_PYTHON`   | `OFF`   | If set to `ON`, specifies to build with the Python binding                           |
-| `WITH_GO`       | `OFF`   | If set to `ON`, then CMake will install the Go binding during the installation phase |
 | `WITH_TESTS`    | `OFF`   | If set to `ON`, builds the C unit tests with the EIS Message Bus compilation         |
 | `WITH_EXAMPLES` | `OFF`   | If set to `ON`, then CMake will compile the C examples in addition to the library    |
 | `WITH_DOCS`     | `OFF`   | If set to `ON`, then CMake will add a `docs` build target to generate documentation  |
@@ -174,9 +172,33 @@ $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
 > **NOTE:** You can also specify a different library prefix to CMake through
 > the `CMAKE_INSTALL_PREFIX` flag.
 
-If you specified the `WITH_PYTHON=ON` option when executing CMake, then the
-above command will also install the Python module for using the Python binding
-for the EIS Message Bus.
+### Install Python Binding
+
+To install the Python binding for the EIS Message Bus execute the following
+commands:
+
+```sh
+# Change directories into the python/ directory
+$ cd python/
+
+# Install the Python package
+$ sudo python3 setup.py install
+```
+> **NOTE:** In order for the installation to be successful, you must have run
+> the `install.sh` script with the `--cython` flag when installing the
+> message bus dependencies.
+
+### Install Golang Binding
+
+To install the Golang binding for the EIS Message Bus execute the following
+command:
+
+```sh
+# Copy the Golang source to your $GOPATH/src directory
+$ cp -a go/EISMessageBus/ $GOPATH/src/
+```
+> **NOTE:** The above command assumes Golang is installed and configured on
+> the target system.
 
 ## Running Unit Tests
 
