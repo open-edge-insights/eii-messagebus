@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <safe_lib.h>
-#include <eis/utils/logger.h>
-#include <eis/utils/string.h>
+#include <eii/utils/logger.h>
+#include <eii/utils/string.h>
 // Include libzmq zmq.h
 #include <zmq.h>
 

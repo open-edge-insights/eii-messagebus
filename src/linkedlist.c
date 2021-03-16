@@ -23,7 +23,7 @@
  */
 
 #include <stdlib.h>
-#include "eis/msgbus/linkedlist.h"
+#include "eii/msgbus/linkedlist.h"
 
 linkedlist_t* linkedlist_new() {
     linkedlist_t* ll = (linkedlist_t*) malloc(sizeof(linkedlist_t));

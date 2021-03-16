@@ -17,7 +17,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""All C imports for the EIS message bus
+"""All C imports for the EII message bus
 """
 
 from libc.stdint cimport *
@@ -25,7 +25,7 @@ from libc.stdint cimport *
 cdef extern from "stdbool.h":
     ctypedef bint bool
 
-cdef extern from "eis/msgbus/msgbus.h" nogil:
+cdef extern from "eii/msgbus/msgbus.h" nogil:
     ctypedef enum msgbus_ret_t:
         MSG_SUCCESS = 0
         MSG_ERR_PUB_FAILED = 1

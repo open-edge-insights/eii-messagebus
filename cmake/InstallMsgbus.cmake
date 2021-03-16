@@ -19,14 +19,14 @@
 # IN THE SOFTWARE.
 
 ##
-## Helper CMake script for setting up the EISMsgEnv library to be installed
+## Helper CMake script for setting up the EIIMsgEnv library to be installed
 ##
 
 ##
-## Configure pkg-config file to be installed for the EIS Message Bus
+## Configure pkg-config file to be installed for the EII Message Bus
 ##
-set(PKG_CONFIG_IN  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/libeismsgbus.pc.in")
-set(PKG_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/libeismsgbus.pc")
+set(PKG_CONFIG_IN  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/libeiimsgbus.pc.in")
+set(PKG_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/libeiimsgbus.pc")
 set(DEST_DIR       "${CMAKE_INSTALL_PREFIX}")
 set(PRIVATE_LIBS   "-lzmq -lcjson")
 
@@ -38,17 +38,17 @@ configure_file(${PKG_CONFIG_IN} ${PKG_CONFIG_OUT} @ONLY)
 ##
 
 include(GNUInstallDirs)
-set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/EISMessageBus)
+set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/EIIMessageBus)
 
-install(TARGETS eismsgbus
-    EXPORT eismsgbus-targets
+install(TARGETS eiimsgbus
+    EXPORT eiimsgbus-targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-set_target_properties(eismsgbus PROPERTIES EXPORT_NAME EISMessageBus)
+set_target_properties(eiimsgbus PROPERTIES EXPORT_NAME EIIMessageBus)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-# Install pkg-config libeismsgbus.pc file
+# Install pkg-config libeiimsgbus.pc file
 install(
     FILES
         ${PKG_CONFIG_OUT}
@@ -57,9 +57,9 @@ install(
 )
 
 # Export targets to a script
-install(EXPORT eismsgbus-targets
+install(EXPORT eiimsgbus-targets
     FILE
-        EISMessageBusTargets.cmake
+        EIIMessageBusTargets.cmake
     DESTINATION
         ${INSTALL_CONFIGDIR}
 )
@@ -67,26 +67,26 @@ install(EXPORT eismsgbus-targets
 # Create a ConfigVersion.cmake file
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusConfigVersion.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/EIIMessageBusConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion
 )
 
 configure_package_config_file(
-    ${CMAKE_CURRENT_LIST_DIR}/EISMessageBusConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusConfig.cmake
+    ${CMAKE_CURRENT_LIST_DIR}/EIIMessageBusConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/EIIMessageBusConfig.cmake
     INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
 )
 
 # Install the config, configversion and custom find modules
 install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusConfigVersion.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/EIIMessageBusConfigVersion.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/EIIMessageBusConfig.cmake
     DESTINATION ${INSTALL_CONFIGDIR}
 )
 
-export(EXPORT eismsgbus-targets
-    FILE ${CMAKE_CURRENT_BINARY_DIR}/EISMessageBusTargets.cmake)
+export(EXPORT eiimsgbus-targets
+    FILE ${CMAKE_CURRENT_BINARY_DIR}/EIIMessageBusTargets.cmake)
 
 # Register package in user's package registry
-export(PACKAGE EISMessageBus)
+export(PACKAGE EIIMessageBus)

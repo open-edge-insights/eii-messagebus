@@ -30,8 +30,8 @@
 
 #include <zmq.h>
 #include <safe_lib.h>
-#include <eis/utils/string.h>
-#include <eis/msgbus/hashmap.h>
+#include <eii/utils/string.h>
+#include <eii/msgbus/hashmap.h>
 
 #include "zmq.h"
 #include "zap.h"
@@ -2091,7 +2091,7 @@ err:
 /**
  * Helper function for creating a new ZeroMQ socket.
  *
- * @param zmq_ctx     - EIS Message Bus ZeroMQ protocol context
+ * @param zmq_ctx     - EII Message Bus ZeroMQ protocol context
  * @param uri         - Socket URI
  * @param name        - Service name or topic string
  * @param socket_type - ZMQ_* constant for the type of socket

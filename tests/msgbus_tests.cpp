@@ -30,12 +30,12 @@
 #include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
-#include <eis/utils/logger.h>
-#include <eis/utils/string.h>
-#include "eis/msgbus/msgbus.h"
-#include "eis/utils/timeit.h"
-#include "eis/utils/logger.h"
-#include "eis/utils/json_config.h"
+#include <eii/utils/logger.h>
+#include <eii/utils/string.h>
+#include "eii/msgbus/msgbus.h"
+#include "eii/utils/timeit.h"
+#include "eii/utils/logger.h"
+#include "eii/utils/json_config.h"
 
 #define PUB_SUB_TOPIC "unittest-pubsub"
 #define SERVICE_NAME  "unittest-service"

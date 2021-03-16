@@ -1,7 +1,7 @@
 ## Publish/Subscribe Tutorial
 
 The following tutorial will cover how to do publish/subscribe messaging using
-the EIS Message Bus. The outcome of this tutorial will be two Python scripts,
+the EII Message Bus. The outcome of this tutorial will be two Python scripts,
 one of which will publish messages and the other which will subscribe to
 messages.
 
@@ -13,10 +13,10 @@ import os
 import time
 import json
 import argparse
-import eis.msgbus as mb
+import eii.msgbus as mb
 ```
 
-The last line of the imports above is where we import the EIS Message Bus
+The last line of the imports above is where we import the EII Message Bus
 Python binding, which for sake of clarity will be referenced as `mb` in all
 of the code to follow.
 
@@ -39,7 +39,7 @@ which will give us the topic string under which to publish messages.
 
 It is important to note at this point that a JSON configuration is going to be
 used for the publisher, however, this is not required of an application using
-the Python binding. The EIS Message Bus Python API requires that a Python
+the Python binding. The EII Message Bus Python API requires that a Python
 `dict` object be used to configure the bus. For ease of use, JSON has been
 used in this example.
 
@@ -102,7 +102,7 @@ When its all put together, the code looks as follows:
 import time
 import json
 import argparse
-import eis.msgbus as mb
+import eii.msgbus as mb
 
 # Argument parsing
 ap = argparse.ArgumentParser()
@@ -134,7 +134,7 @@ finally:
         publisher.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/publisher.py` in the EIS
+> **NOTE:** This code is provided in `python/examples/publisher.py` in the EII
 > Message Bus source code.
 
 Now that the publisher script is finished, we will create the subscriber script
@@ -146,7 +146,7 @@ script, except that instead of calling `new_publisher()` we will call
 import time
 import json
 import argparse
-import eis.msgbus as mb
+import eii.msgbus as mb
 
 # Argument parsing
 ap = argparse.ArgumentParser()
@@ -181,7 +181,7 @@ finally:
         subscriber.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/subscriber.py` in the EIS
+> **NOTE:** This code is provided in `python/examples/subscriber.py` in the EII
 > Message Bus source code.
 
 As can be seen in the code above, the `msgbus.new_publisher()` call has now

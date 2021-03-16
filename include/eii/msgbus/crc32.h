@@ -22,8 +22,8 @@
  * @brief Simple CRC32 hashing function
  */
 
-#ifndef _EIS_MESSAGE_BUS_CRC32_H
-#define _EIS_MESSAGE_BUS_CRC32_H
+#ifndef _EII_MESSAGE_BUS_CRC32_H
+#define _EII_MESSAGE_BUS_CRC32_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -48,4 +48,4 @@ uint32_t msgbus_crc32(const void* buf, size_t len);
 }
 #endif
 
-#endif // _EIS_MESSAGE_BUS_CRC32_H
+#endif // _EII_MESSAGE_BUS_CRC32_H

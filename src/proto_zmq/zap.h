@@ -23,12 +23,12 @@
  * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
-#ifndef _EIS_MESSAGE_BUS_ZAP_H
-#define _EIS_MESSAGE_BUS_ZAP_H
+#ifndef _EII_MESSAGE_BUS_ZAP_H
+#define _EII_MESSAGE_BUS_ZAP_H
 
 #include <pthread.h>
 #include <stdbool.h>
-#include <eis/utils/config.h>
+#include <eii/utils/config.h>
 
 /**
  * Internal context object for the ZAP authentication thread.
@@ -61,4 +61,4 @@ int zap_initialize(void* zmq_ctx, config_t* config, zap_ctx_t** zap_ctx);
  */
 void zap_destroy(zap_ctx_t* zap_ctx);
 
-#endif // _EIS_MESSAGE_BUS_ZAP_H
+#endif // _EII_MESSAGE_BUS_ZAP_H

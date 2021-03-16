@@ -23,8 +23,8 @@
  * @brief Messaging return codes
  */
 
-#ifndef _EIS_MESSAGE_BUS_MSGRET_H
-#define _EIS_MESSAGE_BUS_MSGRET_H
+#ifndef _EII_MESSAGE_BUS_MSGRET_H
+#define _EII_MESSAGE_BUS_MSGRET_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,4 +66,4 @@ typedef enum {
 } // extern "C"
 #endif
 
-#endif // _EIS_MESSAGE_BUS_MSGRET_H
+#endif // _EII_MESSAGE_BUS_MSGRET_H

@@ -1,1 +1,1 @@
-Python binding for the EIS Message Bus.
+Python binding for the EII Message Bus.

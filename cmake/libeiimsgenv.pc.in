@@ -3,10 +3,10 @@ exec_prefix=${prefix}
 libdir=${prefix}/lib
 includedir=${prefix}/include
 
-Name: libeismsgenv
-Description: EIS Message Envelope library.
+Name: libeiimsgenv
+Description: EII Message Envelope library.
 Version: @PROJECT_VERSION@
 
-Libs: -L${libdir} -leismsgenv
+Libs: -L${libdir} -leiimsgenv
 Libs.private: @MSGENV_PRIVATE_LIBS@
 Cflags: -I${includedir}

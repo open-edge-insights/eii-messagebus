@@ -1,7 +1,7 @@
-"""Unit tests for EIS MsgBus Message Envelope
+"""Unit tests for EII MsgBus Message Envelope
 """
 import unittest
-from eis.msg_envelope import MsgEnvelope
+from eii.msg_envelope import MsgEnvelope
 
 
 class TestMsgEnvelope(unittest.TestCase):

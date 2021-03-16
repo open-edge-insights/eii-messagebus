@@ -2,9 +2,9 @@
 
 ## Overview
 
-Protocols are at the bottom most layer of the EIS Message Bus stack. They
+Protocols are at the bottom most layer of the EII Message Bus stack. They
 provide the implementation for the messaging primitives supported by the
-EIS Message Bus. The main tasks expected of a protocol are as follows:
+EII Message Bus. The main tasks expected of a protocol are as follows:
 
 1. Initialize the state of the underlying message library (i.e. ZeroMQ, DDS, etc.)
 2. Implement methods for initializing contexts for publishers, subscribers,
@@ -14,16 +14,16 @@ EIS Message Bus. The main tasks expected of a protocol are as follows:
 4. Implement base methods for receiving messages as blocking, non-blocking, and
     time out base function calls
 5. Provide the translation between the underlying messaging library's messsage
-    structure to the EIS Message Bus's `msg_envelope_t` structure
+    structure to the EII Message Bus's `msg_envelope_t` structure
 
-All protocols must have a unique protocol name which the EIS Message Bus can
+All protocols must have a unique protocol name which the EII Message Bus can
 use to load the protocol based on the `type` configuration value it is provided.
 For example, the ZeroMQ TCP protocol uses the identifier `zmq_tcp`. Using this
-type name, the EIS Message Bus knows how to load the protocol in the
+type name, the EII Message Bus knows how to load the protocol in the
 `msgbus_initialize()` method.
 
 Currently, the addition and loading of new protocols must be added directly
-to the source code for the EIS Message Bus. In the future, the message bus will
+to the source code for the EII Message Bus. In the future, the message bus will
 include a feature for dynamically loading protocol plugins. All protocols are
 expected to have an initialize method which follows the prototype:
 `protocol_t* proto_<type>_initialize(const char* type, config_t* config)`. This
@@ -82,15 +82,15 @@ For more information on the purpose of each of the function pointers in the
 `protocol_t` structure see the [`protocol_t` Function Definition](#protocol_t-function-definition).
 
 The rest of this section will cover the initial setup of a project to add a new
-protocol to the EIS Message Bus, including the ideal code structure for the C
+protocol to the EII Message Bus, including the ideal code structure for the C
 source code file.
 
 For the purposes of this tutorial, the name of the proctol to be added will be
-named `example`. To start, create a new header file in the `include/eis/msgbus`
+named `example`. To start, create a new header file in the `include/eii/msgbus`
 directory and a new C file in the `src` directory.
 
 ```sh
-$ touch include/eis/msgbus/example.h
+$ touch include/eii/msgbus/example.h
 $ touch src/example.c
 ```
 > **NOTE:** The names of the files above should be the name of your protocol.
@@ -100,8 +100,8 @@ Once these files are created, add the following to the `example.h` file.
 ```c
 // C include guards to prevent multiple definition from files including the
 // header
-#ifndef _EIS_MESSAGE_BUS_EXAMPLE_H
-#define _EIS_MESSAGE_BUS_EXAMPLE_H
+#ifndef _EII_MESSAGE_BUS_EXAMPLE_H
+#define _EII_MESSAGE_BUS_EXAMPLE_H
 
 // Add extern C declaration if the code is being included from C++ code
 #ifdef __cplusplus
@@ -110,7 +110,7 @@ extern "C" {
 
 // Include the protocol.h to get the protocol_t and config_t structure
 // definitions
-#include "eis/msgbus/protocol.h"
+#include "eii/msgbus/protocol.h"
 
 /**
  * Method to initialize the example protocol.
@@ -121,7 +121,7 @@ protocol_t* proto_example_initialize(const char* type, config_t* config);
 }
 #endif
 
-#endif // _EIS_MESSAGE_BUS_EXAMPLE_H
+#endif // _EII_MESSAGE_BUS_EXAMPLE_H
 ```
 
 The code above defines the initialization method for initializing the `example`
@@ -134,7 +134,7 @@ First, include the `example.h` header file on line 36 in the `src/msgbus.c`
 file.
 
 ```c
-#include "eis/msgbus/example.h"
+#include "eii/msgbus/example.h"
 ```
 
 Then, add the following code at after line 210.
@@ -174,14 +174,14 @@ all of the needed function pointers in the `protocol_t` structure.
 
 After these definitions lies the implementation for the `proto_example_initialize()`
 function. The `TODO` comments represent areas where code must be added depending
-on the protocol being added to the EIS Message Bus. The code then intializes
+on the protocol being added to the EII Message Bus. The code then intializes
 the `protocol_t` struct and assigns all of the proper pointers.
 
 After the implementation for the `proto_example_initialize()` function are all
 of the function imlementations for the prototypes defined at the top of the
 file.
 
-Once this file is saved as `src/example.c`, compile the EIS Message Bus. The
+Once this file is saved as `src/example.c`, compile the EII Message Bus. The
 examples should all work, however, they should immediately return or potentially
 raise an error, since this is an empty protocol implementation and none of the
 return objects are being initialized.
@@ -191,10 +191,10 @@ return objects are being initialized.
 #include <stdlib.h>
 
 // Include the example.h header file
-#include "eis/msgbus/example.h"
+#include "eii/msgbus/example.h"
 
 // Include the logger.h for helper logging macros
-#include "eis/msgbus/logger.h"
+#include "eii/msgbus/logger.h"
 
 // Function prototypes
 void proto_example_destroy(void* ctx);

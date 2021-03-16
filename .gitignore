@@ -7,8 +7,8 @@
 **/__pycache__
 **/*.so
 compile_commands.json
-python/eis/*.c
+python/eii/*.c
 
 # Automatically generated during documenation generation
-python/docs/eis.rst
+python/docs/eii.rst
 python/docs/modules.rst

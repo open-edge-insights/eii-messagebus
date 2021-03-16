@@ -17,7 +17,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EIS Message Envelope utility functions
+"""EII Message Envelope utility functions
 """
 
 # Python imports
@@ -26,13 +26,13 @@ import warnings
 from .exc import MessageBusError
 
 # Cython imports
-from .libeismsgbus cimport *
+from .libeiimsgbus cimport *
 from cpython cimport bool, Py_INCREF, Py_DECREF
 from libc.stdint cimport int64_t
 
 
 class MsgEnvelope:
-    """EIS Message Envelope
+    """EII Message Envelope
     """
     def __init__(self, meta_data=None, blob=None, name=None):
         """Constructor

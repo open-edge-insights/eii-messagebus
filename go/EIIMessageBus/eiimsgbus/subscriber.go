@@ -20,10 +20,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package eismsgbus
+package eiimsgbus
 
 import (
-	types "EISMessageBus/pkg/types"
+	types "EIIMessageBus/pkg/types"
 )
 
 // Subscriber object. This object is not thread-safe.

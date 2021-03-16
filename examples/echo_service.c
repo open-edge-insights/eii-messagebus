@@ -27,9 +27,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <eis/msgbus/msgbus.h>
-#include <eis/utils/logger.h>
-#include <eis/utils/json_config.h>
+#include <eii/msgbus/msgbus.h>
+#include <eii/utils/logger.h>
+#include <eii/utils/json_config.h>
 #include "common.h"
 
 #define SERVICE_NAME "echo_service"

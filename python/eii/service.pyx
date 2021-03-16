@@ -17,20 +17,20 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EIS Message Bus service wrapper object for receiving requests
+"""EII Message Bus service wrapper object for receiving requests
 """
 
 # Python imports
 from .exc import MessageBusError
 
 # Cython imports
-from .libeismsgbus cimport *
+from .libeiimsgbus cimport *
 from .receive_context cimport ReceiveContext
 from .msg_envelope cimport python_to_msg_envelope
 
 
 cdef class Service(ReceiveContext):
-    """EIS Message Bus service wrapper object for receiving requests
+    """EII Message Bus service wrapper object for receiving requests
     """
     @staticmethod
     cdef create(void* msgbus_ctx, recv_ctx_t* recv_ctx):

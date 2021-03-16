@@ -20,7 +20,7 @@
 
 /**
  * @file
- * @brief EIS Message Bus example using the C++ thread helper classes.
+ * @brief EII Message Bus example using the C++ thread helper classes.
  */
 
 #include <chrono>
@@ -28,14 +28,14 @@
 #include <csignal>
 #include <condition_variable>
 
-#include <eis/utils/logger.h>
-#include <eis/utils/json_config.h>
-#include "eis/msgbus/msgbus.h"
+#include <eii/utils/logger.h>
+#include <eii/utils/json_config.h>
+#include "eii/msgbus/msgbus.h"
 
 #define SERVICE_NAME "pubsub-threads"
 
-using namespace eis::utils;
-using namespace eis::msgbus;
+using namespace eii::utils;
+using namespace eii::msgbus;
 
 /**
  * Example object which is both serializable and deserialzable

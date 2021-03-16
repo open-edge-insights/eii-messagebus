@@ -23,16 +23,16 @@
  * @brief C++ Profiling Library
  */
 
-#ifndef _EIS_UTILS_PROFILING_H
-#define _EIS_UTILS_PROFILING_H
+#ifndef _EII_UTILS_PROFILING_H
+#define _EII_UTILS_PROFILING_H
 
 #include <chrono>
 #include <string>
-#include <eis/msgbus/msg_envelope.h>
-#include <eis/utils/config.h>
-#include <eis/utils/logger.h>
+#include <eii/msgbus/msg_envelope.h>
+#include <eii/utils/config.h>
+#include <eii/utils/logger.h>
 
-namespace eis {
+namespace eii {
     namespace utils {
         class Profiling {
         private:

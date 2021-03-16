@@ -24,14 +24,14 @@
  * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
-#ifndef _EIS_MESSAGE_BUS_PROTOCOL_H
-#define _EIS_MESSAGE_BUS_PROTOCOL_H
+#ifndef _EII_MESSAGE_BUS_PROTOCOL_H
+#define _EII_MESSAGE_BUS_PROTOCOL_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "eis/msgbus/msgbus.h"
+#include "eii/msgbus/msgbus.h"
 
 /**
  * Underlying protocol interface for messaging through the message bus.
@@ -93,11 +93,11 @@ typedef struct {
  * Helper macro for defining a new protocol.
  *
  * This macro defines the function prototypes for all of the functions needed
- * for an EIS Message Bus protocol. Additionally, it defines the
+ * for an EII Message Bus protocol. Additionally, it defines the
  * `PROTO_EXPORTS` global which is required to dynamically load the protocol
- * into the EIS Message Bus.
+ * into the EII Message Bus.
  */
-#define EIS_MSGBUS_PROTO(proto_name) \
+#define EII_MSGBUS_PROTO(proto_name) \
     protocol_t* proto_##proto_name##_initialize(const char*, config_t*); \
     void proto_##proto_name##_destroy(void* ctx); \
     msgbus_ret_t proto_##proto_name##_publisher_new( \
@@ -129,4 +129,4 @@ typedef struct {
 }
 #endif
 
-#endif // _EIS_MESSAGE_BUS_PROTOCOL_H
+#endif // _EII_MESSAGE_BUS_PROTOCOL_H

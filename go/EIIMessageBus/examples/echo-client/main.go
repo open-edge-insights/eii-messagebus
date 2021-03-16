@@ -23,7 +23,7 @@ SOFTWARE.
 package main
 
 import (
-	eismsgbus "EISMessageBus/eismsgbus"
+	eiimsgbus "EIIMessageBus/eiimsgbus"
 	"flag"
 	"fmt"
 )
@@ -44,14 +44,14 @@ func main() {
 	}
 
 	fmt.Printf("-- Loading configuration file %s\n", *configFile)
-	config, err := eismsgbus.ReadJsonConfig(*configFile)
+	config, err := eiimsgbus.ReadJsonConfig(*configFile)
 	if err != nil {
 		fmt.Printf("-- Failed to parse config: %v\n", err)
 		return
 	}
 
 	fmt.Println("-- Initializing message bus context")
-	client, err := eismsgbus.NewMsgbusClient(config)
+	client, err := eiimsgbus.NewMsgbusClient(config)
 	if err != nil {
 		fmt.Printf("-- Error initializing message bus context: %v\n", err)
 		return

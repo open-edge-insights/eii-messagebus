@@ -23,7 +23,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "eis/msgbus/linkedlist.h"
+#include "eii/msgbus/linkedlist.h"
 
 #define ASSERT_NULL(val) { \
     if(val != NULL) FAIL() << "Value should be NULL"; \

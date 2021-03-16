@@ -28,12 +28,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <safe_lib.h>
-#include <eis/utils/logger.h>
-#include <eis/dynlibload/dynlibload.h>
-#include <eis/utils/string.h>
+#include <eii/utils/logger.h>
+#include <eii/dynlibload/dynlibload.h>
+#include <eii/utils/string.h>
 
-#include "eis/msgbus/msgbus.h"
-#include "eis/msgbus/protocol.h"
+#include "eii/msgbus/msgbus.h"
+#include "eii/msgbus/protocol.h"
 #include "proto_zmq/zmq.h"
 
 #define INTEL_VENDOR "GenuineIntel"

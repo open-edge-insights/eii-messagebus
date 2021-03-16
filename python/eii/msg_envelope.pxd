@@ -17,10 +17,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EIS Message Envelope utility functions Cython declaration
+"""EII Message Envelope utility functions Cython declaration
 """
 
-from .libeismsgbus cimport msg_envelope_t
+from .libeiimsgbus cimport msg_envelope_t
 
 
 cdef msg_envelope_t* python_to_msg_envelope(data) except *

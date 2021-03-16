@@ -19,7 +19,7 @@
 // IN THE SOFTWARE.
 
 /**
- * @brief EIS Message Bus example using the C++ thread helper classes.
+ * @brief EII Message Bus example using the C++ thread helper classes.
  */
 
 #include <chrono>
@@ -28,15 +28,15 @@
 #include <atomic>
 #include <condition_variable>
 
-#include <eis/utils/logger.h>
-#include <eis/utils/json_config.h>
-#include "eis/msgbus/msgbus.h"
+#include <eii/utils/logger.h>
+#include <eii/utils/json_config.h>
+#include "eii/msgbus/msgbus.h"
 
 #define TOPIC "publish_test"
 #define SERVICE_NAME "sub-thread-example"
 
-using namespace eis::utils;
-using namespace eis::msgbus;
+using namespace eii::utils;
+using namespace eii::msgbus;
 
 // Globals
 std::atomic<bool> g_stop;

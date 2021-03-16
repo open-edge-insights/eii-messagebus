@@ -43,56 +43,56 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/gen_tcp_sub_conf.py"
 
 # Add publisher example
 add_executable(publisher "publisher.c")
-target_link_libraries(publisher eismsgbus
+target_link_libraries(publisher eiimsgbus
                                 ${IntelSafeString_LIBRARIES}
-                                eisutils
-                                eismsgenv
+                                eiiutils
+                                eiimsgenv
                                 pthread)
 
 # Add subscriber example
 add_executable(subscriber "subscriber.c")
-target_link_libraries(subscriber eismsgbus
+target_link_libraries(subscriber eiimsgbus
                                  ${IntelSafeString_LIBRARIES}
-                                 eisutils
-                                 eismsgenv
+                                 eiiutils
+                                 eiimsgenv
                                  pthread)
 
 # Add echo service example
 add_executable(echo-service "echo_service.c")
-target_link_libraries(echo-service eismsgbus
+target_link_libraries(echo-service eiimsgbus
                                    ${IntelSafeString_LIBRARIES}
-                                   eisutils
-                                   eismsgenv
+                                   eiiutils
+                                   eiimsgenv
                                    pthread)
 
 # Add echo service client example
 add_executable(echo-client "echo_client.c")
-target_link_libraries(echo-client eismsgbus
+target_link_libraries(echo-client eiimsgbus
                                   ${IntelSafeString_LIBRARIES}
-                                  eisutils
-                                  eismsgenv
+                                  eiiutils
+                                  eiimsgenv
                                   pthread)
 
 # Add publisher many example
 add_executable(publisher-many "publisher_many.c")
-target_link_libraries(publisher-many eismsgbus
+target_link_libraries(publisher-many eiimsgbus
                                      ${IntelSafeString_LIBRARIES}
-                                     eisutils
-                                     eismsgenv
+                                     eiiutils
+                                     eiimsgenv
                                      pthread)
 
 # Add pubsub c++ example
 add_executable(pubsub-threads "pubsub_threads.cpp")
-target_link_libraries(pubsub-threads eismsgbus
+target_link_libraries(pubsub-threads eiimsgbus
                                      ${IntelSafeString_LIBRARIES}
-                                     eisutils
-                                     eismsgenv
+                                     eiiutils
+                                     eiimsgenv
                                      pthread)
 
 # Add subscriber thread C++ example
 add_executable(thread-subscriber "subscriber_thread.cpp")
-target_link_libraries(thread-subscriber eismsgbus
+target_link_libraries(thread-subscriber eiimsgbus
                                         ${IntelSafeString_LIBRARIES}
-                                        eisutils
-                                        eismsgenv
+                                        eiiutils
+                                        eiimsgenv
                                         pthread)

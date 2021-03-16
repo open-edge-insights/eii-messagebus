@@ -23,15 +23,15 @@
  * @brief Messaging envelope abstraction
  */
 
-#ifndef _EIS_MESSAGE_BUS_MSGENV_H
-#define _EIS_MESSAGE_BUS_MSGENV_H
+#ifndef _EII_MESSAGE_BUS_MSGENV_H
+#define _EII_MESSAGE_BUS_MSGENV_H
 
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "eis/msgbus/msgbusret.h"
-#include "eis/msgbus/hashmap.h"
-#include "eis/msgbus/linkedlist.h"
+#include "eii/msgbus/msgbusret.h"
+#include "eii/msgbus/hashmap.h"
+#include "eii/msgbus/linkedlist.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -404,7 +404,7 @@ void owned_blob_destroy(owned_blob_t* shared);
 
 // If in C++, then add Serializable interface for objects which can be
 // serialized into a msg_envelope_t* structure
-namespace eis {
+namespace eii {
 namespace msgbus {
 
 /**
@@ -450,8 +450,8 @@ public:
 };
 
 } // msgbus
-} // eis
+} // eii
 
 #endif // __cplusplus
 
-#endif // _EIS_MESSAGE_BUD_MSGENV_H
+#endif // _EII_MESSAGE_BUD_MSGENV_H

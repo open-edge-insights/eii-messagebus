@@ -17,14 +17,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EIS Message Bus Python mapping
+"""EII Message Bus Python mapping
 """
 
 # Python imports
 from .exc import *
 
 # Cython imports
-from .libeismsgbus cimport *
+from .libeiimsgbus cimport *
 from .publisher cimport Publisher
 from .receive_context cimport ReceiveContext
 from .service cimport Service
@@ -96,7 +96,7 @@ cdef void free_conf(void* conf) nogil:
 
 
 cdef class MsgbusContext:
-    """EIS Message Bus context object
+    """EII Message Bus context object
     """
     cdef void* context
     cdef dict py_config

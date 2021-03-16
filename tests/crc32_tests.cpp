@@ -26,7 +26,7 @@
 #define WITH_TIMEIT
 
 #include <gtest/gtest.h>
-#include "eis/msgbus/crc32.h"
+#include "eii/msgbus/crc32.h"
 
 #define STR_VALUE      "CRC32_TEST"
 #define EXPECTED_CRC32 737090954

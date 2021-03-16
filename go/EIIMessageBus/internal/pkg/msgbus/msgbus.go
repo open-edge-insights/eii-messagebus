@@ -24,11 +24,11 @@ package msgbus
 
 /*
 #cgo CFLAGS: -g -Wall
-#cgo pkg-config: libeismsgbus libeismsgenv libeisutils
+#cgo pkg-config: libeiimsgbus libeiimsgenv libeiiutils
 
 #include <stdlib.h>
-#include <eis/msgbus/msgbus.h>
-#include <eis/utils/config.h>
+#include <eii/msgbus/msgbus.h>
+#include <eii/utils/config.h>
 
 // Configuration context object for Go
 typedef struct {
@@ -222,7 +222,7 @@ static inline recv_wrapper_t recv_timedwait(void* ctx, recv_ctx_t* recv_ctx, int
 */
 import "C"
 import (
-	types "EISMessageBus/pkg/types"
+	types "EIIMessageBus/pkg/types"
 	"encoding/json"
 	"errors"
 	"reflect"

@@ -17,7 +17,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""Python distutils installer for the Python EIS Message Bus library
+"""Python distutils installer for the Python EII Message Bus library
 """
 
 import os
@@ -34,10 +34,10 @@ def read(fname):
 
 # Main package setup
 setup(
-    name='eis-msgbus',
+    name='eii-msgbus',
     version='v2.4',
-    description='EIS message bus Python wrapper',
-    keywords='msgbus eis zeromq',
+    description='EII message bus Python wrapper',
+    keywords='msgbus eii zeromq',
     url='',
     long_description=read('../README.md'),
     classifiers=[
@@ -47,14 +47,14 @@ setup(
         'Topic :: System :: Networking',
     ],
     package_dir={'': '.'},
-    packages=['eis'],
+    packages=['eii'],
     ext_modules = cythonize([
             Extension(
                 '*',
-                ['./eis/*.pyx'],
+                ['./eii/*.pyx'],
                 include_dirs=['../include'],
                 library_dirs=['../build/'],
-                libraries=['eismsgbus', 'eisutils', 'eismsgenv'])
+                libraries=['eiimsgbus', 'eiiutils', 'eiimsgenv'])
         ],
         build_dir='./build/cython',
         compiler_directives={'language_level': 3}

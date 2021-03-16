@@ -23,18 +23,18 @@
  * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
-#ifndef _EIS_MESSAGE_BUS_ZMQ_H
-#define _EIS_MESSAGE_BUS_ZMQ_H
+#ifndef _EII_MESSAGE_BUS_ZMQ_H
+#define _EII_MESSAGE_BUS_ZMQ_H
 
-#include <eis/utils/logger.h>
-#include "eis/msgbus/protocol.h"
+#include <eii/utils/logger.h>
+#include "eii/msgbus/protocol.h"
 
 // Protocol supported by the zeromq protocol implementation
 #define ZMQ_IPC "zmq_ipc"
 #define ZMQ_TCP "zmq_tcp"
 
 /**
- * Initialize the ZeroMQ protocol for the EIS message bus.
+ * Initialize the ZeroMQ protocol for the EII message bus.
  *
  * @param type   - Protocol type string
  * @param config - Configuration
@@ -42,4 +42,4 @@
  */
 protocol_t* proto_zmq_initialize(const char* type, config_t* config);
 
-#endif // _EIS_MESSAGE_BUS_ZMQ_H
+#endif // _EII_MESSAGE_BUS_ZMQ_H

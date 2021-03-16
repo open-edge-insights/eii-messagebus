@@ -23,7 +23,7 @@ SOFTWARE.
 package msgbus
 
 import (
-	// types "EISMessageBus/pkg/types"
+	// types "EIIMessageBus/pkg/types"
 	"reflect"
 	"testing"
 )

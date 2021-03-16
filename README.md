@@ -1,10 +1,10 @@
-# EIS Message Bus
+# EII Message Bus
 
-Message bus used between containers inside of EIS.
+Message bus used between containers inside of EII.
 
 ## Dependency Installation
 
-The EIS Message Bus depends on CMake version 3.11+. For Ubuntu 18.04 this is not
+The EII Message Bus depends on CMake version 3.11+. For Ubuntu 18.04 this is not
 the default version installed via `apt-get`. To install the correct version
 of CMake, execute the following commands:
 
@@ -31,10 +31,10 @@ command:
 $ sudo -E ./install.sh
 ```
 
-Additionally, EISMessageBus depends on the below libraries. Follow their documentation to install them.
+Additionally, EIIMessageBus depends on the below libraries. Follow their documentation to install them.
 * [IntelSafeString](../IntelSafeString/README.md)
-* [EISMsgEnv](../EISMsgEnv/README.md)
-* [EISUtils](../../util/c/README.md)
+* [EIIMsgEnv](../EIIMsgEnv/README.md)
+* [EIIUtils](../../util/c/README.md)
 
 If you wish to compile the Python binding as well, then run the `install.sh`
 script with the `--cython` flag (as shown below).
@@ -45,7 +45,7 @@ $ sudo -E ./install.sh --cython
 
 ## Compilation
 
-The EIS Message Bus utilizes CMake as the build tool for compiling the library.
+The EII Message Bus utilizes CMake as the build tool for compiling the library.
 The simplest sequence of commands for building the library are shown below.
 
 ```sh
@@ -55,7 +55,7 @@ $ cmake ..
 $ make
 ```
 
-This will compile only the C library for the EIS Message Bus. If you wish to
+This will compile only the C library for the EII Message Bus. If you wish to
 build with the Python binding, then specify the `WITH_PYTHON` flag when
 executing the `cmake ` command (as shown below).
 
@@ -64,7 +64,7 @@ $ cmake -DWITH_PYTHON=ON ..
 ```
 
 If you wish to include installation of the Go binding with the installation of
-the EIS library, then specify the `WITH_GO` flag when executing the `cmake`
+the EII library, then specify the `WITH_GO` flag when executing the `cmake`
 command (as shown below).
 
 ```sh
@@ -75,14 +75,14 @@ Note that this only copies the Go binding library to your system's `$GOPATH`.
 If you do not have your `$GOPATH` specified in your system's environmental
 variables then an error will occur while executing the `cmake` command.
 
-In addition to the `WITH_PYTHON` and `WITH_GO` flags, the EIS Message Bus
+In addition to the `WITH_PYTHON` and `WITH_GO` flags, the EII Message Bus
 CMake files add flags for building the C examples and the unit tests associated
 with the library. The table below specifies all of the available flags that can
-be given to CMake for building the EIS Message Bus.
+be given to CMake for building the EII Message Bus.
 
 |       Flag      | Default |                                       Description                                    |
 | :-------------: | :-----: | ------------------------------------------------------------------------------------ |
-| `WITH_TESTS`    | `OFF`   | If set to `ON`, builds the C unit tests with the EIS Message Bus compilation         |
+| `WITH_TESTS`    | `OFF`   | If set to `ON`, builds the C unit tests with the EII Message Bus compilation         |
 | `WITH_EXAMPLES` | `OFF`   | If set to `ON`, then CMake will compile the C examples in addition to the library    |
 | `WITH_DOCS`     | `OFF`   | If set to `ON`, then CMake will add a `docs` build target to generate documentation  |
 
@@ -92,7 +92,7 @@ be given to CMake for building the EIS Message Bus.
 > **NOTE:** See the [Generating Documentation](#generating-documentation)
 > section.
 
-If you wish to compile the EIS Message Bus in debug mode, then you can set the
+If you wish to compile the EII Message Bus in debug mode, then you can set the
 the `CMAKE_BUILD_TYPE` to `Debug` when executing the `cmake` command (as shown
 below).
 
@@ -153,17 +153,17 @@ building of the PDFs. Any file that does not end in `.pdf` can be ignored.
 
 ## Installation
 
-If you wish to install the EIS Message Bus on your system, execute the
+If you wish to install the EII Message Bus on your system, execute the
 following command after building the library:
 
 ```sh
 $ sudo make install
 ```
 
-By default, this command will install the EIS Message Bus C library into
+By default, this command will install the EII Message Bus C library into
 `/usr/local/lib/`. On some platforms this is not included in the `LD_LIBRARY_PATH`
 by default. As a result, you must add this directory to you `LD_LIBRARY_PATH`,
-otherwise you will encounter issues using the EIS Message Bus. This can
+otherwise you will encounter issues using the EII Message Bus. This can
 be accomplished with the following `export`:
 
 ```sh
@@ -174,7 +174,7 @@ $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
 
 ### Install Python Binding
 
-To install the Python binding for the EIS Message Bus execute the following
+To install the Python binding for the EII Message Bus execute the following
 commands:
 
 ```sh
@@ -190,12 +190,12 @@ $ sudo python3 setup.py install
 
 ### Install Golang Binding
 
-To install the Golang binding for the EIS Message Bus execute the following
+To install the Golang binding for the EII Message Bus execute the following
 command:
 
 ```sh
 # Copy the Golang source to your $GOPATH/src directory
-$ cp -a go/EISMessageBus/ $GOPATH/src/
+$ cp -a go/EIIMessageBus/ $GOPATH/src/
 ```
 > **NOTE:** The above command assumes Golang is installed and configured on
 > the target system.
@@ -226,7 +226,7 @@ $ ./msgbus-tests --tcp
 
 ## Configuration
 
-The EIS Message Bus is configured through a `key, value` pair interface. The
+The EII Message Bus is configured through a `key, value` pair interface. The
 values can be objects, arrays, integers, floating point, boolean, or strings.
 The keys that are required to be available in the configuration are largly
 determined by the underlying protocol which the message bus will use. The
@@ -340,8 +340,8 @@ properties. The table below specifies each of the supported properties.
 > **NOTE:** The examples will only be compiled if the `WITH_EXAMPLES=ON` option
 > is set when CMake is executed during compilation.
 
-All of the examples provided for the EIS Message Bus use a JSON configuration
-file to configure the EIS Message Bus. There are several example configurations
+All of the examples provided for the EII Message Bus use a JSON configuration
+file to configure the EII Message Bus. There are several example configurations
 provided with the message bus for running in IPC and TCP mode accross the
 various different messaging patterns (i.e. Publish/Subscribe and Request/Response).
 All of these example configurations are in the `examples/configs/` directory.
@@ -406,7 +406,7 @@ example. This example is explained more in-depth in the next section.
 
 The `examples/publisher_many.c` example serves as a reference for implementing
 an application which contains many publishers. This also serves as a way of
-testing this functionality in the EIS Message Bus.
+testing this functionality in the EII Message Bus.
 
 The example can be run with the following command (from the `build/examples/`
 directory):
@@ -529,7 +529,7 @@ script, i.e. `python3 <python-script>.py <json-config-file>.json`.
 
 When the `sudo make install` command is executed on your system, the Go binding
 will be copied to your system's `$GOPATH`. To execute the examples provided
-with the EIS Message Bus Go binding go to the `$GOPATH/src/EISMessageBus/examples`
+with the EII Message Bus Go binding go to the `$GOPATH/src/EIIMessageBus/examples`
 directory on your system in a terminal window.
 
 Once you are in this directory choose an example (i.e. publisher, subscriber,
@@ -545,28 +545,28 @@ For the echo-client and echo-server examples the `-topic` flag should be
 `-serviceName`.
 
 Additionally, there are example configurations provided in the
-`build/examples/configs/` directory after building the EIS Message Bus library.
+`build/examples/configs/` directory after building the EII Message Bus library.
 
 ### Running Go Examples without Installing
 
-If you wish to run the Go binding examples with out installing the EIS Message
+If you wish to run the Go binding examples with out installing the EII Message
 Bus library, then this can be accomplished by either copying or creating a
-soft-link to the `go/EISMessageBus` directory in your `$GOPATH`. This can be
+soft-link to the `go/EIIMessageBus` directory in your `$GOPATH`. This can be
 accomplished with one of the commands shown below.
 
 ```sh
-$ cp -r go/EISMessageBus/ $GOPATH/src
+$ cp -r go/EIIMessageBus/ $GOPATH/src
 
 # OR
 
-$ ln -s go/EISMessageBus/ $GOPATH/src
+$ ln -s go/EIIMessageBus/ $GOPATH/src
 ```
 
 > **NOTE:** The command above assumes that you are currently in the
-> EISMessageBus source root directory.
+> EIIMessageBus source root directory.
 
 Since it is assumed you have not ran the `sudo make install` command to install
-the EIS Message Bus library, you must set the environmental variables specified
+the EII Message Bus library, you must set the environmental variables specified
 below prior to running the examples.
 
 ```sh
@@ -575,7 +575,7 @@ $ export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$MSGBUS_DIR/build
 ```
 
 Note that in the `export` commands above the `$MSGBUS_DIR` variable represents
-the absolute path to the `libs/EISMessageBus` directory. It is very important
+the absolute path to the `libs/EIIMessageBus` directory. It is very important
 that this is the absolute path.
 
 Once you have exported these variables, once you have done these steps, you can
@@ -590,7 +590,7 @@ run any of the Go examples as specified in the previous section.
 > **NOTE:** Example configurations using for enabling security in the examples
 > are provided in the `examples` directory.
 
-The ZeroMQ protocol for the EIS Message Bus enables to usage of
+The ZeroMQ protocol for the EII Message Bus enables to usage of
 [CurveZMQ](http://curvezmq.org/) for encryption and authentication where the
 [ZAP](https://rfc.zeromq.org/spec:27/ZAP/) protocol is used for the
 authentication.
@@ -604,7 +604,7 @@ is given to the `msgbus_initialize()` method. The example configurations below
 showcase how to use the security features enabled in the message bus. It is
 important to note that although the examples below use JSON to convey the
 configurations it is not required that you use a JSON configuration for the
-message bus. However, utilities are provided in the C library for the EIS
+message bus. However, utilities are provided in the C library for the EII
 message bus for using a JSON file to configure the bus.
 
 ### Using Only CurveZMQ Encryption
@@ -736,13 +736,13 @@ specify any of the configuration keys documented above. This will cause the
 message bus to initialize the ZeroMQ protocol without any of the CurveZMQ
 security primitives.
 
-### Generating EISMessageBus DEB package
+### Generating EIIMessageBus DEB package
 
-To generate EISMessageBus DEB package, please ensure you have IEdgeInsights
+To generate EIIMessageBus DEB package, please ensure you have IEdgeInsights
 setup on your system as a pre-requisite and that you have run the
-eis_libs_installer.sh script present in [IEdgeInsights/common] referring its
+eii_libs_installer.sh script present in [IEdgeInsights/common] referring its
 README atleast once. This is required to install the pre-requisites of
-EISMessageBus namely EISMsgEnv & EISUtils.
+EIIMessageBus namely EIIMsgEnv & EIIUtils.
 
 Once the pre-requisites are enabled, please run these commands to generate the
 DEB package in build directory.
@@ -754,7 +754,7 @@ $ cmake ..
 $ cpack
 ```
 
-> **NOTE:** Since creating the DEB package requires only eismsgenv & eismsgbus,
-> if the eis_libs_installer.sh breaks while installing eismsgbus, it is recommended
+> **NOTE:** Since creating the DEB package requires only eiimsgenv & eiimsgbus,
+> if the eii_libs_installer.sh breaks while installing eiimsgbus, it is recommended
 > to generate the DEB package here and replace the existing one in [IEdgeInsights]
 > repo.

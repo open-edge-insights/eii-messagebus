@@ -23,12 +23,12 @@
  * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
-#ifndef _EIS_MESSAGE_BUS_ZMQ_SOCK_CTX_H
-#define _EIS_MESSAGE_BUS_ZMQ_SOCK_CTX_H
+#ifndef _EII_MESSAGE_BUS_ZMQ_SOCK_CTX_H
+#define _EII_MESSAGE_BUS_ZMQ_SOCK_CTX_H
 
 #include <stdbool.h>
 #include <pthread.h>
-#include <eis/msgbus/msgbusret.h>
+#include <eii/msgbus/msgbusret.h>
 
 /**
  * Internal shared socket structure.
@@ -220,4 +220,4 @@ void sock_ctx_replace(zmq_sock_ctx_t* ctx, void* zmq_ctx, void* socket);
  */
 void sock_ctx_destroy(zmq_sock_ctx_t* ctx);
 
-#endif // _EIS_MESSAGE_BUS_ZMQ_SOCK_CTX_H
+#endif // _EII_MESSAGE_BUS_ZMQ_SOCK_CTX_H

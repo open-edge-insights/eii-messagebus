@@ -17,7 +17,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""Benchmarking script for testing the Python binding for the EIS
+"""Benchmarking script for testing the Python binding for the EII
 Message Bus.
 """
 
@@ -26,7 +26,7 @@ import time
 import argparse
 import os
 from statistics import mean
-import eis.msgbus as msgbus
+import eii.msgbus as msgbus
 
 
 # Globals

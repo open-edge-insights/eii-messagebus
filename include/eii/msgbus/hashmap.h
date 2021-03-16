@@ -23,8 +23,8 @@
  * @brief C hashmap implementation
  */
 
-#ifndef _EIS_MSGENV_HASHMAP_H
-#define _EIS_MSGENV_HASHMAP_H
+#ifndef _EII_MSGENV_HASHMAP_H
+#define _EII_MSGENV_HASHMAP_H
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -157,4 +157,4 @@ void hashmap_destroy(hashmap_t* map);
 }
 #endif // __cplusplus
 
-#endif // _EIS_MSGENV_HASHMAP_H
+#endif // _EII_MSGENV_HASHMAP_H

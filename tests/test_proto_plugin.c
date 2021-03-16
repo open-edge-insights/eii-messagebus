@@ -23,13 +23,13 @@
  *  protocol libraries
  */
 
-#include <eis/utils/logger.h>
-#include "eis/msgbus/protocol.h"
+#include <eii/utils/logger.h>
+#include "eii/msgbus/protocol.h"
 
 // NOTE: This line would typically be done in a header file...
 
-// Define "test" EIS protocol plugin
-EIS_MSGBUS_PROTO(test)
+// Define "test" EII protocol plugin
+EII_MSGBUS_PROTO(test)
 
 // END NORMAL HEADER SECTION
 

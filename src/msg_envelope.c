@@ -32,7 +32,7 @@
 #include <cjson/cJSON.h>
 #include <safe_lib.h>
 
-#include "eis/msgbus/msg_envelope.h"
+#include "eii/msgbus/msg_envelope.h"
 
 #define INITIAL_SIZE 32
 

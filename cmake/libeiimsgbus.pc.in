@@ -3,10 +3,10 @@ exec_prefix=${prefix}
 libdir=${prefix}/lib
 includedir=${prefix}/include
 
-Name: libeismsgbus
-Description: EIS Message Bus library.
+Name: libeiimsgbus
+Description: EII Message Bus library.
 Version: @PROJECT_VERSION@
 
-Libs: -L${libdir} -leismsgbus
+Libs: -L${libdir} -leiimsgbus
 Libs.private: @PRIVATE_LIBS@
 Cflags: -I${includedir}

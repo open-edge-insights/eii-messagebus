@@ -20,10 +20,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package eismsgbus
+package eiimsgbus
 
 import (
-	msgbus "EISMessageBus/internal/pkg/msgbus"
+	msgbus "EIIMessageBus/internal/pkg/msgbus"
 	"errors"
 )
 

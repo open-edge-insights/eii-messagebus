@@ -1,24 +1,24 @@
-# EIS Message Bus User Guide
+# EII Message Bus User Guide
 
 ## Overview
 
-- [EIS Message Bus Architecture]()
-- [EIS Message Bus Usage]()
+- [EII Message Bus Architecture]()
+- [EII Message Bus Usage]()
     - [Compilation & Installtion]()
     - [Python Tutorial]()
     - [Go Tutorial]()
     - [C Tutorial]()
-- [EIS Message Bus Development]()
+- [EII Message Bus Development]()
     - [Developing Protocols]()
 
-## EIS Message Bus Architecture
+## EII Message Bus Architecture
 
 
-## EIS Message Bus Usage
+## EII Message Bus Usage
 
 ### Compilation & Installation
 
-The EIS Message Bus utilizes the CMake build tools for compiling the `C` and
+The EII Message Bus utilizes the CMake build tools for compiling the `C` and
 `Python` libraries. To compile the library execute the following commands:
 
 ```sh
@@ -28,7 +28,7 @@ $ cmake ..
 $ make
 ```
 
-The EIS Message Bus adds the following flags to CMake for the build process
+The EII Message Bus adds the following flags to CMake for the build process
 to enable and disable features in the message bus. The table below specifies
 all of the additional flags which can be given to CMake while building the
 message bus.
@@ -55,7 +55,7 @@ environment.
 
 ### Configuration
 
-The EIS Message Bus is configured through a `key, value` pair interface. The
+The EII Message Bus is configured through a `key, value` pair interface. The
 values can be objects, arrays, integers, floating point, boolean, or strings.
 The keys that are required to be available in the configuration are largly
 determined by the underlying protocol which the message bus will use. The
@@ -155,7 +155,7 @@ key. This key must be a list of Z85 encoded CurveZMQ keys.
 #### Publish/Subscribe
 
 The following tutorial will cover how to do publish/subscribe messaging using
-the EIS Message Bus. The outcome of this tutorial will be two Python scripts,
+the EII Message Bus. The outcome of this tutorial will be two Python scripts,
 one of which will publish messages and the other which will subscribe to
 messages.
 
@@ -167,10 +167,10 @@ import os
 import time
 import json
 import argparse
-import eis.msgbus as mb
+import eii.msgbus as mb
 ```
 
-The last line of the imports above is where we import the EIS Message Bus
+The last line of the imports above is where we import the EII Message Bus
 Python binding, which for sake of clarity will be referenced as `mb` in all
 of the code to follow.
 
@@ -193,7 +193,7 @@ which will give us the topic string under which to publish messages.
 
 It is important to note at this point that a JSON configuration is going to be
 used for the publisher, however, this is not required of an application using
-the Python binding. The EIS Message Bus Python API requires that a Python
+the Python binding. The EII Message Bus Python API requires that a Python
 `dict` object be used to configure the bus. For ease of use, JSON has been
 used in this example.
 
@@ -256,7 +256,7 @@ When its all put together, the code looks as follows:
 import time
 import json
 import argparse
-import eis.msgbus as mb
+import eii.msgbus as mb
 
 # Argument parsing
 ap = argparse.ArgumentParser()
@@ -288,7 +288,7 @@ finally:
         publisher.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/publisher.py` in the EIS
+> **NOTE:** This code is provided in `python/examples/publisher.py` in the EII
 > Message Bus source code.
 
 #### Request/Response
@@ -301,10 +301,10 @@ import os
 import time
 import json
 import argparse
-import eis.msgbus as mb
+import eii.msgbus as mb
 ```
 
-The last line of the imports above is where we import the EIS Message Bus
+The last line of the imports above is where we import the EII Message Bus
 Python binding, which for sake of clarity will be referenced as `mb` in all
 of the code to follow.
 
@@ -327,7 +327,7 @@ which will give us the topic string under which to publish messages.
 
 It is important to note at this point that a JSON configuration is going to be
 used for the publisher, however, this is not required of an application using
-the Python binding. The EIS Message Bus Python API requires that a Python
+the Python binding. The EII Message Bus Python API requires that a Python
 `dict` object be used to configure the bus. For ease of use, JSON has been
 used in this example.
 
@@ -390,7 +390,7 @@ When its all put together, the code looks as follows:
 import time
 import json
 import argparse
-import eis.msgbus as mb
+import eii.msgbus as mb
 
 # Argument parsing
 ap = argparse.ArgumentParser()
@@ -422,7 +422,7 @@ finally:
         publisher.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/publisher.py` in the EIS
+> **NOTE:** This code is provided in `python/examples/publisher.py` in the EII
 > Message Bus source code.
 
 Now that the publisher script is finished, we will create the subscriber script
@@ -434,7 +434,7 @@ script, except that instead of calling `new_publisher()` we will call
 import time
 import json
 import argparse
-import eis.msgbus as mb
+import eii.msgbus as mb
 
 # Argument parsing
 ap = argparse.ArgumentParser()
@@ -469,7 +469,7 @@ finally:
         subscriber.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/subscriber.py` in the EIS
+> **NOTE:** This code is provided in `python/examples/subscriber.py` in the EII
 > Message Bus source code.
 
 As can be seen in the code above, the `msgbus.new_publisher()` call has now
@@ -546,19 +546,19 @@ being printed to the console by the subscriber.
 
 #### Request/Response
 
-## EIS Message Bus Development
+## EII Message Bus Development
 
 This section covers various instructions and tutorials for developing new
-features for the EIS Message Bus library. It does not cover how to use the
+features for the EII Message Bus library. It does not cover how to use the
 message bus or its APIs, that is covered in previous sections.
 
 ### Developing Protocols
 
 #### Overview
 
-Protocols are at the bottom most layer of the EIS Message Bus stack. They
+Protocols are at the bottom most layer of the EII Message Bus stack. They
 provide the implementation for the messaging primitives supported by the
-EIS Message Bus. The main tasks expected of a protocol are as follows:
+EII Message Bus. The main tasks expected of a protocol are as follows:
 
 1. Initialize the state of the underlying message library (i.e. ZeroMQ, DDS, etc.)
 2. Implement methods for initializing contexts for publishers, subscribers,
@@ -568,15 +568,15 @@ EIS Message Bus. The main tasks expected of a protocol are as follows:
 4. Implement base methods for receiving messages as blocking, non-blocking, and
     time out base function calls
 5. Provide the translation between the underlying messaging library's messsage
-    structure to the EIS Message Bus's `msg_envelope_t` structure
+    structure to the EII Message Bus's `msg_envelope_t` structure
 
-All protocols must have a unique protocol name which the EIS Message Bus can
+All protocols must have a unique protocol name which the EII Message Bus can
 use to load the protocol based on the `type` configuration value it is provided.
 For example, the ZeroMQ TCP protocol uses the identifier `zmq_tcp`. Using this
-type name, the EIS Message Bus knows how to load the protocol in the
+type name, the EII Message Bus knows how to load the protocol in the
 `msgbus_initialize()` method.
 
-The EIS Message Bus has the ability to dynamically load protocol plugins. It
+The EII Message Bus has the ability to dynamically load protocol plugins. It
 does this by searching the system's `LD_LIBRARY_PATH` environmental variable
 for a library following the naming scheme, "lib{TYPE}.so", where, "{TYPE}", is
 the value retrieved from the `type` configuration key.
@@ -637,21 +637,21 @@ For more information on the purpose of each of the function pointers in the
 `protocol_t` structure see the [`protocol_t` Function Definition](#protocol_t-function-definition).
 
 The rest of this section will cover the initial setup of a project to add a new
-protocol to the EIS Message Bus, including the ideal code structure for the C
+protocol to the EII Message Bus, including the ideal code structure for the C
 source code file.
 
 The code will be split into a single header and C source file, `example.h` and
 `example.c` respectively.
 
-The header file is shown below. The `protocol.h` header file in the EIS Message
+The header file is shown below. The `protocol.h` header file in the EII Message
 Bus includes a helpful macro for generating all of the function prototypes
 needed for a protocol. The usage of this is shown in the code below.
 
 ```c
 // C include guards to prevent multiple definition from files including the
 // header
-#ifndef _EIS_MESSAGE_BUS_EXAMPLE_H
-#define _EIS_MESSAGE_BUS_EXAMPLE_H
+#ifndef _EII_MESSAGE_BUS_EXAMPLE_H
+#define _EII_MESSAGE_BUS_EXAMPLE_H
 
 // Add extern C declaration if the code is being included from C++ code
 #ifdef __cplusplus
@@ -660,23 +660,23 @@ extern "C" {
 
 // Include the protocol.h to get the protocol_t and config_t structure
 // definitions
-#include <eis/msgbus/protocol.h>
+#include <eii/msgbus/protocol.h>
 
 /**
  * The following macro generates all of the necessary function prototypes for
  * initialization and all of the messaging primitives. In addition, it adds the
  * `PROTO_EXPORTS` symbol as well.
  */
-EIS_MSGBUS_PROTO(example)
+EII_MSGBUS_PROTO(example)
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // _EIS_MESSAGE_BUS_EXAMPLE_H
+#endif // _EII_MESSAGE_BUS_EXAMPLE_H
 ```
 
-The `EIS_MSGBUS_PROTO()` macro in the code above creates function prototypes of
+The `EII_MSGBUS_PROTO()` macro in the code above creates function prototypes of
 the structure:
 
 ```
@@ -709,10 +709,10 @@ functions generated by the protocol macro.
 #include <stdlib.h>
 
 // Include the logger.h for helper logging macros
-#include <eis/utils/logger.h>
+#include <eii/utils/logger.h>
 
 // Include the example.h header file
-#include "eis/msgbus/example.h"
+#include "eii/msgbus/example.h"
 
 // proto_example_initialize() method implementation
 protocol_t* proto_example_initialize(const char* type, config_t* config) {
@@ -875,7 +875,7 @@ msgbus_ret_t proto_example_response(
 
 #### Adding a New Protocol
 
-This section will cover how to add an example dummy protcol to the EIS
+This section will cover how to add an example dummy protcol to the EII
 Message Bus.
 
 #### `protocol_t` Function Definition

@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 cmake_minimum_required(VERSION 3.11)
-project(eis-messagebus VERSION 2.4.0 LANGUAGES C CXX)
+project(eii-messagebus VERSION 2.4.0 LANGUAGES C CXX)
 
 # Define CMake options
 option(WITH_TESTS    "Compile with unit tests" OFF)
@@ -50,20 +50,20 @@ endif()
 find_package(ZMQ REQUIRED)
 find_package(Threads REQUIRED)
 find_package(cJSON REQUIRED)
-find_package(EISUtils REQUIRED)
+find_package(EIIUtils REQUIRED)
 find_package(IntelSafeString REQUIRED)
-find_package(EISDynLibLoad REQUIRED)
+find_package(EIIDynLibLoad REQUIRED)
 
 # Include header directories
 include_directories(
     include/
-    ${EISUtils_INCLUDE}
+    ${EIIUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
-    ${EISDYNLIBLOAD_INCLUDE}
+    ${EIIDYNLIBLOAD_INCLUDE}
     ${IntelSafeString_INCLUDE})
 
-# List out all source files for the EISMsgEnv library
+# List out all source files for the EIIMsgEnv library
 set(MSGENV_SRC
     "src/msg_envelope.c"
     "src/hashmap.c"
@@ -72,10 +72,10 @@ set(MSGENV_SRC
     "src/profiling.cpp")
 # set_source_files_properties(${MSGENV_SRC} PROPERTIES LANGUAGE C)
 
-add_library(eismsgenv SHARED ${MSGENV_SRC})
-target_link_libraries(eismsgenv
+add_library(eiimsgenv SHARED ${MSGENV_SRC})
+target_link_libraries(eiimsgenv
     PRIVATE
-        ${EISUtils_LIBRARIES}
+        ${EIIUtils_LIBRARIES}
         ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
 
@@ -84,21 +84,21 @@ file(GLOB ZMQ_SOURCE "src/proto_zmq/*.c")
 set(MSGBUS_SRC "src/msgbus.c" "src/msgbus.c" ${ZMQ_SOURCE})
 set_source_files_properties(${MSGBUS_SRC} PROPERTIES LANGUAGE C)
 
-add_library(eismsgbus SHARED ${MSGBUS_SRC})
-target_link_libraries(eismsgbus
+add_library(eiimsgbus SHARED ${MSGBUS_SRC})
+target_link_libraries(eiimsgbus
     PUBLIC
         pthread
-        eismsgenv
-        ${EISUtils_LIBRARIES}
+        eiimsgenv
+        ${EIIUtils_LIBRARIES}
     PRIVATE
-        ${EISDYNLIBLOAD_LIBRARIES}
+        ${EIIDYNLIBLOAD_LIBRARIES}
         ${ZMQ_LIBRARIES}
         ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
 
 # If compile in debug mode, set DEBUG flag for C code
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    target_compile_definitions(eismsgbus PRIVATE DEBUG=1)
+    target_compile_definitions(eiimsgbus PRIVATE DEBUG=1)
 endif()
 
 if(WITH_TESTS)
@@ -111,13 +111,13 @@ endif()
 
 ##
 ## Include CMake script for initializing all of the necessary pieces to install
-## the EISMsgEnv library
+## the EIIMsgEnv library
 ##
 include("cmake/InstallMsgEnv.cmake")
 
 ##
 ## Include CMake script for initializing all of the necessary pieces to install
-## the EISMessageBus library
+## the EIIMessageBus library
 ##
 include("cmake/InstallMsgbus.cmake")
 
@@ -159,11 +159,11 @@ if(WITH_DOCS)
     add_custom_target(doxygen-docs-pdf
         COMMENT "Generating C API PDF"
         DEPENDS doxygen-docs
-        COMMAND ${CMAKE_COMMAND} -E remove "${PDFS_DIR}/EIS_MsgBus_C_Reference_${PROJECT_VERSION}.pdf"
+        COMMAND ${CMAKE_COMMAND} -E remove "${PDFS_DIR}/EII_MsgBus_C_Reference_${PROJECT_VERSION}.pdf"
         COMMAND ${PDFLATEX}
             -interaction=nonstopmode
             -output-directory ${PDFS_DIR}
-            -jobname=EIS_MsgBus_C_Reference_${PROJECT_VERSION}
+            -jobname=EII_MsgBus_C_Reference_${PROJECT_VERSION}
             refman.tex
         WORKING_DIRECTORY ${DOCS_DIR}/c/latex/
         VERBATIM)
@@ -171,15 +171,15 @@ if(WITH_DOCS)
     # List of docs dependency targets
     set(DOCS_TARGETS doxygen-docs doxygen-docs-pdf)
 
-    # Final target for compiling all EIS Message Bus documentation with make docs
+    # Final target for compiling all EII Message Bus documentation with make docs
     add_custom_target(docs
-        COMMENT "Generating EIS Message Bus documentation"
+        COMMENT "Generating EII Message Bus documentation"
         DEPENDS ${DOCS_TARGETS}
         VERBATIM)
 endif()
 
-# Generate DEB package for EISMessageBus
+# Generate DEB package for EIIMessageBus
 set(CPACK_GENERATOR "DEB")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "EIS")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "EII")
 set(CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 include(CPack)

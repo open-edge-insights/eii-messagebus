@@ -19,18 +19,18 @@
 // IN THE SOFTWARE.
 
 /**
- * @brief Common utility functions used in the EIS Message Bus ZMQ protocol
+ * @brief Common utility functions used in the EII Message Bus ZMQ protocol
  * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
-#ifndef _EIS_MESSAGE_BUS_ZMQ_COMMON_H
-#define _EIS_MESSAGE_BUS_ZMQ_COMMON_H
+#ifndef _EII_MESSAGE_BUS_ZMQ_COMMON_H
+#define _EII_MESSAGE_BUS_ZMQ_COMMON_H
 
 #include <stdarg.h>
 #include <stdbool.h>
 // Include libzmq zmq.h header
 #include <zmq.h>
-#include <eis/utils/logger.h>
+#include <eii/utils/logger.h>
 
 #define ZMQ_CFG_TCP_PUB             "zmq_tcp_publish"
 #define ZMQ_CFG_TCP_ALLOWED_CLIENTS "allowed_clients"
@@ -79,4 +79,4 @@ const char* get_event_str(int event);
  */
 int get_monitor_event(void* monitor, bool block);
 
-#endif // _EIS_MESSAGE_BUS_ZMQ_COMMON_H
+#endif // _EII_MESSAGE_BUS_ZMQ_COMMON_H

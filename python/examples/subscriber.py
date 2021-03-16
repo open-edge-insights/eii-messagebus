@@ -17,13 +17,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EIS Message Bus subscriber example
+"""EII Message Bus subscriber example
 """
 
 import time
 import json
 import argparse
-import eis.msgbus as mb
+import eii.msgbus as mb
 
 # Argument parsing
 ap = argparse.ArgumentParser()

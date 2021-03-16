@@ -17,17 +17,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EIS Message Bus Publisher wrapper object
+"""EII Message Bus Publisher wrapper object
 """
 
 from .exc import MessageBusError
 
-from .libeismsgbus cimport *
+from .libeiimsgbus cimport *
 from .msg_envelope cimport python_to_msg_envelope
 
 
 cdef class Publisher:
-    """EIS Message Bus Publisher object
+    """EII Message Bus Publisher object
     """
     def __cinit__(self, *args, **kwargs):
         """Cython base constructor

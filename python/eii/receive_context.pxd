@@ -17,14 +17,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EIS Message Bus receive context wrapper object Cython declaration
+"""EII Message Bus receive context wrapper object Cython declaration
 """
 
-from .libeismsgbus cimport recv_ctx_t
+from .libeiimsgbus cimport recv_ctx_t
 
 
 cdef class ReceiveContext:
-    """EIS Message Bus receive context wrapper object
+    """EII Message Bus receive context wrapper object
     """
     cdef void* msgbus_ctx
     cdef recv_ctx_t* recv_ctx

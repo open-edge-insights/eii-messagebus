@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <gtest/gtest.h>
-#include "eis/msgbus/hashmap.h"
+#include "eii/msgbus/hashmap.h"
 
 /**
  * Simple initialization and destroy case with no data.

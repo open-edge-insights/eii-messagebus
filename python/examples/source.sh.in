@@ -24,6 +24,6 @@
 
 # TODO: Will need to generalize the "lib.linux-x86_64-3.6" eventually
 
-echo "-- PYTHON EIS MSGBUS ENV VARS SET"
+echo "-- PYTHON EII MSGBUS ENV VARS SET"
 export PYTHONPATH=$PYTHONPATH:${CMAKE_CURRENT_BINARY_DIR}/build/lib.linux-x86_64-3.6
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PROJECT_BINARY_DIR}

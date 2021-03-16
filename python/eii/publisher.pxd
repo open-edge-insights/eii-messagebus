@@ -17,14 +17,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EIS Message Bus Publisher wrapper object Cython declaration
+"""EII Message Bus Publisher wrapper object Cython declaration
 """
 
-from .libeismsgbus cimport publisher_ctx_t
+from .libeiimsgbus cimport publisher_ctx_t
 
 
 cdef class Publisher:
-    """EIS Message Bus Publisher object
+    """EII Message Bus Publisher object
     """
     cdef void* msgbus_ctx
     cdef publisher_ctx_t* pub_ctx

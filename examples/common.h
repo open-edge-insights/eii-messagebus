@@ -22,14 +22,14 @@
  * @brief Message bus example common utilities
  */
 
-#ifndef EIS_MESSAGE_BUS_EXAMPLES_COMMON_H
-#define EIS_MESSAGE_BUS_EXAMPLES_COMMON_H
+#ifndef EII_MESSAGE_BUS_EXAMPLES_COMMON_H
+#define EII_MESSAGE_BUS_EXAMPLES_COMMON_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <eis/utils/logger.h>
+#include <eii/utils/logger.h>
 #include <safe_lib.h>
 
 // Helper macro for checking if a string is equal to the given target and then
@@ -72,4 +72,4 @@ bool parse_log_level(const char* log_lvl_str, log_lvl_t* log_lvl) {
 }  // __cpluspls
 #endif
 
-#endif // EIS_MESSAGE_BUS_EXAMPLES_COMMON_H
+#endif // EII_MESSAGE_BUS_EXAMPLES_COMMON_H

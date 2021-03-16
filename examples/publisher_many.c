@@ -29,9 +29,9 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "eis/msgbus/msgbus.h"
-#include "eis/utils/logger.h"
-#include "eis/utils/json_config.h"
+#include "eii/msgbus/msgbus.h"
+#include "eii/utils/logger.h"
+#include "eii/utils/json_config.h"
 
 // Globals
 int g_num_publishers = 0;

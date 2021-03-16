@@ -24,11 +24,11 @@ package msgbus
 
 /*
 #cgo CFLAGS: -g -Wall
-#cgo pkg-config: libeismsgbus libeismsgenv libeisutils
+#cgo pkg-config: libeiimsgbus libeiimsgenv libeiiutils
 
 #include <stdlib.h>
-#include <eis/msgbus/msgbus.h>
-#include <eis/utils/logger.h>
+#include <eii/msgbus/msgbus.h>
+#include <eii/utils/logger.h>
 
 // The code below is for helping deal with the eccentricities of cgo
 
@@ -65,7 +65,7 @@ int get_part_len(parts_wrapper_t* wrap, int idx) {
 */
 import "C"
 import (
-	types "EISMessageBus/pkg/types"
+	types "EIIMessageBus/pkg/types"
 	"encoding/json"
 	"errors"
 	"reflect"

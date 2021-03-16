@@ -28,8 +28,8 @@
 #include <stdint.h>
 #include <safe_lib.h>
 
-#include "eis/msgbus/crc32.h"
-#include "eis/msgbus/hashmap.h"
+#include "eii/msgbus/crc32.h"
+#include "eii/msgbus/hashmap.h"
 
 #define MAX_CHAIN_LEN 8
 

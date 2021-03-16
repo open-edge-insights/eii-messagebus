@@ -23,8 +23,8 @@
  * @brief C singly linked list
  */
 
-#ifndef _EIS_MSGENV_LINKEDLIST_H
-#define _EIS_MSGENV_LINKEDLIST_H
+#ifndef _EII_MSGENV_LINKEDLIST_H
+#define _EII_MSGENV_LINKEDLIST_H
 
 #include <stdbool.h>
 
@@ -136,4 +136,4 @@ void linkedlist_destroy(linkedlist_t* ll);
 }
 #endif // __cplusplus
 
-#endif // _EIS_MSGENV_LINKEDLIST_H
+#endif // _EII_MSGENV_LINKEDLIST_H

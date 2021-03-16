@@ -17,19 +17,19 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EIS Message Bus Python receive context wrapper
+"""EII Message Bus Python receive context wrapper
 """
 
 # Python imports
 from .exc import *
 
 # Cython imports
-from .libeismsgbus cimport *
+from .libeiimsgbus cimport *
 from .msg_envelope cimport msg_envelope_to_python
 
 
 cdef class ReceiveContext:
-    """EIS Message Bus receive context wrapper object
+    """EII Message Bus receive context wrapper object
     """
     def __cinit__(self, *args, **kwargs):
         """Cython base constructor

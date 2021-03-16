@@ -1,9 +1,9 @@
-.. EIS Message Bus documentation master file, created by
+.. EII Message Bus documentation master file, created by
    sphinx-quickstart on Tue Jul 30 13:28:14 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-EIS Message Bus Python API
+EII Message Bus Python API
 ==========================
 
 .. toctree::
@@ -12,11 +12,11 @@ EIS Message Bus Python API
 Purpose
 =======
 
-The purpose of this document is to cover the usage of the EIS Message Bus
+The purpose of this document is to cover the usage of the EII Message Bus
 Python binding as well as provide the API reference.
 
-For information on the configuration of the EIS Message Bus please see the
-the README included with the EIS Message Bus source code. Note the README
+For information on the configuration of the EII Message Bus please see the
+the README included with the EII Message Bus source code. Note the README
 is also included in this document.
 
 Tutorials

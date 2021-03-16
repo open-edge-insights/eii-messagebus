@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <gtest/gtest.h>
 #include <cjson/cJSON.h>
-#include "eis/msgbus/msg_envelope.h"
+#include "eii/msgbus/msg_envelope.h"
 
 #define TEST_NAME "topic-or-service-name"
 #define EXPECTED_JSON_LEN 108

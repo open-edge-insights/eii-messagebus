@@ -24,14 +24,14 @@
  * @author Kevin Midkiff <kevin.midkiff@intel.com>
  */
 
-#ifndef _EIS_MESSAGE_BUS_H
-#define _EIS_MESSAGE_BUS_H
+#ifndef _EII_MESSAGE_BUS_H
+#define _EII_MESSAGE_BUS_H
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
-#include <eis/utils/config.h>
-#include <eis/msgbus/msg_envelope.h>
+#include <eii/utils/config.h>
+#include <eii/msgbus/msg_envelope.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -235,22 +235,22 @@ msgbus_ret_t msgbus_recv_nowait(
 #include <thread>
 #include <chrono>
 #include <condition_variable>
-#include <eis/utils/logger.h>
-#include <eis/utils/profiling.h>
-#include <eis/utils/thread_safe_queue.h>
-#include <eis/msgbus/msg_envelope.h>
+#include <eii/utils/logger.h>
+#include <eii/utils/profiling.h>
+#include <eii/utils/thread_safe_queue.h>
+#include <eii/msgbus/msg_envelope.h>
 
 // If in C++, add Publisher and Subscriber helpers for threads to subscribe
 // and publish
-namespace eis {
+namespace eii {
 namespace msgbus {
 
-using namespace eis::utils;
+using namespace eii::utils;
 
 /**
  * Thread safe queue for serializable objects.
  */
-typedef ThreadSafeQueue<eis::msgbus::Serializable*> MessageQueue;
+typedef ThreadSafeQueue<eii::msgbus::Serializable*> MessageQueue;
 
 /**
  * Base object for running message bus operations in a thread.
@@ -609,8 +609,8 @@ public:
     };
 };
 } // msgbus
-} // eis
+} // eii
 
 #endif // __cpluspplus
 
-#endif // _EIS_MESSAGE_BUS_H
+#endif // _EII_MESSAGE_BUS_H

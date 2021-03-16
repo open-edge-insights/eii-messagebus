@@ -22,7 +22,7 @@
  * @brief Simple CRC32 hashing function implementation
  */
 
-#include "eis/msgbus/crc32.h"
+#include "eii/msgbus/crc32.h"
 
 /* The implementation originally from Gary S. Brown. Borrowed table and made
  * minor changes to the function interface.

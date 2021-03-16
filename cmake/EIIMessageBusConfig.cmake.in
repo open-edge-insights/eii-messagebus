@@ -18,10 +18,10 @@
 # FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-get_filename_component(EISMessageBus_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(EIIMessageBus_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 include(CMakeFindDependencyMacro)
 
-list(APPEND CMAKE_MODULE_PATH ${EISMessageBus_CMAKE_DIR})
+list(APPEND CMAKE_MODULE_PATH ${EIIMessageBus_CMAKE_DIR})
 
 # NOTE Had to use find_package because find_dependency does not support
 # COMPONENTS or MODULE until 3.8.0
@@ -33,9 +33,9 @@ include_directories(
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS})
 
-if(NOT TARGET EISMessageBus)
-    include("${EISMessageBus_CMAKE_DIR}/EISMessageBusTargets.cmake")
+if(NOT TARGET EIIMessageBus)
+    include("${EIIMessageBus_CMAKE_DIR}/EIIMessageBusTargets.cmake")
 endif()
 
-set(EISMessageBus_LIBRARIES EISMessageBus)
-set(EISMessageBus_INCLUDE ${INSTALL_LIBDIR}/include)
+set(EIIMessageBus_LIBRARIES EIIMessageBus)
+set(EIIMessageBus_INCLUDE ${INSTALL_LIBDIR}/include)

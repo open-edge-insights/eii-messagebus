@@ -19,14 +19,14 @@
 # IN THE SOFTWARE.
 
 ##
-## Helper CMake script for setting up the EISMsgEnv library to be installed
+## Helper CMake script for setting up the EIIMsgEnv library to be installed
 ##
 
 ##
-## Configure pkg-config file to be installed for the EIS Message Envelope lib
+## Configure pkg-config file to be installed for the EII Message Envelope lib
 ##
-set(MSGENV_PKG_CONFIG_IN  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/libeismsgenv.pc.in")
-set(MSGENV_PKG_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/libeismsgenv.pc")
+set(MSGENV_PKG_CONFIG_IN  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/libeiimsgenv.pc.in")
+set(MSGENV_PKG_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/libeiimsgenv.pc")
 set(MSGENV_DEST_DIR       "${CMAKE_INSTALL_PREFIX}")
 set(MSGENV_PRIVATE_LIBS   "-lcjson")
 
@@ -38,17 +38,17 @@ configure_file(${MSGENV_PKG_CONFIG_IN} ${MSGENV_PKG_CONFIG_OUT} @ONLY)
 ##
 
 include(GNUInstallDirs)
-set(MSGENV_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/EISMsgEnv)
+set(MSGENV_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/EIIMsgEnv)
 
-install(TARGETS eismsgenv
-    EXPORT eismsgenv-targets
+install(TARGETS eiimsgenv
+    EXPORT eiimsgenv-targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-set_target_properties(eismsgenv PROPERTIES EXPORT_NAME EISMsgEnv)
+set_target_properties(eiimsgenv PROPERTIES EXPORT_NAME EIIMsgEnv)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-# Install pkg-config libeismsgenv.pc file
+# Install pkg-config libeiimsgenv.pc file
 install(
     FILES
     ${MSGENV_PKG_CONFIG_OUT}
@@ -57,9 +57,9 @@ install(
 )
 
 # Export targets to a script
-install(EXPORT eismsgenv-targets
+install(EXPORT eiimsgenv-targets
     FILE
-        EISMsgEnvTargets.cmake
+        EIIMsgEnvTargets.cmake
     DESTINATION
     ${MSGENV_INSTALL_CONFIGDIR}
 )
@@ -67,26 +67,26 @@ install(EXPORT eismsgenv-targets
 # Create a ConfigVersion.cmake file
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMsgEnvConfigVersion.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/EIIMsgEnvConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion
 )
 
 configure_package_config_file(
-    ${CMAKE_CURRENT_LIST_DIR}/EISMsgEnvConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMsgEnvConfig.cmake
+    ${CMAKE_CURRENT_LIST_DIR}/EIIMsgEnvConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/EIIMsgEnvConfig.cmake
     INSTALL_DESTINATION ${MSGENV_INSTALL_CONFIGDIR}
 )
 
 # Install the config, configversion and custom find modules
 install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMsgEnvConfigVersion.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/EISMsgEnvConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/EIIMsgEnvConfigVersion.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/EIIMsgEnvConfig.cmake
     DESTINATION ${MSGENV_INSTALL_CONFIGDIR}
 )
 
-export(EXPORT eismsgenv-targets
-       FILE ${CMAKE_CURRENT_BINARY_DIR}/EISMsgEnvTargets.cmake)
+export(EXPORT eiimsgenv-targets
+       FILE ${CMAKE_CURRENT_BINARY_DIR}/EIIMsgEnvTargets.cmake)
 
 # Register package in user's package registry
-export(PACKAGE EISMsgEnv)
+export(PACKAGE EIIMsgEnv)
