@@ -29,7 +29,7 @@
 #include <string.h>
 #include <safe_lib.h>
 #include <eii/utils/logger.h>
-#include <eii/dynlibload/dynlibload.h>
+#include <eii/utils/dynlibload.h>
 #include <eii/utils/string.h>
 
 #include "eii/msgbus/msgbus.h"

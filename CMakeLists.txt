@@ -52,7 +52,6 @@ find_package(Threads REQUIRED)
 find_package(cJSON REQUIRED)
 find_package(EIIUtils REQUIRED)
 find_package(IntelSafeString REQUIRED)
-find_package(EIIDynLibLoad REQUIRED)
 
 # Include header directories
 include_directories(
@@ -60,7 +59,6 @@ include_directories(
     ${EIIUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
-    ${EIIDYNLIBLOAD_INCLUDE}
     ${IntelSafeString_INCLUDE})
 
 # List out all source files for the EIIMsgEnv library
@@ -91,7 +89,6 @@ target_link_libraries(eiimsgbus
         eiimsgenv
         ${EIIUtils_LIBRARIES}
     PRIVATE
-        ${EIIDYNLIBLOAD_LIBRARIES}
         ${ZMQ_LIBRARIES}
         ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
