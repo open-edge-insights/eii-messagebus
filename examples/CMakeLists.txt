@@ -81,6 +81,14 @@ target_link_libraries(publisher-many eiimsgbus
                                      eiimsgenv
                                      pthread)
 
+# Add publisher multi blob example
+add_executable(publisher-multi-blob "publisher_multi_blob.c")
+target_link_libraries(publisher-multi-blob eiimsgbus
+                                     ${IntelSafeString_LIBRARIES}
+                                     eiiutils
+                                     eiimsgenv
+                                     pthread)
+
 # Add pubsub c++ example
 add_executable(pubsub-threads "pubsub_threads.cpp")
 target_link_libraries(pubsub-threads eiimsgbus

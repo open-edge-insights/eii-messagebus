@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation.
+// Copyright (c) 2021 Intel Corporation.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -19,13 +19,14 @@
 // IN THE SOFTWARE.
 
 /**
- * @brief Message bus subscriber example
+ * @brief Message bus publisher example
  */
 
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include <eii/msgbus/msgbus.h>
 #include <eii/utils/logger.h>
 #include <eii/utils/json_config.h>
@@ -35,6 +36,41 @@
 
 // Globals for cleaning up nicely
 bool g_stop = false;
+
+
+/**
+ * Helper to initailize the message to be published
+ */
+msg_envelope_t* initialize_message_multi_blob() {
+    msg_envelope_t* msg = NULL;
+
+    // Creating message to be published
+    msg_envelope_elem_body_t* integer = msgbus_msg_envelope_new_integer(42);
+    msg_envelope_elem_body_t* fp = msgbus_msg_envelope_new_floating(55.5);
+    msg = msgbus_msg_envelope_new(CT_JSON);
+
+    // Create multiple blobs to be sent over msgbus
+    char* data = (char*) malloc(sizeof(char) * 7);
+    memcpy(data, "HELLO1", 7);
+    char* data_two = (char*) malloc(sizeof(char) * 7);
+    memcpy(data_two, "HELLO2", 7);
+    char* data_three = (char*) malloc(sizeof(char) * 7);
+    memcpy(data_three, "HELLO3", 7);
+    msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 7);
+    msg_envelope_elem_body_t* blob_two = msgbus_msg_envelope_new_blob(data_two, 7);
+    msg_envelope_elem_body_t* blob_three = msgbus_msg_envelope_new_blob(data_three, 7);
+
+    // Add multi blobs one by one to msg_envelope
+    msgbus_msg_envelope_put(msg, NULL, blob);
+    msgbus_msg_envelope_put(msg, NULL, blob_two);
+    msgbus_msg_envelope_put(msg, NULL, blob_three);
+
+    // Add metadata
+    msgbus_msg_envelope_put(msg, "hello", integer);
+    msgbus_msg_envelope_put(msg, "world", fp);
+
+    return msg;
+}
 
 /**
  * Function to print publisher usage
@@ -54,16 +90,14 @@ void usage(const char* name) {
  * Signal handler
  */
 void signal_handler(int signo) {
-    LOG_INFO_0("Signaling subscriber to quit...");
+    LOG_INFO_0("Signaling publisher to quit...");
     g_stop = true;
 }
 
 int main(int argc, char** argv) {
     void* msgbus_ctx = NULL;
-    recv_ctx_t* sub_ctx = NULL;
+    publisher_ctx_t* pub_ctx = NULL;
     msg_envelope_t* msg = NULL;
-    msg_envelope_serialized_part_t* parts = NULL;
-    int num_parts = 0;
     msgbus_ret_t ret = MSG_SUCCESS;
     log_lvl_t log_level = LOG_LVL_INFO;
 
@@ -73,7 +107,6 @@ int main(int argc, char** argv) {
     int topic_idx = 2;
     int topic_argc = 3;
 
-    // Parse command line arguments
     if (argc == 1) {
         LOG_ERROR_0("Too few arguments");
         return -1;
@@ -105,98 +138,64 @@ int main(int argc, char** argv) {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-    // Load the JSON configuration file
     config_t* config = json_config_new(argv[config_idx]);
     if (config == NULL) {
         LOG_ERROR_0("Failed to load JSON configuration");
         goto err;
     }
 
-    // Initialize the message bus context
     msgbus_ctx = msgbus_initialize(config);
     if (msgbus_ctx == NULL) {
         LOG_ERROR_0("Failed to initialize message bus");
         goto err;
     }
 
-    // Initilize the subscriber
-    if (argc == topic_argc) {
-        ret = msgbus_subscriber_new(
-                msgbus_ctx, argv[topic_idx], NULL, &sub_ctx);
-    } else {
-        ret = msgbus_subscriber_new(msgbus_ctx, TOPIC, NULL, &sub_ctx);
-    }
+    if (argc == topic_argc)
+         ret = msgbus_publisher_new(msgbus_ctx, argv[topic_idx], &pub_ctx);
+    else
+         ret = msgbus_publisher_new(msgbus_ctx, TOPIC, &pub_ctx);
 
-    // Verify the subscriber was created successfully
     if (ret != MSG_SUCCESS) {
-        LOG_ERROR("Failed to initialize subscriber (errno: %d)", ret);
+        LOG_ERROR("Failed to initialize publisher (errno: %d)", ret);
         goto err;
     }
 
     LOG_INFO_0("Running...");
     while (!g_stop) {
-        // Wait for 250ms to receive a message, if none received, check if the
-        // subscriber should exit
-        ret = msgbus_recv_timedwait(msgbus_ctx, sub_ctx, 250, &msg);
-
-        // Check if the receive call timed out
-        if (ret == MSG_RECV_NO_MESSAGE) {
-            continue;
+        LOG_INFO_0("Publishing message");
+        // Initialize message to be published
+        msg = initialize_message_multi_blob();
+        if (msg == NULL) {
+            LOG_ERROR_0("Failed to initialize message");
+            goto err;
         }
-
-        // Verify that the receive was successful (if no timeout occurred)
+        ret = msgbus_publisher_publish(msgbus_ctx, pub_ctx, msg);
         if (ret != MSG_SUCCESS) {
-            // Interrupt is an acceptable error
-            if (ret == MSG_ERR_EINTR) {
-                LOG_WARN_0("Subscriber interrupted");
-                break;
-            }
-
-            // Otherwise, a true error ocurred while receiving the message
-            LOG_ERROR("Failed to receive message (errno: %d)", ret);
+            LOG_ERROR("Failed to publish message (errno: %d)", ret);
             goto err;
         }
-
-        LOG_INFO("Received message for topic: %s", msg->name);
-
-        // Serializing the message so it can easily be printed out
-        num_parts = msgbus_msg_envelope_serialize(msg, &parts);
-        if (num_parts <= 0) {
-            LOG_ERROR_0("Failed to serialize message");
-            goto err;
-        }
-
-        LOG_INFO("Received message");
-        for (int i = 0; i < num_parts; i++) {
-            LOG_INFO("Part %d %s", i, (char*) parts[i].bytes);
-        }
-
-        // Clean up...
-        msgbus_msg_envelope_serialize_destroy(parts, num_parts);
         msgbus_msg_envelope_destroy(msg);
-        msg = NULL;
-        parts = NULL;
+        LOG_INFO_0("Published message");
+        sleep(1);
     }
 
     if (msg != NULL)
         msgbus_msg_envelope_destroy(msg);
-    if (parts != NULL)
-        msgbus_msg_envelope_serialize_destroy(parts, num_parts);
-    if (sub_ctx != NULL)
-        msgbus_recv_ctx_destroy(msgbus_ctx, sub_ctx);
+    if (pub_ctx != NULL)
+        msgbus_publisher_destroy(msgbus_ctx, pub_ctx);
     if (msgbus_ctx != NULL)
         msgbus_destroy(msgbus_ctx);
+
 
     return 0;
 
 err:
     if (msg != NULL)
         msgbus_msg_envelope_destroy(msg);
-    if (parts != NULL)
-        msgbus_msg_envelope_serialize_destroy(parts, num_parts);
-    if (sub_ctx != NULL)
-        msgbus_recv_ctx_destroy(msgbus_ctx, sub_ctx);
+    if (pub_ctx != NULL)
+        msgbus_publisher_destroy(msgbus_ctx, pub_ctx);
     if (msgbus_ctx != NULL)
         msgbus_destroy(msgbus_ctx);
+
     return -1;
 }

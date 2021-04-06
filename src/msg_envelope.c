@@ -51,6 +51,7 @@ msg_envelope_t* msgbus_msg_envelope_new(content_type_t ct) {
     env->content_type = ct;
     env->blob = NULL;
     env->name = NULL; // topic name/ service name
+    env->multi_blob_flag = false;
 
     if(ct == CT_BLOB) {
         env->map = NULL;
@@ -340,17 +341,45 @@ msgbus_ret_t msgbus_msg_envelope_put(
         msg_envelope_t* env, const char* key, msg_envelope_elem_body_t* data)
 {
     msgbus_ret_t ret = MSG_SUCCESS;
-
-    if(key == NULL) {
-        if(data->type != MSG_ENV_DT_BLOB)
+    if (key == NULL) {
+        if (data->type != MSG_ENV_DT_BLOB) {
             // The body type must be a MSG_ENV_DT_BLOB
             return MSG_ERR_ELEM_BLOB_MALFORMED;
-
-        if(env->blob != NULL)
-            // The blob for the message can only be set once
-            return MSG_ERR_ELEM_BLOB_ALREADY_SET;
-
-        env->blob = data;
+        }
+        if (env->blob != NULL) {
+            if (env->multi_blob_flag == false) {
+                env->multi_blob_flag = true;
+                // Create linked list array to store multi blobs
+                // if first multi blob
+                msg_envelope_elem_body_t* arr_data =\
+                    msgbus_msg_envelope_new_array();
+                if (arr_data == NULL) {
+                    return MSG_ERR_NO_MEMORY;
+                }
+                // Fetch and add first single blob
+                ret = msgbus_msg_envelope_elem_array_add(arr_data, env->blob);
+                if (ret != MSG_SUCCESS) {
+                    msgbus_msg_envelope_elem_destroy(arr_data);
+                    return ret;
+                }
+                // Add current blob
+                ret = msgbus_msg_envelope_elem_array_add(arr_data, data);
+                if (ret != MSG_SUCCESS) {
+                    msgbus_msg_envelope_elem_destroy(arr_data);
+                    return ret;
+                }
+                // Set env->blob to array
+                env->blob = arr_data;
+            } else {
+                ret = msgbus_msg_envelope_elem_array_add(env->blob, data);
+                if (ret != MSG_SUCCESS) {
+                    return ret;
+                }
+            }
+        } else {
+            // Add first single blob
+            env->blob = data;
+        }
     } else {
         hashmap_ret_t put_ret = hashmap_put(
                 env->map, key, (void*) data, free_elem);
@@ -384,14 +413,14 @@ msgbus_ret_t msgbus_msg_envelope_get(
         msg_envelope_t* env, const char* key, msg_envelope_elem_body_t** data)
 {
     // If the key is NULL, then retrieve the blob, if one has been set
-    if(key == NULL) {
-        if(env->blob == NULL)
+    if (key == NULL) {
+        if (env->blob == NULL)
             return MSG_ERR_ELEM_NOT_EXIST;
         *data = env->blob;
         return MSG_SUCCESS;
     }
 
-    if(env->content_type == CT_BLOB) {
+    if (env->content_type == CT_BLOB) {
         return MSG_ERR_ELEM_NOT_EXIST;
     }
 
@@ -471,32 +500,70 @@ static cJSON* elem_to_json(msg_envelope_elem_body_t* elem) {
     return obj;
 }
 
+
+/**
+ * Helper function to serialize a blob into a given serialized part.
+ * 
+ * @param dest - Destination serialized part for the blob
+ * @param blob - Blob to serialize
+ */ 
+static void serialize_blob(
+        msg_envelope_serialized_part_t* dest, msg_envelope_elem_body_t* blob) {
+    dest->shared = owned_blob_copy(blob->body.blob->shared);
+    dest->len  = dest->shared->len;
+    dest->bytes  = dest->shared->bytes;
+
+    // Set part to own the data
+    if(blob->body.blob->shared->owned) {
+        dest->shared->owned = true;
+        blob->body.blob->shared->owned = false;
+    }
+}
+
+
 int msgbus_msg_envelope_serialize(
         msg_envelope_t* env, msg_envelope_serialized_part_t** parts) {
     if(env->content_type == CT_BLOB) {
-        msgbus_ret_t ret = msgbus_msg_envelope_serialize_parts_new(1, parts);
-        if(ret != MSG_SUCCESS) {
-            return ret;
+        if (env->blob == NULL)
+            return -1;
+        // For single only blob scenario
+        if (env->blob->type == MSG_ENV_DT_BLOB) {
+            msgbus_ret_t ret = \
+                msgbus_msg_envelope_serialize_parts_new(1, parts);
+            if (ret != MSG_SUCCESS) {
+                return ret;
+            }
+
+            // Serialize the blob into the given serialized part
+            serialize_blob(&(*parts)[0], env->blob);
+
+            // Only a single part for CT_BLOBs
+            return 1;
+        } else if (env->blob->type == MSG_ENV_DT_ARRAY) {
+            // For only multi blob scenario
+            int num_parts = env->blob->body.array->len;
+            msgbus_ret_t ret = \
+                msgbus_msg_envelope_serialize_parts_new(num_parts, parts);
+            if (ret != MSG_SUCCESS) {
+                return ret;
+            }
+
+            for (int i = 0; i < num_parts; i++) {
+                msg_envelope_elem_body_t* arr_blob = \
+                    msgbus_msg_envelope_elem_array_get_at(env->blob, i);
+                serialize_blob(&(*parts)[i], arr_blob);
+            }
+            // Total number of parts
+            return num_parts;
         }
-
-        (*parts)[0].shared = owned_blob_copy(env->blob->body.blob->shared);
-        (*parts)[0].len  = (*parts)[0].shared->len;
-        (*parts)[0].bytes  = (*parts)[0].shared->bytes;
-
-        // Set part to own the data
-        if(env->blob->body.blob->shared->owned) {
-            (*parts)[0].shared->owned = true;
-            env->blob->body.blob->shared->owned = false;
-        }
-
-        // Only a single part for CT_BLOBs
-        return 1;
-    } else if(env->content_type == CT_JSON) {
+    } else if (env->content_type == CT_JSON) {
+        // For single blob + json scenario
+        int num_parts = 1;
         // Initialize JSON object
         cJSON* obj = cJSON_CreateObject();
         HASHMAP_LOOP(env->map, msg_envelope_elem_body_t, {
             cJSON* subobj = elem_to_json(value);
-            if(subobj == NULL) {
+            if (subobj == NULL) {
                 cJSON_Delete(obj);
                 break;
             }
@@ -506,20 +573,54 @@ int msgbus_msg_envelope_serialize(
 
         // If the object is NULL at this point, then a JSON serialization error
         // occurred
-        if(obj == NULL)
+        if (obj == NULL)
             return -1;
 
-        // Calculate number of parts for the serialized message
-        int num_parts = 1;
-        if(env->blob != NULL)
-            num_parts++;
+        if (env->blob != NULL) {
+            if (env->blob->type == MSG_ENV_DT_BLOB) {
+                // Calculate number of parts for the serialized message
+                // Increment num_parts by 1 for one blob
+                num_parts++;
 
-        // Initialize parts
-        msgbus_ret_t ret = msgbus_msg_envelope_serialize_parts_new(
-                num_parts, parts);
-        if(ret != MSG_SUCCESS) {
-            cJSON_Delete(obj);
-            return -1;
+                // Initialize parts
+                msgbus_ret_t ret = msgbus_msg_envelope_serialize_parts_new(
+                        num_parts, parts);
+                if (ret != MSG_SUCCESS) {
+                    cJSON_Delete(obj);
+                    return -1;
+                }
+
+                // Serialize blob
+                serialize_blob(&(*parts)[1], env->blob);
+            } else if (env->blob->type == MSG_ENV_DT_ARRAY) {
+                // For multi blob + json scenario
+                // Calculate number of parts for the serialized message
+                num_parts = env->blob->body.array->len + 1;
+
+                // Initialize parts
+                msgbus_ret_t ret = msgbus_msg_envelope_serialize_parts_new(
+                        num_parts, parts);
+                if (ret != MSG_SUCCESS) {
+                    cJSON_Delete(obj);
+                    return -1;
+                }
+
+                for (int i = 1; i < num_parts; i++) {
+                    msg_envelope_elem_body_t* arr_blob = \
+                        msgbus_msg_envelope_elem_array_get_at(env->blob, i-1);
+                    // Serialize every blob in blob array
+                    serialize_blob(&(*parts)[i], arr_blob);
+                }
+            }
+        } else {
+            // No blobs to add the the message, initialize a single part for
+            // the JSON data
+            msgbus_ret_t ret = msgbus_msg_envelope_serialize_parts_new(
+                    num_parts, parts);
+            if (ret != MSG_SUCCESS) {
+                cJSON_Delete(obj);
+                return -1;
+            }
         }
 
         // Add JSON part
@@ -530,18 +631,6 @@ int msgbus_msg_envelope_serialize(
                 (void*) json_bytes, free, json_bytes, strlen(json_bytes));
         (*parts)[0].len  = (*parts)[0].shared->len;
         (*parts)[0].bytes  = (*parts)[0].shared->bytes;
-
-        // Add blob part if one exists
-        if(env->blob != NULL) {
-            (*parts)[1].shared = owned_blob_copy(env->blob->body.blob->shared);
-            (*parts)[1].len  = (*parts)[1].shared->len;
-            (*parts)[1].bytes  = (*parts)[1].shared->bytes;
-
-            if(env->blob->body.blob->shared->owned) {
-                (*parts)[1].shared->owned = true;
-                env->blob->body.blob->shared->owned = false;
-            }
-        }
 
         // Destroy JSON object
         cJSON_Delete(obj);
@@ -636,47 +725,58 @@ static msg_envelope_elem_body_t* deserialize_json(cJSON* obj) {
  * envelope.
  */
 static msgbus_ret_t deserialize_blob(
-        msg_envelope_t* msg, msg_envelope_serialized_part_t* part)
+        msg_envelope_t* msg, msg_envelope_serialized_part_t* part,
+        int num_parts, content_type_t ct)
 {
 
-    // Intiailize blob element
-    size_t len = part->len;
-    msg_envelope_blob_t* blob = (msg_envelope_blob_t*) malloc(
-            sizeof(msg_envelope_blob_t));
-    if(blob == NULL) return MSG_ERR_NO_MEMORY;
-    blob->len = len;
-    blob->data = part->bytes;
-    blob->shared = NULL;
-    blob->shared = owned_blob_copy(part->shared);
-    if(blob->shared == NULL) {
-        free(blob);
-        return MSG_ERR_NO_MEMORY;
+    msgbus_ret_t ret = MSG_SUCCESS;
+    int i = 0;
+    if (ct == CT_JSON) {
+        // If json enabled, json is first part
+        // Hence, traverse from second part
+        i = 1;
     }
+    for (; i < num_parts; i++) {
+        msg_envelope_serialized_part_t* current_part = &part[i];
+        // Intiailize blob element
+        size_t len = current_part->len;
+        msg_envelope_blob_t* blob = (msg_envelope_blob_t*) malloc(
+                sizeof(msg_envelope_blob_t));
+        if(blob == NULL) return MSG_ERR_NO_MEMORY;
+        blob->len = len;
+        blob->data = current_part->bytes;
+        blob->shared = NULL;
+        blob->shared = owned_blob_copy(current_part->shared);
+        if(blob->shared == NULL) {
+            free(blob);
+            return MSG_ERR_NO_MEMORY;
+        }
 
-    // Take ownership of the underlying shared pointer to the blob data from
-    // the serialized part. This way the data will not be freed until the
-    // message envelope is not longerr needed
-    blob->shared->owned = true;
-    part->shared->owned = false;
+        // Take ownership of the underlying shared pointer to the blob data from
+        // the serialized part. This way the data will not be freed until the
+        // message envelope is not longerr needed
+        blob->shared->owned = true;
+        current_part->shared->owned = false;
 
-    // Initialize body element
-    msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
-            sizeof(msg_envelope_elem_body_t));
-    if(elem == NULL) {
-        if(blob->shared)
-            owned_blob_destroy(blob->shared);
-        free(blob);
-        return MSG_ERR_NO_MEMORY;
+        // Initialize body element
+        msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
+                sizeof(msg_envelope_elem_body_t));
+        if(elem == NULL) {
+            if(blob->shared)
+                owned_blob_destroy(blob->shared);
+            free(blob);
+            return MSG_ERR_NO_MEMORY;
+        }
+        elem->type = MSG_ENV_DT_BLOB;
+        elem->body.blob = blob;
+
+        // Put value into msg envelope
+        ret = msgbus_msg_envelope_put(msg, NULL, elem);
+        if (ret != MSG_SUCCESS) {
+            msgbus_msg_envelope_elem_destroy(elem);
+            return ret;
+        }
     }
-    elem->type = MSG_ENV_DT_BLOB;
-    elem->body.blob = blob;
-
-    // Put value into msg envelope
-    msgbus_ret_t ret = msgbus_msg_envelope_put(msg, NULL, elem);
-    if(ret != MSG_SUCCESS) {
-        msgbus_msg_envelope_elem_destroy(elem);
-    }
-
     return ret;
 }
 
@@ -688,21 +788,15 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
     msg_envelope_t* msg = msgbus_msg_envelope_new(ct);
     if(msg == NULL) return MSG_ERR_NO_MEMORY;
 
-    if(ct == CT_BLOB) {
-        if(num_parts > 1) {
-            msgbus_msg_envelope_destroy(msg);
+    if (ct == CT_BLOB) {
+        ret = deserialize_blob(msg, parts, num_parts, ct);
+        if (ret != MSG_SUCCESS) {
             return MSG_ERR_DESERIALIZE_FAILED;
         }
-
-        ret = deserialize_blob(msg, &parts[0]);
-    } else if(ct == CT_JSON) {
-        if(num_parts > 2) {
-            msgbus_msg_envelope_destroy(msg);
-            return MSG_ERR_DESERIALIZE_FAILED;
-        }
-
+    } else if (ct == CT_JSON) {
+        // For json + single blob scenario
         cJSON* json = cJSON_Parse(parts[0].bytes);
-        if(json == NULL) {
+        if (json == NULL) {
             msgbus_msg_envelope_destroy(msg);
             return MSG_ERR_DESERIALIZE_FAILED;
         }
@@ -711,12 +805,12 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
         cJSON* subobj = NULL;
         cJSON_ArrayForEach(subobj, json) {
             msg_envelope_elem_body_t* elem = deserialize_json(subobj);
-            if(elem == NULL) {
+            if (elem == NULL) {
                 ret = MSG_ERR_DESERIALIZE_FAILED;
                 break;
             }
             ret = msgbus_msg_envelope_put(msg, subobj->string, elem);
-            if(ret != MSG_SUCCESS) {
+            if (ret != MSG_SUCCESS) {
                 msgbus_msg_envelope_elem_destroy(elem);
                 break;
             }
@@ -726,8 +820,8 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
         cJSON_Delete(json);
 
         // Only deserialize the blob if the JSON was successfully parsed
-        if(ret == MSG_SUCCESS && num_parts == 2) {
-            ret = deserialize_blob(msg, &parts[1]);
+        if (ret == MSG_SUCCESS && num_parts > 1) {
+            ret = deserialize_blob(msg, parts, num_parts, ct);
         }
     }
 
@@ -739,11 +833,10 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
     }
     memset(msg->name, '\0', len);
     strcpy_s(msg->name, len, name);
-    if(ret == MSG_SUCCESS)
+    if (ret == MSG_SUCCESS)
         *env = msg;
     else
         msgbus_msg_envelope_destroy(msg);
-
     return ret;
 }
 
