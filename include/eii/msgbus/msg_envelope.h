@@ -118,6 +118,9 @@ typedef struct {
 
     // Internal tracking for blob data
     msg_envelope_elem_body_t* blob;
+
+    // Flag to check multi blob scenario
+    bool multi_blob_flag;
 } msg_envelope_t;
 
 /**
