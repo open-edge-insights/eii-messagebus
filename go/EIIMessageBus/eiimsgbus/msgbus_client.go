@@ -81,6 +81,9 @@ func (ctx *MsgbusClient) NewSubscriber(topic string) (*Subscriber, error) {
 		return nil, err
 	}
 
+	var wg sync.WaitGroup
+	sub := newSubscriber(msgCh, quitCh, errCh, &wg)
+
 	// Create receive routine structure
 	recv := receiveRoutine{
 		RecvCtx:   subCtx,
@@ -88,13 +91,17 @@ func (ctx *MsgbusClient) NewSubscriber(topic string) (*Subscriber, error) {
 		ErrCh:     errCh,
 		QuitCh:    quitCh,
 		MsgbusCtx: ctx,
+		Wg:        &wg,
 	}
+
+	// Increment WaitGroup for the goroutine about to be launched
+	wg.Add(1)
 
 	// Start goroutine to receive publications
 	go recv.run()
 
 	// Create subscriber and return
-	return newSubscriber(msgCh, quitCh, errCh), nil
+	return sub, nil
 }
 
 // Create a new service to receive requests over and send responses from.
@@ -145,32 +152,35 @@ type receiveRoutine struct {
 	ErrCh     chan error
 	QuitCh    chan interface{}
 	MsgbusCtx *MsgbusClient
+	Wg        *sync.WaitGroup
 }
 
 // Goroutine method for receiving messages and sending them over the given channel
 func (recv *receiveRoutine) run() {
 	ctx := recv.MsgbusCtx.ctx
 
-	// When the method exists destroy the receive context
-	defer ctx.DestroyRecvCtx(recv.RecvCtx)
-
 	// Infinite loop while receiving messages until told to quit over the QuitCh
 	for {
-		msg, err := ctx.ReceiveWait(recv.RecvCtx)
-		if err != nil {
+		msg, err := ctx.ReceiveTimedWait(recv.RecvCtx, 100)
+		if msg == nil && err == nil {
+			// Timeout...
+		} else if err != nil {
 			recv.ErrCh <- err
 		}
 
 		// If the quit channel has been closed, then return from the routine method
 		select {
 		case <-recv.QuitCh:
+			// fmt.Fprintln(os.Stderr, "receive routine Exiting...")
+			ctx.DestroyRecvCtx(recv.RecvCtx)
+			recv.Wg.Done()
 			return
 		default:
 		}
 
 		// Only send the message over the receive channel if no error was received
 		// prior to this point
-		if err == nil {
+		if err == nil && msg != nil {
 			recv.MsgCh <- msg
 		}
 	}

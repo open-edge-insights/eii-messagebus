@@ -24,6 +24,7 @@ package eiimsgbus
 
 import (
 	types "EIIMessageBus/pkg/types"
+	"sync"
 )
 
 // Subscriber object. This object is not thread-safe.
@@ -32,16 +33,18 @@ type Subscriber struct {
 	ErrorChannel   chan error
 	quitChannel    chan interface{}
 	closed         bool
+	wg             *sync.WaitGroup
 }
 
 // Creates a new subscriber structure.
-func newSubscriber(msgCh chan *types.MsgEnvelope, quitCh chan interface{}, errCh chan error) *Subscriber {
+func newSubscriber(msgCh chan *types.MsgEnvelope, quitCh chan interface{}, errCh chan error, wg *sync.WaitGroup) *Subscriber {
 	sub := new(Subscriber)
 
 	sub.MessageChannel = msgCh
 	sub.ErrorChannel = errCh
 	sub.quitChannel = quitCh
 	sub.closed = false
+	sub.wg = wg
 
 	return sub
 }
@@ -51,6 +54,10 @@ func (subscriber *Subscriber) Close() {
 	if subscriber.closed {
 		return
 	}
+
+	// Signal goroutine to stop
+	subscriber.quitChannel <- 1
+	subscriber.wg.Wait()
 
 	// Signal gorouting to stop
 	close(subscriber.MessageChannel)

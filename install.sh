@@ -53,11 +53,9 @@ ORIGINAL_CURRENT_DIR=`pwd`
 
 # Library versions
 zeromq_version="4.3.1"
-cjson_version="1.7.12"
 
 # URLs
 zeromq_url="https://github.com/zeromq/libzmq/releases/download/v4.3.1/zeromq-${zeromq_version}.tar.gz"
-cjson_url="https://github.com/DaveGamble/cJSON/archive/v${cjson_version}.tar.gz"
 
 if [ ! -d "deps" ] ; then
     mkdir deps
@@ -73,8 +71,6 @@ if [ "$1" == "--cython" ] ; then
     pip3 install -r $ORIGINAL_CURRENT_DIR/python/requirements.txt
     check_error "Failed to install Cython"
 fi
-
-echo "$INSTALL_PATH/libzmq.so.${zeromq_version}"
 
 # Installing ZeroMQ dependency
 if [ -f "$INSTALL_PATH/libzmq.so" ]; then
@@ -109,49 +105,7 @@ else
     make install
     check_error "Failed to install libzmq"
 
-    cd ..
-fi
-
-# Installing cJSON dependency
-if [ -f "$INSTALL_PATH/libcjson.so.${cjson_version}" ]; then
-    log_info "libcjson ${cjson_version} already installed"
-else
-    if [ ! -f "cjson.tar.gz" ] ; then
-        log_info "Downloading cJSON source"
-        wget -q --show-progress $cjson_url -O cjson.tar.gz
-        check_error "Failed to download cJSON source"
-    fi
-
-    cjson_dir="cJSON-${cjson_version}"
-
-    if [ ! -d "$cjson_dir" ] ; then
-        log_info "Extracting cJSON"
-        tar xf cjson.tar.gz
-        check_error "Failed to extract cJSON"
-    fi
-
-    cd $cjson_dir
-    check_error "Failed to change to cJSON directory"
-
-    if [ ! -d "build" ] ; then
-        mkdir build
-        check_error "Failed to create build directory"
-    fi
-
-    cd build
-    check_error "Failed to change to build directory"
-
-    log_info "Configuring cJSON for compilation"
-    cmake ..
-    check_error "Failed to configure cJSON"
-
-    log_info "Compiling cJSON library"
-    make -j$(nproc --ignore=2)
-    check_error "Failed to compile cJSON library"
-
-    log_info "Installing cJSON library"
-    make install
-    check_error "Failed to install cJSON library"
+    cd ../
 fi
 
 log_info "Done."
