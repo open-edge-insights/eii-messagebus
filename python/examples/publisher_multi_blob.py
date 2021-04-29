@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Intel Corporation.
+# Copyright (c) 2021 Intel Corporation.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -17,7 +17,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""EII Message Bus subscriber example
+"""EII Message Bus publisher example
 """
 
 import time
@@ -29,12 +29,14 @@ import eii.msgbus as mb
 ap = argparse.ArgumentParser()
 ap.add_argument('config', help='JSON configuration')
 ap.add_argument('-t', '--topic', default='publish_test', help='Topic')
-ap.add_argument('-p', '--print', default=False, action='store_true',
-                help='Print the received message')
+ap.add_argument('-b', '--blob_size', type=int, default=10,
+                help='Number of bytes for the blob')
+ap.add_argument('-i', '--interval', type=float, default=1,
+                help='Interval between each publication')
 args = ap.parse_args()
 
 msgbus = None
-subscriber = None
+publisher = None
 
 with open(args.config, 'r') as f:
     config = json.load(f)
@@ -43,28 +45,30 @@ try:
     print('[INFO] Initializing message bus context')
     msgbus = mb.MsgbusContext(config)
 
-    print(f'[INFO] Initializing subscriber for topic \'{args.topic}\'')
-    subscriber = msgbus.new_subscriber(args.topic)
+    print(f'[INFO] Initializing publisher for topic \'{args.topic}\'')
+    publisher = msgbus.new_publisher(args.topic)
+
+    print(config)
+    print(args.topic)
 
     print('[INFO] Running...')
     while True:
-        msg = subscriber.recv()
-        meta_data, blob = msg
-        if meta_data is not None:
-            if args.print:
-                print(f'[INFO] RECEIVED: meta data: {meta_data}'
-                      f' on topic {msg.get_name()}')
-        else:
-            print('[INFO] Receive interrupted')
-
-        if blob is not None:
-            if args.print:
-                print(f'[INFO] RECEIVED: blob: {msg.get_blob()}'
-                      f' on topic {msg.get_name()}')
-        else:
-            print('[INFO] Receive interrupted')
+        blob = b'blob_one_' * args.blob_size
+        blob_two = b'blob_two_' * args.blob_size
+        blob_three = b'blob_three_' * args.blob_size
+        meta = {
+            'integer': 123,
+            'floating': 55.5,
+            'string': 'test',
+            'boolean': True,
+            'empty': None,
+            'obj': {'test': {'test2': 'hello'}, 'test3': 'world'},
+            'arr': ['test', 123]
+        }
+        publisher.publish((meta, blob, blob_two, blob_three))
+        time.sleep(args.interval)
 except KeyboardInterrupt:
     print('[INFO] Quitting...')
 finally:
-    if subscriber is not None:
-        subscriber.close()
+    if publisher is not None:
+        publisher.close()
