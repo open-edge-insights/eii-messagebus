@@ -134,11 +134,13 @@ cdef void free_python_blob(void* vhint) nogil:
         del obj
 
 
-cdef void put_bytes_helper(msg_envelope_t* env, data) except *:
+cdef void put_bytes_helper(msg_envelope_t* env, data, index) except *:
     """Helper function to serialize a Python bytes object to a blob object.
     """
     cdef msgbus_ret_t ret
     cdef msg_envelope_elem_body_t* body
+    cdef msg_envelope_elem_body_t* array_item
+    cdef msg_envelope_elem_body_t* data_get
 
     body = msgbus_msg_envelope_new_blob(<char*> data, len(data))
     if body == NULL:
@@ -154,8 +156,19 @@ cdef void put_bytes_helper(msg_envelope_t* env, data) except *:
     # blob data being published over the message bus. This will keep the data
     # from being garbage collected by the interpreter.
     Py_INCREF(data)
-    env.blob.body.blob.shared.ptr = <void*> data
-    env.blob.body.blob.shared.free = free_python_blob
+    
+    if index is None or index == 0:
+        env.blob.body.blob.shared.ptr = <void*> data
+        env.blob.body.blob.shared.free = free_python_blob
+    else:
+        msgbus_msg_envelope_get(env, NULL, &data_get);
+        if data_get == NULL:
+            raise MessageBusError('Failed to fetch element from msg envelope')
+        array_item = msgbus_msg_envelope_elem_array_get_at(data_get, index)
+        if array_item == NULL:
+            raise MessageBusError('Blob {} in array is NULL'.format(index))
+        array_item.body.blob.shared.ptr = <void*> data
+        array_item.body.blob.shared.free = free_python_blob
 
 
 cdef msg_envelope_elem_body_t* python_to_msg_env_elem_body(data):
@@ -227,35 +240,34 @@ cdef msg_envelope_t* python_to_msg_envelope(data) except *:
     cdef content_type_t ct
     cdef char* key = NULL
 
-    binary = None
     kv_data = None
+    multi_blob = None
 
     if isinstance(data, bytes):
         ct = content_type_t.CT_BLOB
-        binary = data
+        multi_blob = data
     elif isinstance(data, dict):
         ct = content_type_t.CT_JSON
         kv_data = data
     elif isinstance(data, (list, tuple,)):
         ct = content_type_t.CT_JSON
-        if len(data) > 2:
-            raise MessageBusError('List can only be 2 elements for a msg')
 
-        if isinstance(data[0], bytes):
-            if not isinstance(data[1], dict):
-                raise MessageBusError('Second element must be dict')
-
-            binary = data[0]
-            kv_data = data[1]
-        elif isinstance(data[0], dict):
-            if not isinstance(data[1], bytes):
-                raise MessageBusError('Second element must be bytes')
-
-            binary = data[1]
-            kv_data = data[0]
-        else:
-            raise MessageBusError(
-                    f'Unknown data type: {type(data)}, must be bytes or dict')
+        for value in data:
+            if isinstance(value, dict):
+                if kv_data is None:
+                    kv_data = value
+                elif isinstance(kv_data, dict):
+                    kv_data.update(value)
+            elif isinstance(value, bytes):
+                if multi_blob is None:
+                    multi_blob = value
+                elif isinstance(multi_blob, list):
+                    multi_blob.append(value)
+                else:
+                    multi_blob = [multi_blob, value]
+            else:
+                raise MessageBusError(
+                        f'Unknown data type: {type(data)}, must be bytes or dict')
     else:
         raise MessageBusError(
                 'Unable to create msg envelope from type: {}'.format(
@@ -269,14 +281,18 @@ cdef msg_envelope_t* python_to_msg_envelope(data) except *:
 
     if ct == content_type_t.CT_BLOB:
         try:
-            put_bytes_helper(env, data)
+            put_bytes_helper(env, data, None)
         except MessageBusError:
             msgbus_msg_envelope_destroy(env)
             raise  # Re-raise
     else:
-        if binary is not None:
+        if multi_blob is not None:
             try:
-                put_bytes_helper(env, binary)
+                if isinstance(multi_blob, bytes):
+                    put_bytes_helper(env, multi_blob, None)
+                elif isinstance(multi_blob, list):
+                    for i, blob in enumerate(multi_blob):
+                        put_bytes_helper(env, blob, i)
             except:
                 msgbus_msg_envelope_destroy(env)
                 raise  # Re-raise
@@ -323,9 +339,6 @@ cdef object msg_envelope_to_python(msg_envelope_t* msg):
     if num_parts <= 0:
         raise MessageBusError('Error serializing to Python representation')
 
-    if num_parts > 2:
-        warnings.warn('The Python library only supports 2 parts!')
-
     try:
         data = None
         msg_meta_data = None
@@ -335,8 +348,13 @@ cdef object msg_envelope_to_python(msg_envelope_t* msg):
             msg_name = msg.name.decode()
         if msg.content_type == content_type_t.CT_JSON:
             msg_meta_data = json.loads(char_to_bytes(parts[0].bytes, parts[0].len))
-            if num_parts > 1:
-                msg_blob = char_to_bytes(parts[1].bytes, parts[1].len)
+            for i in range(1, num_parts):
+                if msg_blob is None:
+                    msg_blob = char_to_bytes(parts[i].bytes, parts[i].len)
+                elif isinstance(msg_blob, list):
+                    msg_blob.append(char_to_bytes(parts[i].bytes, parts[i].len))
+                else:
+                    msg_blob = [msg_blob, char_to_bytes(parts[i].bytes, parts[i].len)]
         elif msg.content_type == content_type_t.CT_BLOB:
             msg_blob = char_to_bytes(parts[0].bytes, parts[0].len)
         else:

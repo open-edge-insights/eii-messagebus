@@ -26,11 +26,11 @@ package types
 type MsgEnvelope struct {
 	Name string
 	Data map[string]interface{}
-	Blob []byte
+	Blob [][]byte
 }
 
 // Initialize a new message envelope.
-func NewMsgEnvelope(data map[string]interface{}, blob []byte) *MsgEnvelope {
+func NewMsgEnvelope(data map[string]interface{}, blob [][]byte) *MsgEnvelope {
 	env := new(MsgEnvelope)
 	// topic or service name
 	env.Name = ""

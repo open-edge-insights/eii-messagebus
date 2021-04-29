@@ -62,6 +62,11 @@ char* get_part_bytes(parts_wrapper_t* wrap, int idx) {
 int get_part_len(parts_wrapper_t* wrap, int idx) {
 	return (int) wrap->parts[idx].len;
 }
+
+int get_number_of_parts(parts_wrapper_t* wrap) {
+	return (int) wrap->num_parts;
+}
+
 */
 import "C"
 import (
@@ -99,72 +104,43 @@ func GoToMsgEnvelope(env interface{}) (unsafe.Pointer, error) {
 				return nil, err
 			}
 		} else {
-			slice := env.([]interface{})
-			if len(slice) != 2 {
-				return nil, errors.New("Slice can only contain 2 elements")
-			}
-
-			first := slice[0]
-			firstValue := reflect.ValueOf(first)
-			firstKind := firstValue.Kind()
-
-			second := slice[1]
-			secondValue := reflect.ValueOf(second)
-			secondKind := secondValue.Kind()
-
-			if firstKind == secondKind {
-				return nil, errors.New("Elements must have only one map[string]interface{} and one []byte")
-			}
+			slices := env.([]interface{})
 
 			multiMsg := C.msgbus_msg_envelope_new(C.CT_JSON)
 			msg = unsafe.Pointer(multiMsg)
 
-			if firstKind == reflect.Map {
-				err := addMapToMsgEnvelope(msg, first.(map[string]interface{}))
-				if err != nil {
-					C.msgbus_msg_envelope_destroy(multiMsg)
-					return nil, err
-				}
-			} else if firstKind == reflect.Slice {
-				if firstValue.Type() != typeOfBytes {
-					C.msgbus_msg_envelope_destroy(multiMsg)
-					return nil, errors.New("Slice must be []byte")
-				}
+			// Loop over all slice elements and add
+			// each slice to MsgEnvelope
+			for i := 0; i < len(slices); i++ {
+				slice := slices[i]
+				sliceValue := reflect.ValueOf(slice)
+				sliceKind := sliceValue.Kind()
 
-				err := addBytesToMsgEnvelope(msg, first.([]byte))
-				if err != nil {
-					C.msgbus_msg_envelope_destroy(multiMsg)
-					return nil, err
-				}
-			} else {
-				C.msgbus_msg_envelope_destroy(multiMsg)
-				return nil, errors.New("Unknown data type, must be map[string]interface{} or []byte")
-			}
+				// If Kind is Map, add Map to MsgEnvelope
+				if sliceKind == reflect.Map {
+					err := addMapToMsgEnvelope(msg, slice.(map[string]interface{}))
+					if err != nil {
+						C.msgbus_msg_envelope_destroy(multiMsg)
+						return nil, err
+					}
+				} else if sliceKind == reflect.Slice {
+					if sliceValue.Type() != typeOfBytes {
+						C.msgbus_msg_envelope_destroy(multiMsg)
+						return nil, errors.New("Slice must be []byte")
+					}
 
-			if secondKind == reflect.Map {
-				err := addMapToMsgEnvelope(msg, second.(map[string]interface{}))
-				if err != nil {
+					err := addBytesToMsgEnvelope(msg, slice.([]byte))
+					if err != nil {
+						C.msgbus_msg_envelope_destroy(multiMsg)
+						return nil, err
+					}
+				} else {
 					C.msgbus_msg_envelope_destroy(multiMsg)
-					return nil, err
+					return nil, errors.New("Unknown data type, must be map[string]interface{} or []byte")
 				}
-			} else if secondKind == reflect.Slice {
-				if secondValue.Type() != typeOfBytes {
-					C.msgbus_msg_envelope_destroy(multiMsg)
-					return nil, errors.New("Slice must be []byte")
-				}
-
-				err := addBytesToMsgEnvelope(msg, second.([]byte))
-				if err != nil {
-					C.msgbus_msg_envelope_destroy(multiMsg)
-					return nil, err
-				}
-			} else {
-				C.msgbus_msg_envelope_destroy(multiMsg)
-				return nil, errors.New("Unknown data type, must be map[string]interface{} or []byte")
 			}
 		}
 	}
-
 	return msg, nil
 }
 
@@ -318,14 +294,19 @@ func MsgEnvelopeToGo(msg unsafe.Pointer) (*types.MsgEnvelope, error) {
 		res.Name = C.GoString(env.name)
 	}
 	if env.content_type == C.CT_BLOB {
-		res.Blob = C.GoBytes(unsafe.Pointer(C.get_part_bytes(parts, 0)), C.get_part_len(parts, 0))
+		res.Blob = make([][]byte, 1)
+		res.Blob[0] = C.GoBytes(unsafe.Pointer(C.get_part_bytes(parts, 0)), C.get_part_len(parts, 0))
 		res.Data = nil
 	} else {
 		n := C.get_part_len(parts, 0)
 		jsonBytes := C.GoBytes(unsafe.Pointer(C.get_part_bytes(parts, 0)), n)
 
 		if env.blob != nil {
-			res.Blob = C.GoBytes(unsafe.Pointer(C.get_part_bytes(parts, 1)), C.get_part_len(parts, 1))
+			numParts := int(C.get_number_of_parts(parts))
+			res.Blob = make([][]byte, (numParts - 1))
+			for i := 1; i < numParts; i++ {
+				res.Blob[i-1] = C.GoBytes(unsafe.Pointer(C.get_part_bytes(parts, C.int(i))), C.get_part_len(parts, C.int(i)))
+			}
 		} else {
 			res.Blob = nil
 		}

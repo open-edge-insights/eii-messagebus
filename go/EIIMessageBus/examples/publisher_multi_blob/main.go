@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019 Intel Corporation.
+Copyright (c) 2021 Intel Corporation.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -26,6 +26,7 @@ import (
 	eiimsgbus "EIIMessageBus/eiimsgbus"
 	"flag"
 	"fmt"
+	"time"
 )
 
 func main() {
@@ -53,29 +54,45 @@ func main() {
 	}
 	defer client.Close()
 
-	fmt.Printf("-- Subscribing to topic %s\n", *topic)
-	subscriber, err := client.NewSubscriber(*topic)
+	fmt.Printf("-- Creating publisher for topic %s\n", *topic)
+	publisher, err := client.NewPublisher(*topic)
 	if err != nil {
-		fmt.Printf("-- Error subscribing to topic: %v\n", err)
+		fmt.Printf("-- Error creating publisher: %v\n", err)
 		return
 	}
-	defer subscriber.Close()
+	defer publisher.Close()
 
 	fmt.Println("-- Running...")
+
+	m := map[string]interface{}{
+		"str":   "hello",
+		"int":   2.0,
+		"float": 55.5,
+		"bool":  true,
+		"obj": map[string]interface{}{
+			"nest": map[string]interface{}{
+				"test": "hello",
+			},
+			"hello": "world",
+		},
+		"arr":   []interface{}{"test", 123.0},
+		"empty": nil,
+	}
+	blob := []byte("Blob One")
+	blob_two := []byte("Blob Two")
+	blob_three := []byte("Blob Three")
+	slice := make([]interface{}, 4)
+	slice[0] = m
+	slice[1] = blob
+	slice[2] = blob_two
+	slice[3] = blob_three
+
 	for {
-		select {
-		case msg := <-subscriber.MessageChannel:
-			if msg.Blob != nil {
-				fmt.Printf("-- Received meta-data: %v \n", msg.Data)
-				for i := range msg.Blob {
-					fmt.Printf("-- Received blob: %s", msg.Blob[i])
-				}
-				fmt.Printf(" on topic: %s \n", msg.Name)
-			} else {
-				fmt.Printf("-- Received Message: %v on topic: %s\n", msg.Data, msg.Name)
-			}
-		case err := <-subscriber.ErrorChannel:
-			fmt.Printf("-- Error receiving message: %v\n", err)
+		err = publisher.Publish(slice)
+		if err != nil {
+			fmt.Printf("-- Failed to publish message: %v\n", err)
+			return
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
