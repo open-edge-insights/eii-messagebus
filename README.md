@@ -455,7 +455,7 @@ topics specified so you can subscribe to any of them.
 This helper script can be ran as follows:
 
 ```sh
-$ python3.6 ./gen_tcp_sub_conf.py <CONFIG-FILE-PATH>/tcp_publisher_no_security.json output.json 5
+$ python3 ./gen_tcp_sub_conf.py <CONFIG-FILE-PATH>/tcp_publisher_no_security.json output.json 5
 ```
 
 The command above uses the `tcp_publisher_no_security.json` for the `publisher-many`
