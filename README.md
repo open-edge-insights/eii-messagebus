@@ -455,7 +455,7 @@ topics specified so you can subscribe to any of them.
 This helper script can be ran as follows:
 
 ```sh
-$ python3.6 ./gen_tcp_sub_conf.py ./configs/tcp_publisher_no_security.json output.json 5
+$ python3.6 ./gen_tcp_sub_conf.py <CONFIG-FILE-PATH>/tcp_publisher_no_security.json output.json 5
 ```
 
 The command above uses the `tcp_publisher_no_security.json` for the `publisher-many`
@@ -510,7 +510,7 @@ $ source ./source.sh
 Then, execute one of the following commands:
 
 ```sh
-$ python3 ./publisher.py ./configs/ipc_example_config.json
+$ python3 ./publisher.py <CONFIG-FILE-PATH>/ipc_example_config.json
 ```
 
 > **NOTE:** The `tcp_example_config.json` can also be used in lieu of the IPC
