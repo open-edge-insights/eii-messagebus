@@ -27,6 +27,11 @@ $ sudo update-alternatives --install /usr/bin/cmake cmake /opt/cmake/bin/cmake 1
 To install the remaining dependencies for the message bus execute the following
 command:
 
+**Note**: It is highly recommended that you use a python virtual environment to
+install the python packages, so that the system python installation doesn't
+get altered. Details on setting up and using python virtual environment can
+be found here: https://www.geeksforgeeks.org/python-virtual-environment/
+
 ```sh
 $ sudo -E ./install.sh
 ```
