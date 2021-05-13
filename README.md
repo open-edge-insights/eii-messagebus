@@ -166,16 +166,17 @@ $ sudo make install
 ```
 
 By default, this command will install the EII Message Bus C library into
-`/usr/local/lib/`. On some platforms this is not included in the `LD_LIBRARY_PATH`
+`/opt/intel/eii/lib`. On some platforms this is not included in the `LD_LIBRARY_PATH`
 by default. As a result, you must add this directory to you `LD_LIBRARY_PATH`,
 otherwise you will encounter issues using the EII Message Bus. This can
 be accomplished with the following `export`:
 
 ```sh
-$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
+$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/eii/lib
 ```
 > **NOTE:** You can also specify a different library prefix to CMake through
-> the `CMAKE_INSTALL_PREFIX` flag.
+> the `CMAKE_INSTALL_PREFIX` flag. If different installation path is given via `CMAKE_INSTALL_PREFIX`, then
+> `$LD_LIBRARY_PATH` should be appended by $CMAKE_INSTALL_PREFIX/lib.
 
 ### Install Python Binding
 
