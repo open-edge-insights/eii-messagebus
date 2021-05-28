@@ -742,25 +742,27 @@ specify any of the configuration keys documented above. This will cause the
 message bus to initialize the ZeroMQ protocol without any of the CurveZMQ
 security primitives.
 
-### Generating EIIMessageBus DEB package
+## Known issues
 
-To generate EIIMessageBus DEB package, please ensure you have IEdgeInsights
-setup on your system as a pre-requisite and that you have run the
-eii_libs_installer.sh script present in [IEdgeInsights/common] referring its
-README atleast once. This is required to install the pre-requisites of
-EIIMessageBus namely EIIMsgEnv & EIIUtils.
+Due to certain limitations imposed by cJSON, there is no proper distinction
+between an integer and a floating point in **EIIMsgEnv**. As a result of this limitation,
+the floating point values defined as whole numbers(1.0, 50.00 etc) are always deserialized
+as integers(1, 50 etc) on the subscriber's end in C, Python & Go APIs.
 
-Once the pre-requisites are enabled, please run these commands to generate the
-DEB package in build directory.
+The workaround for this limitation in the C APIs is to check for the type of
+`msg_envelope_elem_body_t` struct before accessing the respective type's data. One such example
+is provided below:
 
-```sh
-$ mkdir build
-$ cd build
-$ cmake ..
-$ cpack
+```c
+msg_envelope_elem_body_t* data;
+msgbus_ret_t ret = msgbus_msg_envelope_get(msg, "key", &data);
+if (ret != MSG_SUCCESS) {
+    LOG_ERROR_0("Failed to retreive message");
+}
+if (data->type == MSG_ENV_DT_INT) {
+    LOG_INFO("Received integer: %d", data->body.integer);
+} else if (data->type == MSG_ENV_DT_FLOATING) {
+    LOG_INFO("Received float: %f", data->body.floating);
+}
 ```
 
-> **NOTE:** Since creating the DEB package requires only eiimsgenv & eiimsgbus,
-> if the eii_libs_installer.sh breaks while installing eiimsgbus, it is recommended
-> to generate the DEB package here and replace the existing one in [IEdgeInsights]
-> repo.

@@ -69,6 +69,7 @@ set(MSGENV_SRC
     "src/crc32.c"
     "src/profiling.cpp")
 # set_source_files_properties(${MSGENV_SRC} PROPERTIES LANGUAGE C)
+link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 
 add_library(eiimsgenv SHARED ${MSGENV_SRC})
 target_link_libraries(eiimsgenv
