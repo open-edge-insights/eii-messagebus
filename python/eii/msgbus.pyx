@@ -114,7 +114,7 @@ cdef class MsgbusContext:
         # the calling code does not keep it alive.
         self.py_config = config
 
-        conf = config_new(<void*> config, free_conf, get_config_value)
+        conf = config_new(<void*> config, free_conf, get_config_value, NULL)
         self.context =  msgbus_initialize(conf)
         if self.context == NULL:
             raise MessageBusError('Initialization failed')

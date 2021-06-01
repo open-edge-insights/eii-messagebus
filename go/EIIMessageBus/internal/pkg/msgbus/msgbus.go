@@ -102,7 +102,7 @@ static inline void* init_msgbus(int ref_id) {
 
 	go_config->ref_id = ref_id;
 
-	config_t* config = config_new((void*) go_config, free_config, get_config_value);
+	config_t* config = config_new((void*) go_config, free_config, get_config_value, NULL);
 	if(config == NULL) {
 		free(go_config);
 		return NULL;

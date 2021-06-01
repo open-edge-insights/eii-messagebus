@@ -164,10 +164,12 @@ cdef extern from "eii/msgbus/msgbus.h" nogil:
 
     ctypedef void (*msgbus_free_fn)(void*)
     ctypedef config_value_t* (*get_config_value_fn)(const void*,const char*)
+    ctypedef config_value_t* (*set_config_value_fn)(config_t*, const char*, config_value_t*)
 
     config_t* config_new(
             void* cfg, msgbus_free_fn free_fn,
-            get_config_value_fn get_config_value)
+            get_config_value_fn get_config_value,
+            set_config_value_fn set_config_value)
     config_value_t* config_value_new_integer(int64_t value)
     config_value_t* config_value_new_floating(double value)
     config_value_t* config_value_new_string(const char* value)
