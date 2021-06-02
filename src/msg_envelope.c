@@ -324,17 +324,25 @@ msgbus_ret_t msgbus_msg_envelope_elem_array_remove_at(
 
 
 void msgbus_msg_envelope_elem_destroy(msg_envelope_elem_body_t* body) {
-    if(body->type == MSG_ENV_DT_STRING) {
-        free(body->body.string);
-    } else if(body->type == MSG_ENV_DT_BLOB) {
-        owned_blob_destroy(body->body.blob->shared);
-        free(body->body.blob);
-    } else if(body->type == MSG_ENV_DT_OBJECT) {
-        hashmap_destroy(body->body.object);
-    } else if(body->type == MSG_ENV_DT_ARRAY) {
-        linkedlist_destroy(body->body.array);
+    if (body != NULL) {
+        if(body->type == MSG_ENV_DT_STRING) {
+            free(body->body.string);
+        } else if(body->type == MSG_ENV_DT_BLOB) {
+            if (body->body.blob->shared != NULL && body->body.blob->shared->owned == true) {
+                owned_blob_destroy(body->body.blob->shared);
+            }
+            if (body->body.blob != NULL && body->body.blob->shared->owned == true) {
+                free(body->body.blob);
+            }
+        } else if(body->type == MSG_ENV_DT_OBJECT) {
+            hashmap_destroy(body->body.object);
+        } else if(body->type == MSG_ENV_DT_ARRAY) {
+            linkedlist_destroy(body->body.array);
+        }
     }
+
     free(body);
+    body = NULL;
 }
 
 msgbus_ret_t msgbus_msg_envelope_put(
@@ -916,7 +924,13 @@ owned_blob_t* owned_blob_copy(owned_blob_t* to_copy) {
 }
 
 void owned_blob_destroy(owned_blob_t* shared) {
-    if(shared->owned)
-        shared->free(shared->ptr);
-    free(shared);
+    if (shared != NULL) {
+            if (shared->owned == true) {
+                if (shared->free != NULL && shared->ptr != NULL) {
+                    shared->free(shared->ptr);
+                }
+                shared->owned = false;
+            }
+        free(shared);
+    }
 }
