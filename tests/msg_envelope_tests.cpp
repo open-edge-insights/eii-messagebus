@@ -177,25 +177,6 @@ TEST(msg_envelope_tests, ct_blob_put_wrong_type) {
 }
 
 /**
- * Test to verify that the put method will not allow a double put for a blob.
- */
-TEST(msg_envelope_tests, ct_blob_double_put) {
-    msg_envelope_t* msg = msgbus_msg_envelope_new(CT_BLOB);
-
-    char* data = (char*) malloc(sizeof(char) * 10);
-    memcpy(data, "\x01\x01\x02\x03\x04\x05\x06\x07\x08\x09", 10);
-    msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 10);
-
-    msgbus_ret_t ret = msgbus_msg_envelope_put(msg, NULL, blob);
-    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put element";
-
-    ret = msgbus_msg_envelope_put(msg, NULL, blob);
-    ASSERT_EQ(ret, MSG_ERR_ELEM_BLOB_ALREADY_SET) << "Allowed double blob put";
-
-    msgbus_msg_envelope_destroy(msg);
-}
-
-/**
  * Test blob serialization
  */
 TEST(msg_envelope_tests, ct_blob_serialize) {
@@ -335,6 +316,251 @@ TEST(msg_envelope_tests, ct_json_serialize) {
     for(int i = 0; i < parts[1].len; i++) {
         ASSERT_EQ(parts[1].bytes[i], blob->body.blob->data[i]);
     }
+
+    msg_envelope_t* deserialized = NULL;
+    ret = msgbus_msg_envelope_deserialize(
+            CT_JSON, parts, num_parts, "test", &deserialized);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    // Verify the object is there after deserialization
+    msg_envelope_elem_body_t* get_obj = NULL;
+    ret = msgbus_msg_envelope_get(deserialized, "obj", &get_obj);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    // Get sub object value
+    msg_envelope_elem_body_t* get_subobj = msgbus_msg_envelope_elem_object_get(
+            get_obj, "test");
+    ASSERT_NOT_NULL(get_subobj);
+    ASSERT_EQ(get_subobj->type, MSG_ENV_DT_INT);
+    ASSERT_EQ(get_subobj->body.integer, 65);
+
+    // Verify none type is there
+    msg_envelope_elem_body_t* get_none = NULL;
+    ret = msgbus_msg_envelope_get(deserialized, "none", &get_none);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+    ASSERT_EQ(get_none->type, MSG_ENV_DT_NONE);
+
+    // Verify the array is there after deserialization
+    msg_envelope_elem_body_t* get_arr = NULL;
+    ret = msgbus_msg_envelope_get(deserialized, "arr", &get_arr);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    // Verify int/string is there
+    msg_envelope_elem_body_t* get_arr_str = msgbus_msg_envelope_elem_array_get_at(get_arr, 0);
+    ASSERT_NOT_NULL(get_arr_str);
+    ASSERT_EQ(get_arr_str->type, MSG_ENV_DT_STRING);
+    ASSERT_STREQ(get_arr_str->body.string, "test");
+
+    msg_envelope_elem_body_t* get_arr_int = msgbus_msg_envelope_elem_array_get_at(get_arr, 1);
+    ASSERT_NOT_NULL(get_arr_int);
+    ASSERT_EQ(get_arr_int->type, MSG_ENV_DT_INT);
+    ASSERT_EQ(get_arr_int->body.integer, 65);
+
+    msgbus_msg_envelope_serialize_destroy(parts, num_parts);
+
+    msgbus_msg_envelope_destroy(deserialized);
+    msgbus_msg_envelope_destroy(msg);
+}
+
+
+/**
+ * Helper method to verify bytes
+ */
+static void verify_bytes(const char* expected, const char* actual, int length) {
+    for (int i = 0; i < length; i++) {
+        ASSERT_EQ(expected[i], actual[i]);
+    }
+}
+
+
+/**
+ * Test multi blob serialization
+ */
+TEST(msg_envelope_tests, ct_multi_blob_serialize) {
+    msg_envelope_t* msg = msgbus_msg_envelope_new(CT_BLOB);
+
+    char* data = (char*) malloc(sizeof(char) * 10);
+    memcpy(data, "\x01\x01\x02\x03\x04\x05\x06\x07\x08\x09", 10);
+    msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 10);
+    if(blob == NULL)
+        FAIL() << "Failed to initialize blob";
+
+    char* data_two = (char*) malloc(sizeof(char) * 10);
+    memcpy(data_two, "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19", 10);
+    msg_envelope_elem_body_t* blob_two = msgbus_msg_envelope_new_blob(data_two, 10);
+    if(blob_two == NULL)
+        FAIL() << "Failed to initialize blob_two";
+
+    char* data_three = (char*) malloc(sizeof(char) * 10);
+    memcpy(data_three, "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29", 10);
+    msg_envelope_elem_body_t* blob_three = msgbus_msg_envelope_new_blob(data_three, 10);
+    if(blob_three == NULL)
+        FAIL() << "Failed to initialize blob_three";
+
+    msgbus_ret_t ret = msgbus_msg_envelope_put(msg, NULL, blob);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put element";
+
+    ret = msgbus_msg_envelope_put(msg, NULL, blob_two);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put element";
+
+    ret = msgbus_msg_envelope_put(msg, NULL, blob_three);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put element";
+
+    msg_envelope_serialized_part_t* parts = NULL;
+    int num_parts = msgbus_msg_envelope_serialize(msg, &parts);
+
+    verify_bytes(parts[0].bytes, data, 10);
+    verify_bytes(parts[1].bytes, data_two, 10);
+    verify_bytes(parts[2].bytes, data_three, 10);
+
+    msg_envelope_t* env = NULL;
+    ret = msgbus_msg_envelope_deserialize(CT_BLOB, parts, num_parts, "test", &env);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    msgbus_msg_envelope_serialize_destroy(parts, num_parts);
+
+    msg_envelope_elem_body_t* data_get;
+    ret = msgbus_msg_envelope_get(env, NULL, &data_get);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to retrieve 'testing' from body";
+    ASSERT_EQ(data_get->type, MSG_ENV_DT_ARRAY) << "Value of data type wrong";
+
+    msg_envelope_elem_body_t* env_get_data;
+    env_get_data = msgbus_msg_envelope_elem_array_get_at(data_get, 0);
+    msg_envelope_elem_body_t* env_get_data_two;
+    env_get_data_two = msgbus_msg_envelope_elem_array_get_at(data_get, 1);
+    msg_envelope_elem_body_t* env_get_data_three;
+    env_get_data_three = msgbus_msg_envelope_elem_array_get_at(data_get, 2);
+    verify_bytes(env_get_data->body.blob->data, data, 10);
+    verify_bytes(env_get_data_two->body.blob->data, data_two, 10);
+    verify_bytes(env_get_data_three->body.blob->data, data_three, 10);
+
+    msgbus_msg_envelope_destroy(msg);
+    msgbus_msg_envelope_destroy(env);
+}
+
+/**
+ * Test JSON + multi blob serialization
+ */
+TEST(msg_envelope_tests, ct_multi_json_serialize) {
+    msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
+
+    // char* data = (char*) malloc(sizeof(char) * 6);
+    // memcpy(data, "HELLO", 6);
+    // msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 6);
+
+    msg_envelope_elem_body_t* int_data = (msg_envelope_elem_body_t*) malloc(
+            sizeof(msg_envelope_elem_body_t));
+    int_data->type = MSG_ENV_DT_INT;
+    int_data->body.integer = 42;
+
+    msg_envelope_elem_body_t* float_data = (msg_envelope_elem_body_t*) malloc(
+            sizeof(msg_envelope_elem_body_t));
+    float_data->type = MSG_ENV_DT_FLOATING;
+    float_data->body.floating = 55.5;
+
+    msg_envelope_elem_body_t* str_data = (msg_envelope_elem_body_t*) malloc(
+            sizeof(msg_envelope_elem_body_t));
+    str_data->type = MSG_ENV_DT_STRING;
+    str_data->body.string = (char*) malloc(sizeof(char) * 14);
+    memcpy(str_data->body.string, "Hello, World!", 14);
+
+    msg_envelope_elem_body_t* bool_data = (msg_envelope_elem_body_t*) malloc(
+            sizeof(msg_envelope_elem_body_t));
+    bool_data->type = MSG_ENV_DT_BOOLEAN;
+    bool_data->body.boolean = true;
+
+    msg_envelope_elem_body_t* none_data = msgbus_msg_envelope_new_none();
+    ASSERT_NOT_NULL(none_data);
+
+    msg_envelope_elem_body_t* arr_data = msgbus_msg_envelope_new_array();
+    ASSERT_NOT_NULL(arr_data);
+
+    msg_envelope_elem_body_t* arr_str = msgbus_msg_envelope_new_string("test");
+    ASSERT_NOT_NULL(arr_str);
+
+    msg_envelope_elem_body_t* arr_int = msgbus_msg_envelope_new_integer(65);
+    ASSERT_NOT_NULL(arr_int);
+
+    msgbus_ret_t ret = msgbus_msg_envelope_elem_array_add(arr_data, arr_str);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    ret = msgbus_msg_envelope_elem_array_add(arr_data, arr_int);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    msg_envelope_elem_body_t* obj = msgbus_msg_envelope_new_object();
+    ASSERT_NOT_NULL(obj);
+
+    msg_envelope_elem_body_t* obj_int = msgbus_msg_envelope_new_integer(65);
+    ASSERT_NOT_NULL(obj_int);
+
+    ret = msgbus_msg_envelope_elem_object_put(obj, "test", obj_int);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    ret = msgbus_msg_envelope_put(msg, "arr", arr_data);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    ret = msgbus_msg_envelope_put(msg, "obj", obj);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    ret = msgbus_msg_envelope_put(msg, "none", none_data);
+    ASSERT_EQ(ret, MSG_SUCCESS);
+
+    char* data = (char*) malloc(sizeof(char) * 10);
+    memcpy(data, "\x01\x01\x02\x03\x04\x05\x06\x07\x08\x09", 10);
+    msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 10);
+    if(blob == NULL)
+        FAIL() << "Failed to initialize blob";
+
+    char* data_two = (char*) malloc(sizeof(char) * 10);
+    memcpy(data_two, "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19", 10);
+    msg_envelope_elem_body_t* blob_two = msgbus_msg_envelope_new_blob(data_two, 10);
+    if(blob_two == NULL)
+        FAIL() << "Failed to initialize blob_two";
+
+    char* data_three = (char*) malloc(sizeof(char) * 10);
+    memcpy(data_three, "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29", 10);
+    msg_envelope_elem_body_t* blob_three = msgbus_msg_envelope_new_blob(data_three, 10);
+    if(blob_three == NULL)
+        FAIL() << "Failed to initialize blob_three";
+
+    ret = msgbus_msg_envelope_put(msg, NULL, blob);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put multi blob";
+
+    ret = msgbus_msg_envelope_put(msg, NULL, blob_two);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put multi blob";
+
+    ret = msgbus_msg_envelope_put(msg, NULL, blob_three);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put multi blob";
+
+    ret = msgbus_msg_envelope_put(msg, "int", int_data);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put int";
+
+    ret = msgbus_msg_envelope_put(msg, "floating", float_data);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put float";
+
+    ret = msgbus_msg_envelope_put(msg, "str", str_data);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put str";
+
+    ret = msgbus_msg_envelope_put(msg, "bool", bool_data);
+    ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to put bool";
+
+    msg_envelope_serialized_part_t* parts = NULL;
+    int num_parts = msgbus_msg_envelope_serialize(msg, &parts);
+
+    ASSERT_EQ(num_parts, 4) << "Incorrect number of parts";
+    ASSERT_EQ(parts[0].len, EXPECTED_JSON_LEN) << "Incorrect length";
+    ASSERT_EQ(parts[1].len, blob->body.blob->len) << "Wrong blob len";
+    ASSERT_EQ(parts[2].len, blob_two->body.blob->len) << "Wrong blob len";
+    ASSERT_EQ(parts[3].len, blob_three->body.blob->len) << "Wrong blob len";
+
+    // // TODO: Deep comparison of JSON values
+    // // for(int i = 0; i < EXPECTED_JSON_LEN; i++) {
+    // //     ASSERT_EQ(parts[0].bytes[i], EXPECTED_JSON[i]);
+    // // }
+
+    verify_bytes(parts[1].bytes, data, 10);
+    verify_bytes(parts[2].bytes, data_two, 10);
+    verify_bytes(parts[3].bytes, data_three, 10);
 
     msg_envelope_t* deserialized = NULL;
     ret = msgbus_msg_envelope_deserialize(
