@@ -51,7 +51,6 @@ msg_envelope_t* msgbus_msg_envelope_new(content_type_t ct) {
     env->content_type = ct;
     env->blob = NULL;
     env->name = NULL; // topic name/ service name
-    env->multi_blob_flag = false;
 
     if(ct == CT_BLOB) {
         env->map = NULL;
@@ -324,21 +323,17 @@ msgbus_ret_t msgbus_msg_envelope_elem_array_remove_at(
 
 
 void msgbus_msg_envelope_elem_destroy(msg_envelope_elem_body_t* body) {
-    if (body != NULL) {
-        if(body->type == MSG_ENV_DT_STRING) {
-            free(body->body.string);
-        } else if(body->type == MSG_ENV_DT_BLOB) {
-            if (body->body.blob->shared != NULL && body->body.blob->shared->owned == true) {
-                owned_blob_destroy(body->body.blob->shared);
-            }
-            if (body->body.blob != NULL && body->body.blob->shared->owned == true) {
-                free(body->body.blob);
-            }
-        } else if(body->type == MSG_ENV_DT_OBJECT) {
-            hashmap_destroy(body->body.object);
-        } else if(body->type == MSG_ENV_DT_ARRAY) {
-            linkedlist_destroy(body->body.array);
-        }
+    if (body == NULL) { return; }
+
+    if(body->type == MSG_ENV_DT_STRING) {
+        free(body->body.string);
+    } else if(body->type == MSG_ENV_DT_BLOB) {
+        owned_blob_destroy(body->body.blob->shared);
+        free(body->body.blob);
+    } else if(body->type == MSG_ENV_DT_OBJECT) {
+        hashmap_destroy(body->body.object);
+    } else if(body->type == MSG_ENV_DT_ARRAY) {
+        linkedlist_destroy(body->body.array);
     }
 
     free(body);
@@ -355,8 +350,7 @@ msgbus_ret_t msgbus_msg_envelope_put(
             return MSG_ERR_ELEM_BLOB_MALFORMED;
         }
         if (env->blob != NULL) {
-            if (env->multi_blob_flag == false) {
-                env->multi_blob_flag = true;
+            if (env->blob->type == MSG_ENV_DT_BLOB) {
                 // Create linked list array to store multi blobs
                 // if first multi blob
                 msg_envelope_elem_body_t* arr_data =\
@@ -412,7 +406,7 @@ msgbus_ret_t msgbus_msg_envelope_remove(msg_envelope_t* env, const char* key) {
 
     hashmap_ret_t ret = hashmap_remove(env->map, key);
     if(ret != MAP_SUCCESS)
-        return MSG_ERR_ELEM_ALREADY_EXISTS;
+        return MSG_ERR_ELEM_NOT_EXIST;
     else
         return MSG_SUCCESS;
 }
@@ -511,10 +505,10 @@ static cJSON* elem_to_json(msg_envelope_elem_body_t* elem) {
 
 /**
  * Helper function to serialize a blob into a given serialized part.
- * 
+ *
  * @param dest - Destination serialized part for the blob
  * @param blob - Blob to serialize
- */ 
+ */
 static void serialize_blob(
         msg_envelope_serialized_part_t* dest, msg_envelope_elem_body_t* blob) {
     dest->shared = owned_blob_copy(blob->body.blob->shared);
