@@ -50,6 +50,7 @@
 #define ZEROMQ_HWM     "zmq_recv_hwm"
 #define ZEROMQ_RECONNECT_RETRIES "zmq_connect_retries"
 #define ZEROMQ_RECONNECT_RETRIES_DF 50
+#define DEFAULT_KEY ""
 
 /**
  * Internal ZeroMQ protocol context
@@ -1739,6 +1740,7 @@ static char* create_uri(
         zmq_proto_ctx_t* ctx, const char* name, bool is_publisher) {
     char* uri = NULL;
     config_value_t* host = NULL;
+    config_value_t* ipc_cfg_obj = NULL;
 
     if(ctx->is_ipc) {
         // Temp pointer to the socket directory
@@ -1755,7 +1757,23 @@ static char* create_uri(
         LOG_DEBUG("Initial IPC uri: %s", init_uri);
 
         // Check if a specific socket file has been given for the IPC socket
-        config_value_t* ipc_cfg_obj = config_get(ctx->config, name);
+        config_value_t* topic_cfg_obj = config_get(ctx->config, name);
+
+        // Required just for an entry point if socket_file is explicitly mentioned
+        // and doesn't have mapping topic for usage of socket file
+        config_value_t* default_cfg_obj = config_get(ctx->config, DEFAULT_KEY);
+
+         // Based on the ipc config mapping whether with the topic name or "",
+        // setting up the ipc_cfg_obj
+        if(topic_cfg_obj == NULL){
+            ipc_cfg_obj = default_cfg_obj;
+            config_value_destroy(topic_cfg_obj);
+        } else {
+            ipc_cfg_obj = topic_cfg_obj;
+            config_value_destroy(default_cfg_obj);
+        }
+
+
         if(ipc_cfg_obj != NULL) {
             if(ipc_cfg_obj->type != CVT_OBJECT) {
                 LOG_ERROR("Configuration for '%s' must be an object", name);
