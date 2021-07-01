@@ -512,13 +512,15 @@ static cJSON* elem_to_json(msg_envelope_elem_body_t* elem) {
 static void serialize_blob(
         msg_envelope_serialized_part_t* dest, msg_envelope_elem_body_t* blob) {
     dest->shared = owned_blob_copy(blob->body.blob->shared);
-    dest->len  = dest->shared->len;
-    dest->bytes  = dest->shared->bytes;
+    if (dest->shared != NULL) {
+        dest->len  = dest->shared->len;
+        dest->bytes  = dest->shared->bytes;
 
-    // Set part to own the data
-    if(blob->body.blob->shared->owned) {
-        dest->shared->owned = true;
-        blob->body.blob->shared->owned = false;
+        // Set part to own the data
+        if (blob->body.blob->shared->owned) {
+            dest->shared->owned = true;
+            blob->body.blob->shared->owned = false;
+        }
     }
 }
 
@@ -553,6 +555,9 @@ int msgbus_msg_envelope_serialize(
             for (int i = 0; i < num_parts; i++) {
                 msg_envelope_elem_body_t* arr_blob = \
                     msgbus_msg_envelope_elem_array_get_at(env->blob, i);
+                if (arr_blob == NULL) {
+                    return -1;
+                }
                 serialize_blob(&(*parts)[i], arr_blob);
             }
             // Total number of parts
@@ -610,6 +615,9 @@ int msgbus_msg_envelope_serialize(
                 for (int i = 1; i < num_parts; i++) {
                     msg_envelope_elem_body_t* arr_blob = \
                         msgbus_msg_envelope_elem_array_get_at(env->blob, i-1);
+                    if (arr_blob == NULL) {
+                        return -1;
+                    }
                     // Serialize every blob in blob array
                     serialize_blob(&(*parts)[i], arr_blob);
                 }
@@ -793,6 +801,7 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
     if (ct == CT_BLOB) {
         ret = deserialize_blob(msg, parts, num_parts, ct);
         if (ret != MSG_SUCCESS) {
+            msgbus_msg_envelope_destroy(msg);
             return MSG_ERR_DESERIALIZE_FAILED;
         }
     } else if (ct == CT_JSON) {
