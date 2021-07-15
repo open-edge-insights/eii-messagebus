@@ -357,6 +357,10 @@ private:
     // Profiling variable
     Profiling* m_profile;
 
+    Publisher& operator=(const Publisher& src) {
+        return *this;
+    }
+
 protected:
     /**
      * Publisher thread run method.
@@ -507,6 +511,10 @@ private:
 
     // Profiling variable
     Profiling* m_profile;
+
+    Subscriber& operator=(const Subscriber& src) {
+        return *this;
+    }
 
 protected:
     /**
