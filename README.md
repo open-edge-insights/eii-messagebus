@@ -1,3 +1,38 @@
+**Contents**
+
+- [EII Message Bus](#eii-message-bus)
+  - [Dependency Installation](#dependency-installation)
+  - [Compilation](#compilation)
+    - [Generating Documentation](#generating-documentation)
+    - [Potential Compilation Issues](#potential-compilation-issues)
+  - [Installation](#installation)
+    - [Install Python Binding](#install-python-binding)
+    - [Install Golang Binding](#install-golang-binding)
+  - [Running Unit Tests](#running-unit-tests)
+  - [Configuration](#configuration)
+    - [ZeroMQ IPC Configuration](#zeromq-ipc-configuration)
+    - [ZeroMQ TCP Configuration](#zeromq-tcp-configuration)
+      - [Publishers](#publishers)
+      - [Subscribers](#subscribers)
+      - [Services](#services)
+      - [Requesters](#requesters)
+      - [Using ZAP Authentication](#using-zap-authentication)
+    - [Additional ZeroMQ Configuration Properties](#additional-zeromq-configuration-properties)
+  - [Example Usage](#example-usage)
+    - [C Examples](#c-examples)
+      - [Publisher Many Example](#publisher-many-example)
+    - [Python Examples](#python-examples)
+    - [Go Examples](#go-examples)
+    - [Running Go Examples without Installing](#running-go-examples-without-installing)
+    - [Brokered Publish/Subscribe](#brokered-publishsubscribe)
+  - [Security](#security)
+    - [Using Only CurveZMQ Encryption](#using-only-curvezmq-encryption)
+      - [Publish/Subscribe](#publishsubscribe)
+      - [Request/Response](#requestresponse)
+    - [Using ZAP Authentication](#using-zap-authentication-1)
+    - [Disabling Security](#disabling-security)
+  - [Known issues](#known-issues)
+
 # EII Message Bus
 
 Message bus used between containers inside of EII.
