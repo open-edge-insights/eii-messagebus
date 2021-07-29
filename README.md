@@ -72,9 +72,8 @@ $ sudo -E ./install.sh
 ```
 
 Additionally, EIIMessageBus depends on the below libraries. Follow their documentation to install them.
-* [IntelSafeString](../IntelSafeString/README.md)
-* [EIIMsgEnv](../EIIMsgEnv/README.md)
-* [EIIUtils](../../util/c/README.md)
+* [IntelSafeString](https://github.com/open-edge-insights/eii-c-utils/blob/master/IntelSafeString/README.md)
+* [EIIUtils](https://github.com/open-edge-insights/eii-c-utils/blob/master/README.md)
 
 If you wish to compile the Python binding as well, then run the `install.sh`
 script with the `--cython` flag (as shown below).
