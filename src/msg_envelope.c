@@ -239,9 +239,84 @@ msgbus_ret_t msgbus_msg_envelope_elem_object_put(
     return MSG_SUCCESS;
 }
 
+msgbus_ret_t msgbus_msg_envelope_elem_object_put_integer(
+        msg_envelope_elem_body_t* obj, const char* key,
+        int64_t value) {
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_integer(value);
+    if (elem == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+
+    ret = msgbus_msg_envelope_elem_object_put(obj, key, elem);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(elem);
+    }
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_object_put_string(
+        msg_envelope_elem_body_t* obj, const char* key,
+        const char* value) {
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_string(value);
+    if (elem == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+
+    ret = msgbus_msg_envelope_elem_object_put(obj, key, elem);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(elem);
+    }
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_object_put_float(
+        msg_envelope_elem_body_t* obj, const char* key,
+        double value) {
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_floating(value);
+    if (elem == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+
+    ret = msgbus_msg_envelope_elem_object_put(obj, key, elem);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(elem);
+    }
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_object_put_bool(
+        msg_envelope_elem_body_t* obj, const char* key,
+        bool value) {
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_bool(value);
+    if (elem == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+
+    ret = msgbus_msg_envelope_elem_object_put(obj, key, elem);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(elem);
+    }
+    return ret;
+}
+
 msg_envelope_elem_body_t* msgbus_msg_envelope_elem_object_get(
-        msg_envelope_elem_body_t* obj, const char* key)
-{
+        msg_envelope_elem_body_t* obj, const char* key) {
     // Verify that the given msg envelope element is an object
     if(obj->type != MSG_ENV_DT_OBJECT)
         return NULL;
@@ -289,6 +364,82 @@ msgbus_ret_t msgbus_msg_envelope_elem_array_add(
         return MSG_ERR_ELEM_ARR;
 
     return MSG_SUCCESS;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_array_add_integer(
+        msg_envelope_elem_body_t* arr,
+        int64_t value)
+{
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_integer(value);
+    if (elem == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+    ret = msgbus_msg_envelope_elem_array_add(arr, elem);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(elem);
+    }
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_array_add_string(
+        msg_envelope_elem_body_t* arr,
+        const char* value)
+{
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_string(value);
+    if (elem == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+    ret = msgbus_msg_envelope_elem_array_add(arr, elem);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(elem);
+    }
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_array_add_float(
+        msg_envelope_elem_body_t* arr,
+        double value)
+{
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_floating(value);
+    if (elem == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+    ret = msgbus_msg_envelope_elem_array_add(arr, elem);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(elem);
+    }
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_elem_array_add_bool(
+        msg_envelope_elem_body_t* arr,
+        bool value)
+{
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_bool(value);
+    if (elem == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+    ret = msgbus_msg_envelope_elem_array_add(arr, elem);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(elem);
+    }
+    return ret;
 }
 
 msg_envelope_elem_body_t* msgbus_msg_envelope_elem_array_get_at(
@@ -396,6 +547,79 @@ msgbus_ret_t msgbus_msg_envelope_put(
         }
     }
 
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_put_integer(
+        msg_envelope_t* obj, const char* key,
+        int64_t value) {
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* data = msgbus_msg_envelope_new_integer(value);
+    if (data == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+
+    ret = msgbus_msg_envelope_put(obj, key, data);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(data);
+    }
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_put_string(
+        msg_envelope_t* obj, const char* key, const char* value) {
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* data = msgbus_msg_envelope_new_string(value);
+    if (data == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+
+    ret = msgbus_msg_envelope_put(obj, key, data);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(data);
+    }
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_put_float(
+        msg_envelope_t* obj, const char* key, double value) {
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* data = msgbus_msg_envelope_new_floating(value);
+    if (data == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+
+    ret = msgbus_msg_envelope_put(obj, key, data);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(data);
+    }
+    return ret;
+}
+
+msgbus_ret_t msgbus_msg_envelope_put_bool(
+        msg_envelope_t* obj, const char* key, bool value) {
+    msgbus_ret_t ret = MSG_SUCCESS;
+    msg_envelope_elem_body_t* data = msgbus_msg_envelope_new_bool(value);
+    if (data == NULL) {
+        return MSG_ERR_NO_MEMORY;
+    }
+
+    ret = msgbus_msg_envelope_put(obj, key, data);
+    if (ret != MSG_SUCCESS) {
+        // Not returning in this block, only free'ing
+        // the memory allocated, since msgbus_msg_envelope_elem_object_put()
+        // will not own/free the memory.
+        msgbus_msg_envelope_elem_destroy(data);
+    }
     return ret;
 }
 

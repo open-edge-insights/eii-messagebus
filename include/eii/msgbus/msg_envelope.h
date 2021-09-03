@@ -171,6 +171,18 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_object();
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_string(const char* string);
 
 /**
+ * Put a new string into a message envelope object.
+ *
+ * @param obj   - Message envelope element to add the string to
+ * @param key   - Key for the value
+ * @param value - Value associated to the key
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_put_string(
+        msg_envelope_t* obj, const char* key,
+        const char* value);
+
+/**
  * Helper function for creating a new message envelope element containing
  * an integer value.
  *
@@ -178,6 +190,18 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_string(const char* string);
  * @return msg_envelope_body_t, or NULL if errors occur
  */
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_integer(int64_t integer);
+
+/**
+ * Put a new integer into a message envelope object.
+ *
+ * @param obj   - Message envelope element to add the integer to
+ * @param key   - Key for the value
+ * @param value - Value associated to the key
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_put_integer(
+        msg_envelope_t* obj, const char* key,
+        int64_t value);
 
 /**
  * Helper function for creating a new message envelope element containing
@@ -189,6 +213,18 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_integer(int64_t integer);
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_floating(double floating);
 
 /**
+ * Put a new floating value into a message envelope object.
+ *
+ * @param obj   - Message envelope element to add the float value to
+ * @param key   - Key for the value
+ * @param value - Value associated to the key
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_put_float(
+        msg_envelope_t* obj, const char* key,
+        double value);
+
+/**
  * Helper function for creating a new message envelope element containing
  * a boolean value.
  *
@@ -196,6 +232,18 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_floating(double floating);
  * @return msg_envelope_body_t, or NULL if errors occur
  */
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_bool(bool boolean);
+
+/**
+ * Put a new bool value into a message envelope object.
+ *
+ * @param obj   - Message envelope element to add the bool value to
+ * @param key   - Key for the value
+ * @param value - Value associated to the key
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_put_bool(
+        msg_envelope_t* obj, const char* key,
+        bool value);
 
 /**
  * Helper function for creating a new message envelope element containing
@@ -221,6 +269,54 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_blob(
 msgbus_ret_t msgbus_msg_envelope_elem_object_put(
         msg_envelope_elem_body_t* obj, const char* key,
         msg_envelope_elem_body_t* value);
+
+/**
+ * Put a new integer into a message envelope nested object.
+ *
+ * @param obj   - Message envelope object element to add the integer to
+ * @param key   - Key for the value
+ * @param value - Value associated to the key
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_object_put_integer(
+        msg_envelope_elem_body_t* obj, const char* key,
+        int64_t value);
+
+/**
+ * Put a new string into a message envelope nested object.
+ *
+ * @param obj   - Message envelope object element to add the string to
+ * @param key   - Key for the value
+ * @param value - Value associated to the key
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_object_put_string(
+        msg_envelope_elem_body_t* obj, const char* key,
+        const char* value);
+
+/**
+ * Put a new float into a message envelope nested object.
+ *
+ * @param obj   - Message envelope object element to add the float to
+ * @param key   - Key for the value
+ * @param value - Value associated to the key
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_object_put_float(
+        msg_envelope_elem_body_t* obj, const char* key,
+        double value);
+
+/**
+ * Put a new bool into a message envelope nested object.
+ *
+ * @param obj   - Message envelope object element to add the bool to
+ * @param key   - Key for the value
+ * @param value - Value associated to the key
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_object_put_bool(
+        msg_envelope_elem_body_t* obj, const char* key,
+        bool value);
 
 /**
  * Get value from a message envelope nested object.
@@ -252,6 +348,50 @@ msgbus_ret_t msgbus_msg_envelope_elem_object_remove(
 msgbus_ret_t msgbus_msg_envelope_elem_array_add(
         msg_envelope_elem_body_t* arr,
         msg_envelope_elem_body_t* value);
+
+/**
+ * Add integer to the msg envelope array element.
+ *
+ * @param arr   - Array to add the element to
+ * @param value - integer to add
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_array_add_integer(
+        msg_envelope_elem_body_t* arr,
+        int64_t value);
+
+/**
+ * Add string to the msg envelope array element.
+ *
+ * @param arr   - Array to add the element to
+ * @param value - Element to add
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_array_add_string(
+        msg_envelope_elem_body_t* arr,
+        const char* value);
+
+/**
+ * Add float to the msg envelope array element.
+ *
+ * @param arr   - Array to add the element to
+ * @param value - Element to add
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_array_add_float(
+        msg_envelope_elem_body_t* arr,
+        double value);
+
+/**
+ * Add boolean to the msg envelope array element.
+ *
+ * @param arr   - Array to add the element to
+ * @param value - Element to add
+ * @return msgbus_ret_t
+ */
+msgbus_ret_t msgbus_msg_envelope_elem_array_add_bool(
+        msg_envelope_elem_body_t* arr,
+        bool value);
 
 /**
  * Get item in the msg envelope array element.
