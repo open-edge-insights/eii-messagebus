@@ -52,11 +52,11 @@ INSTALL_PATH="$CMAKE_INSTALL_PREFIX/lib"
 ORIGINAL_CURRENT_DIR=`pwd`
 
 # Library versions
-zeromq_version="4.3.1"
+zeromq_version="4.3.3"
 cjson_version="1.7.12"
 
 # URLs
-zeromq_url="https://github.com/zeromq/libzmq/releases/download/v4.3.1/zeromq-${zeromq_version}.tar.gz"
+zeromq_url="https://github.com/zeromq/libzmq/releases/download/v4.3.3/zeromq-${zeromq_version}.tar.gz"
 cjson_url="https://github.com/DaveGamble/cJSON/archive/v${cjson_version}.tar.gz"
 
 if [ ! -d "deps" ] ; then
