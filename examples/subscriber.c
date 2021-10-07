@@ -62,8 +62,6 @@ int main(int argc, char** argv) {
     void* msgbus_ctx = NULL;
     recv_ctx_t* sub_ctx = NULL;
     msg_envelope_t* msg = NULL;
-    msg_envelope_serialized_part_t* parts = NULL;
-    int num_parts = 0;
     msgbus_ret_t ret = MSG_SUCCESS;
     log_lvl_t log_level = LOG_LVL_INFO;
 
@@ -160,28 +158,15 @@ int main(int argc, char** argv) {
         LOG_INFO("Received message for topic: %s", msg->name);
 
         // Serializing the message so it can easily be printed out
-        num_parts = msgbus_msg_envelope_serialize(msg, &parts);
-        if (num_parts <= 0) {
-            LOG_ERROR_0("Failed to serialize message");
-            goto err;
-        }
-
-        LOG_INFO("Received message");
-        for (int i = 0; i < num_parts; i++) {
-            LOG_INFO("Part %d %s", i, (char*) parts[i].bytes);
-        }
+        msgbus_msg_envelope_print(msg, true, false);
 
         // Clean up...
-        msgbus_msg_envelope_serialize_destroy(parts, num_parts);
         msgbus_msg_envelope_destroy(msg);
         msg = NULL;
-        parts = NULL;
     }
 
     if (msg != NULL)
         msgbus_msg_envelope_destroy(msg);
-    if (parts != NULL)
-        msgbus_msg_envelope_serialize_destroy(parts, num_parts);
     if (sub_ctx != NULL)
         msgbus_recv_ctx_destroy(msgbus_ctx, sub_ctx);
     if (msgbus_ctx != NULL)
@@ -192,8 +177,6 @@ int main(int argc, char** argv) {
 err:
     if (msg != NULL)
         msgbus_msg_envelope_destroy(msg);
-    if (parts != NULL)
-        msgbus_msg_envelope_serialize_destroy(parts, num_parts);
     if (sub_ctx != NULL)
         msgbus_recv_ctx_destroy(msgbus_ctx, sub_ctx);
     if (msgbus_ctx != NULL)

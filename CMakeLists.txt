@@ -26,8 +26,8 @@ option(WITH_TESTS    "Compile with unit tests" OFF)
 option(WITH_DOCS     "Generate message bus documentation" OFF)
 option(WITH_EXAMPLES "Compile with examples" OFF)
 
-# Set C standard to C11
-set(CMAKE_C_STANDARD 11)
+# Set C++ version
+set(CMAKE_CXX_STANDARD 14)
 
 # Set CFLAGS
 set(CMAKE_C_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -D_FORTIFY_SOURCE=2")
@@ -67,6 +67,8 @@ set(MSGENV_SRC
     "src/hashmap.c"
     "src/linkedlist.c"
     "src/crc32.c"
+    "src/msg_envelope.cpp"
+    "src/msgbusret.c"
     "src/profiling.cpp")
 # set_source_files_properties(${MSGENV_SRC} PROPERTIES LANGUAGE C)
 link_directories(${CMAKE_INSTALL_PREFIX}/lib)

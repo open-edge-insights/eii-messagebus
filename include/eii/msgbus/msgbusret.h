@@ -62,6 +62,15 @@ typedef enum {
     MSG_ERR_UNKNOWN = 255,
 } msgbus_ret_t;
 
+/**
+ * Helper method to get the string representation of a message bus return
+ * value.
+ *
+ * @param ret - @c msgbus_ret_t value
+ * @return const char* of the return value's name
+ */
+const char* msgbus_ret_str(msgbus_ret_t ret);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

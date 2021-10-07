@@ -104,3 +104,11 @@ target_link_libraries(thread-subscriber eiimsgbus
                                         eiiutils
                                         eiimsgenv
                                         pthread)
+
+# Add MsgEnvelope C++ example
+add_executable(msg_envelope_example "msg_envelope_example.cpp")
+target_link_libraries(msg_envelope_example eiimsgbus
+                                           pthread
+                                           ${IntelSafeString_LIBRARIES}
+                                           eiiutils
+                                           eiimsgenv)

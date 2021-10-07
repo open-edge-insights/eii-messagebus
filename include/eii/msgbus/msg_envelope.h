@@ -514,6 +514,24 @@ void msgbus_msg_envelope_serialize_destroy(
         msg_envelope_serialized_part_t* parts, int num_parts);
 
 /**
+ * Helper method to log the contents of a message envlope.
+ *
+ * \note This method has performance impact. Use sparingly and ideally for
+ *       debug purposes only.
+ *
+ * \note If told to print blobs, keep in mind that this can be very bad
+ *       output at times (binary is not pretty).
+ *
+ * \note This will print to stderr.
+ *
+ * @param msg          - @c msg_envelope_t* to print
+ * @param pretty_print - Print JSON data unflattend
+ * @param print_blobs  - If blobs are present in the message, print them
+ */
+void msgbus_msg_envelope_print(
+        msg_envelope_t* msg, bool pretty_print, bool print_blobs);
+
+/**
  * Delete and clean up a message envelope structure.
  *
  * @param msg - Message envelope to delete

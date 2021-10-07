@@ -23,7 +23,6 @@
  */
 
 #include <stdlib.h>
-
 #include <stdio.h>
 #include <errno.h>
 #include <stdio.h>
@@ -1106,6 +1105,78 @@ void msgbus_msg_envelope_serialize_destroy(
             owned_blob_destroy(parts[i].shared);
     }
     free(parts);
+}
+
+void msgbus_msg_envelope_print(
+        msg_envelope_t* msg, bool pretty_print, bool print_blobs) {
+    fprintf(stderr, "=== Message Envelope ===\n");
+
+    if (msg->content_type == CT_JSON) {
+        cJSON* obj = cJSON_CreateObject();
+        HASHMAP_LOOP(msg->map, msg_envelope_elem_body_t, {
+            cJSON* subobj = elem_to_json(value);
+            if (subobj == NULL) {
+                cJSON_Delete(obj);
+                obj = NULL;
+                break;
+            }
+            // Add the item to the root JSON object
+            cJSON_AddItemToObject(obj, key, subobj);
+        });
+
+        if (obj == NULL) {
+            fprintf(stderr, "ERROR: FAILED TO PRINT MESSAGE ENVELOPE\n");
+        }
+
+
+        char* json_bytes = NULL;
+        if (pretty_print) {
+            json_bytes = cJSON_Print(obj);
+        } else {
+            json_bytes = cJSON_PrintUnformatted(obj);
+        }
+
+        fprintf(stderr, "JSON DATA:\n%s\n", json_bytes);
+
+        cJSON_Delete(obj);
+        free(json_bytes);
+
+        if (print_blobs) {
+            fprintf(stderr, "BLOBS:\n");
+            if (msg->blob == NULL) {
+                fprintf(stderr, "No Blobs\n");
+            } else if (msg->blob->type == MSG_ENV_DT_BLOB) {
+                fprintf(stderr, "Blob 0:\n%s\n", msg->blob->body.blob->data);
+            } else {
+                int num_blobs = msg->blob->body.array->len;
+                msg_envelope_elem_body_t* blob = NULL;
+                for (int i = 0; i < num_blobs; i++) {
+                    blob = msgbus_msg_envelope_elem_array_get_at(msg->blob, i);
+                    fprintf(stderr, "Blob %d:\n%s\n", i, blob->body.blob->data);
+                }
+            }
+        }
+    } else {
+        if (print_blobs) {
+            fprintf(stderr, "BLOBS:\n");
+            if (msg->blob == NULL) {
+                fprintf(stderr, "No Blobs\n");
+            } else if (msg->blob->type == MSG_ENV_DT_BLOB) {
+                fprintf(stderr, "Blob 0:\n%s\n", msg->blob->body.blob->data);
+            } else {
+                int num_blobs = msg->blob->body.array->len;
+                msg_envelope_elem_body_t* blob = NULL;
+                for (int i = 0; i < num_blobs; i++) {
+                    blob = msgbus_msg_envelope_elem_array_get_at(msg->blob, i);
+                    fprintf(stderr, "Blob %d:\n%s\n", i, blob->body.blob->data);
+                }
+            }
+        } else {
+            fprintf(stderr, "NOTHING TO PRINT (print_blobs=false)\n");
+        }
+    }
+
+    fprintf(stderr, "========================\n");
 }
 
 void msgbus_msg_envelope_destroy(msg_envelope_t* env) {
