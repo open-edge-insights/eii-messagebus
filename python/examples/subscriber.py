@@ -29,8 +29,10 @@ import eii.msgbus as mb
 ap = argparse.ArgumentParser()
 ap.add_argument('config', help='JSON configuration')
 ap.add_argument('-t', '--topic', default='publish_test', help='Topic')
-ap.add_argument('-p', '--print', default=False, action='store_true',
-                help='Print the received message')
+ap.add_argument('-np', '--no-print', dest='no_print', default=False,
+                action='store_true', help='Do not print JSON message')
+ap.add_argument('-pb', '--print-blob', dest='print_blob', default=False,
+                action='store_true', help='Print blobs, if they exist')
 args = ap.parse_args()
 
 msgbus = None
@@ -49,20 +51,20 @@ try:
     print('[INFO] Running...')
     while True:
         msg = subscriber.recv()
-        meta_data, blob = msg
-        if meta_data is not None:
-            if args.print:
-                print(f'[INFO] RECEIVED: meta data: {meta_data}'
-                      f' on topic {msg.get_name()}')
-        else:
-            print('[INFO] Receive interrupted')
 
-        if blob is not None:
-            if args.print:
-                print(f'[INFO] RECEIVED: blob: {msg.get_blob()}'
-                      f' on topic {msg.get_name()}')
-        else:
-            print('[INFO] Receive interrupted')
+        print(f'[INFO] Received message on topic: {msg.get_name()}')
+        if not args.no_print:
+            print(f'JSON Data: {msg.get_meta_data()}')
+
+        if args.print_blob:
+            blobs = msg.get_blob()
+            if blobs is not None:
+                if isinstance(blobs, bytes):
+                    blobs = [blobs]
+                for i, blob in enumerate(blobs):
+                    print(f'BLOB {i}:\n{blob}')
+            else:
+                print('NO BLOBS')
 except KeyboardInterrupt:
     print('[INFO] Quitting...')
 finally:

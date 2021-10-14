@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
         msgEnvArr->put_object(msgEnvArrObj);
 
         // msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);
-        
+
         // msgEnvArr->remove_at(3);
 
         // msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);

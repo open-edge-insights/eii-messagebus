@@ -93,7 +93,7 @@ const char* MsgEnvelopeElement::get_type_str() {
 int64_t MsgEnvelopeElement::to_int() {
     if(m_elem->type != MSG_ENV_DT_INT) {
         msgbus_msg_envelope_elem_destroy(m_elem);
-        throw MsgbusException(MSG_ERR_UNKNOWN, 
+        throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Value type is not an integer");
     }
     return m_elem->body.integer;
@@ -102,7 +102,7 @@ int64_t MsgEnvelopeElement::to_int() {
 const char* MsgEnvelopeElement::to_string() {
     if(m_elem->type != MSG_ENV_DT_STRING) {
         msgbus_msg_envelope_elem_destroy(m_elem);
-        throw MsgbusException(MSG_ERR_UNKNOWN, 
+        throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Value type is not a string");
     }
     return m_elem->body.string;
@@ -111,7 +111,7 @@ const char* MsgEnvelopeElement::to_string() {
 double MsgEnvelopeElement::to_float() {
     if(m_elem->type != MSG_ENV_DT_FLOATING) {
         msgbus_msg_envelope_elem_destroy(m_elem);
-        throw MsgbusException(MSG_ERR_UNKNOWN, 
+        throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Value type is not an integer");
     }
     return m_elem->body.floating;
@@ -120,7 +120,7 @@ double MsgEnvelopeElement::to_float() {
 bool MsgEnvelopeElement::to_bool() {
     if(m_elem->type != MSG_ENV_DT_BOOLEAN) {
         msgbus_msg_envelope_elem_destroy(m_elem);
-        throw MsgbusException(MSG_ERR_UNKNOWN, 
+        throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Value type is not an integer");
     }
     return m_elem->body.boolean;

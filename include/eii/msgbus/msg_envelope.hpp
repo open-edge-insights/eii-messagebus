@@ -120,7 +120,7 @@ class MsgEnvelopeElement {
      * Fetch integer value from @c MsgEnvelopeElement object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @return int64_t - returns the integer value
      */
     int64_t to_int();
@@ -129,7 +129,7 @@ class MsgEnvelopeElement {
      * Fetch float value from @c MsgEnvelopeElement object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @return double - returns the float value
      */
     double to_float();
@@ -138,7 +138,7 @@ class MsgEnvelopeElement {
      * Fetch string value from @c MsgEnvelopeElement object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @return const char* - returns the string value
      */
     const char* to_string();
@@ -147,7 +147,7 @@ class MsgEnvelopeElement {
      * Fetch boolean value from @c MsgEnvelopeElement object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @return bool - returns the boolean value
      */
     bool to_bool();
@@ -156,7 +156,7 @@ class MsgEnvelopeElement {
      * Fetch integer value from @c MsgEnvelopeElement object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @return @c MsgEnvelopeArray - returns the @c MsgEnvelopeArray value
      */
     MsgEnvelopeArray* to_array();
@@ -165,28 +165,28 @@ class MsgEnvelopeElement {
      * Fetch integer value from @c MsgEnvelopeElement object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @return @c MsgEnvelopeObject - returns the @c MsgEnvelopeObject value
      */
     MsgEnvelopeObject* to_object();
 
     /**
      * Check whether or not the message envelope element type is none.
-     * 
+     *
      * @return true if the value is none, false otherwise
      */
     bool is_none();
 
     /**
      * Return the data type of the message envelope element.
-     * 
-     * @return @c msg_envelope_data_type_t 
+     *
+     * @return @c msg_envelope_data_type_t
      */
     msg_envelope_data_type_t get_type();
 
     /**
      * Get a string representation of the of the message envelope element type.
-     * 
+     *
      * @return const char*
      */
     const char* get_type_str();
@@ -287,6 +287,7 @@ class MsgEnvelope {
     /**
      * Add a vector as an array to the @c MsgEnvelope object.
      * Note: The supported types for the vector are integer, float & bool only.
+     * Add a @c MsgEnvelopeArray to the @c MsgEnvelope object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
@@ -377,89 +378,89 @@ class MsgEnvelope {
 
     /**
      * To fetch an integer value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
+     *
      * @return int64_t - returns the integer value associated with the key
      */
     int64_t get_int(const std::string key);
 
     /**
      * To fetch a float value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
+     *
      * @return double - returns the float value associated with the key
      */
     double get_float(const std::string key);
 
     /**
      * To fetch a string associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
+     *
      * @return const char* - returns the string value associated with the key
      */
     const char* get_string(const std::string key);
 
     /**
      * To fetch a boolean value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
+     *
      * @return bool - returns the boolean value associated with the key
      */
     bool get_bool(const std::string key);
 
     /**
      * To fetch blob from @c MsgEnvelope
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @return @c char* - returns the blob from MsgEnvelope
      */
     char* get_blob(const std::string key);
 
     /**
      * To fetch a @c MsgEnvelopeObject value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
-     * @return @c MsgEnvelopeObject - returns the @c MsgEnvelopeObject  value 
+     *
+     * @return @c MsgEnvelopeObject - returns the @c MsgEnvelopeObject  value
      *                                associated with the key
      */
     MsgEnvelopeObject* get_object(const std::string key);
 
     /**
      * To fetch a @c MsgEnvelopeArray value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
-     * @return @c MsgEnvelopeArray - returns the @c MsgEnvelopeArray  value 
+     *
+     * @return @c MsgEnvelopeArray - returns the @c MsgEnvelopeArray  value
      *                                associated with the key
      */
     MsgEnvelopeArray* get_array(const std::string key);
 
     /**
      * To fetch a @c MsgEnvelopeElement value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
-     * @return @c MsgEnvelopeElement - returns the @c MsgEnvelopeElement  value 
+     *
+     * @return @c MsgEnvelopeElement - returns the @c MsgEnvelopeElement  value
      *                                 associated with the key
      */
     MsgEnvelopeElement* get_msg_envelope_element(const std::string key);
@@ -502,7 +503,7 @@ class MsgEnvelopeArray {
      * Private Constructor
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param obj           -  Underlying @c msg_envelope_elem_body_t object
      * @param owns_object   -  boolean whether @c MsgEnvelopeArray owns m_arr
      *
@@ -581,7 +582,7 @@ class MsgEnvelopeArray {
      * To fetch an integer value associated with the key provided
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param index   -  index of value to be fetched
      *
      * @return int64_t - returns the integer value associated with the key
@@ -592,7 +593,7 @@ class MsgEnvelopeArray {
      * To fetch a float value associated with the key provided
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param index   -  index of value to be fetched
      *
      * @return double - returns the float value associated with the key
@@ -603,7 +604,7 @@ class MsgEnvelopeArray {
      * To fetch a string associated with the key provided
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param index   -  index of value to be fetched
      *
      * @return const char* - returns the string value associated with the key
@@ -614,7 +615,7 @@ class MsgEnvelopeArray {
      * To fetch a boolean value associated with the key provided
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param index   -  index of value to be fetched
      *
      * @return bool - returns the boolean value associated with the key
@@ -625,7 +626,7 @@ class MsgEnvelopeArray {
      * To fetch a @c MsgEnvelopeObject value associated with the key provided
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param index   -  index of value to be fetched
      *
      * @return @c MsgEnvelopeObject - returns the @c MsgEnvelopeObject value
@@ -635,11 +636,11 @@ class MsgEnvelopeArray {
 
     /**
      * To fetch a @c MsgEnvelopeElement value associated with the index provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param index   -  index of value to be fetched
-     * 
+     *
      * @return @c MsgEnvelopeElement - returns the @c MsgEnvelopeElement value
      *                                 associated with the key
      */
@@ -680,7 +681,7 @@ class MsgEnvelopeObject {
      * Private Constructor
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param obj           -  Underlying @c msg_envelope_elem_body_t object
      * @param owns_object   -  boolean whether @c MsgEnvelopeObject owns m_msgenvobj
      *
@@ -748,56 +749,56 @@ class MsgEnvelopeObject {
 
     /**
      * To fetch an integer value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
+     *
      * @return int64_t - returns the integer value associated with the key
      */
     int64_t get_int(const std::string key);
 
     /**
      * To fetch a float value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
+     *
      * @return double - returns the float value associated with the key
      */
     double get_float(const std::string key);
 
     /**
      * To fetch a string associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
+     *
      * @return const char* - returns the string value associated with the key
      */
     const char* get_string(const std::string key);
 
     /**
      * To fetch a boolean value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
+     *
      * @return bool - returns the boolean value associated with the key
      */
     bool get_bool(const std::string key);
 
     /**
      * To fetch a @c MsgEnvelopeElement value associated with the key provided
-     * 
+     *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
-     * 
+     *
      * @param key   -  key of value to be fetched
-     * 
-     * @return @c MsgEnvelopeElement - returns the @c MsgEnvelopeElement value 
+     *
+     * @return @c MsgEnvelopeElement - returns the @c MsgEnvelopeElement value
      *                                 associated with the key
      */
     MsgEnvelopeElement* get_msg_envelope_element(const std::string key);

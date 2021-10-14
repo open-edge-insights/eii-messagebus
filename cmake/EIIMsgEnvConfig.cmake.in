@@ -26,6 +26,8 @@ list(APPEND CMAKE_MODULE_PATH ${EIIMsgEnv_CMAKE_DIR})
 # NOTE Had to use find_package because find_dependency does not support
 # COMPONENTS or MODULE until 3.8.0
 find_package(cJSON REQUIRED)
+find_package(EIIUtils REQUIRED)
+find_package(IntelSafeString REQUIRED)
 
 # Include header directories
 include_directories(${CJSON_INCLUDE_DIRS})
@@ -34,5 +36,5 @@ if(NOT TARGET EIIMsgEnv)
     include("${EIIMsgEnv_CMAKE_DIR}/EIIMsgEnvTargets.cmake")
 endif()
 
-set(EIIMsgEnv_LIBRARIES EIIMsgEnv)
+set(EIIMsgEnv_LIBRARIES EIIMsgEnv EIIUtils IntelSafeString)
 set(EIIMsgEnv_INCLUDE ${INSTALL_LIBDIR}/include)

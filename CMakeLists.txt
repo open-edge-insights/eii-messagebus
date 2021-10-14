@@ -70,7 +70,6 @@ set(MSGENV_SRC
     "src/msg_envelope.cpp"
     "src/msgbusret.c"
     "src/profiling.cpp")
-# set_source_files_properties(${MSGENV_SRC} PROPERTIES LANGUAGE C)
 link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 
 add_library(eiimsgenv SHARED ${MSGENV_SRC})
@@ -82,7 +81,7 @@ target_link_libraries(eiimsgenv
 
 # Get all source files
 file(GLOB ZMQ_SOURCE "src/proto_zmq/*.c")
-set(MSGBUS_SRC "src/msgbus.c" "src/msgbus.c" ${ZMQ_SOURCE})
+set(MSGBUS_SRC "src/msgbus.c" "src/msgbus.cpp" ${ZMQ_SOURCE})
 set_source_files_properties(${MSGBUS_SRC} PROPERTIES LANGUAGE C)
 
 add_library(eiimsgbus SHARED ${MSGBUS_SRC})

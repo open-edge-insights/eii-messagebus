@@ -29,6 +29,7 @@
 extern "C" {
 #endif
 
+#include <eii/msgbus/msg_envelope.h>
 #include <eii/utils/logger.h>
 #include <safe_lib.h>
 
@@ -66,6 +67,34 @@ bool parse_log_level(const char* log_lvl_str, log_lvl_t* log_lvl) {
     // this is an error and an unknown log level string.
     LOG_ERROR("Unknown log level: %s", log_lvl_str);
     return false;
+}
+
+/**
+ * Helper method to print a message envelope.
+ *
+ * \note This should be a utility for message envelopes in the future.
+ *
+ * \note This destroys the message envelope it is given.
+ */
+void print_msg_envelope(msg_envelope_t* msg, bool print_all_parts) {
+    msg_envelope_serialized_part_t* parts = NULL;
+
+    int num_parts = msgbus_msg_envelope_serialize(msg, &parts);
+    if (num_parts <= 0) {
+        LOG_ERROR_0("Failed to serialize message");
+        return;
+    }
+
+    LOG_INFO(
+        "Received message on topic %s with %d parts", msg->name, num_parts);
+    int parts_to_print = (print_all_parts) ? num_parts : 1;
+    for (int i = 0; i < parts_to_print; i++) {
+        fprintf(stderr, "\t=== PART %d ===\n", i);
+        fprintf(stderr, "\t%s\n", parts[i].bytes);
+    }
+
+    msgbus_msg_envelope_serialize_destroy(parts, num_parts);
+    msgbus_msg_envelope_destroy(msg);
 }
 
 #ifdef __cplusplus

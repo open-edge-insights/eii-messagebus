@@ -18,18 +18,6 @@
 # FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-# Configure and copy over IPC configuration file
-set(IPC_CONFIG_IN "${CMAKE_CURRENT_SOURCE_DIR}/configs/ipc_example_config.json.in")
-set(IPC_CONFIG    "${CMAKE_CURRENT_BINARY_DIR}/configs/ipc_example_config.json")
-set(IPC_CONFIG_MULTI_IN "${CMAKE_CURRENT_SOURCE_DIR}/configs/ipc_example_config_multi_topics.json.in")
-set(IPC_CONFIG_MULTI    "${CMAKE_CURRENT_BINARY_DIR}/configs/ipc_example_config_multi_topics.json")
-set(IPC_CONFIG_PUB_BROKERED "${CMAKE_CURRENT_SOURCE_DIR}/configs/ipc_publisher_brokered.json")
-set(IPC_CONFIG_SUB_BROKERED "${CMAKE_CURRENT_SOURCE_DIR}/configs/ipc_subscriber_brokered.json")
-
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/.socks")
-configure_file(${IPC_CONFIG_IN} ${IPC_CONFIG})
-configure_file(${IPC_CONFIG_MULTI_IN} ${IPC_CONFIG_MULTI})
-
 # Copy over TCP configuration files
 file(GLOB CONFIGS "configs/*.json")
 
@@ -112,3 +100,19 @@ target_link_libraries(msg_envelope_example eiimsgbus
                                            ${IntelSafeString_LIBRARIES}
                                            eiiutils
                                            eiimsgenv)
+
+# Add C++ publisher example
+add_executable(cpp-publisher "publisher.cpp")
+target_link_libraries(cpp-publisher eiimsgbus
+                                   pthread
+                                   ${IntelSafeString_LIBRARIES}
+                                   eiiutils
+                                   eiimsgenv)
+
+# Add C++ subscriber example
+add_executable(cpp-subscriber "subscriber.cpp")
+target_link_libraries(cpp-subscriber eiimsgbus
+                                   pthread
+                                   ${IntelSafeString_LIBRARIES}
+                                   eiiutils
+                                   eiimsgenv)

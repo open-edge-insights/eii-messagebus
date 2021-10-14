@@ -22,11 +22,15 @@ get_filename_component(EIIMessageBus_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH
 include(CMakeFindDependencyMacro)
 
 list(APPEND CMAKE_MODULE_PATH ${EIIMessageBus_CMAKE_DIR})
+list(APPEND CMAKE_MODULE_PATH ${EIIMessageBus_CMAKE_DIR}/../)
 
 # NOTE Had to use find_package because find_dependency does not support
 # COMPONENTS or MODULE until 3.8.0
 find_package(ZMQ REQUIRED)
 find_package(cJSON REQUIRED)
+find_package(EIIMsgEnv REQUIRED)
+find_package(EIIUtils REQUIRED)
+find_package(IntelSafeString REQUIRED)
 
 # Include header directories
 include_directories(
@@ -37,5 +41,5 @@ if(NOT TARGET EIIMessageBus)
     include("${EIIMessageBus_CMAKE_DIR}/EIIMessageBusTargets.cmake")
 endif()
 
-set(EIIMessageBus_LIBRARIES EIIMessageBus)
+set(EIIMessageBus_LIBRARIES EIIMessageBus EIIMsgEnv EIIUtils IntelSafeString)
 set(EIIMessageBus_INCLUDE ${INSTALL_LIBDIR}/include)

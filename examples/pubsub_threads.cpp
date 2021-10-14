@@ -30,7 +30,7 @@
 
 #include <eii/utils/logger.h>
 #include <eii/utils/json_config.h>
-#include "eii/msgbus/msgbus.h"
+#include "eii/msgbus/msgbus.hpp"
 
 #define SERVICE_NAME "pubsub-threads"
 
@@ -133,8 +133,8 @@ public:
 };
 
 // Globals
-Publisher* g_publisher = NULL;
-Subscriber<ExampleMessage>* g_subscriber = NULL;
+PublisherThread* g_publisher = NULL;
+SubscriberThread<ExampleMessage>* g_subscriber = NULL;
 MessageQueue* g_input_queue = NULL;
 MessageQueue* g_output_queue = NULL;
 
@@ -196,12 +196,20 @@ int main(int argc, char** argv) {
 
     g_input_queue = new MessageQueue(-1);
     g_output_queue = new MessageQueue(-1);
-    g_publisher = new Publisher(
-            pub_config, err_cv, "PUBSUB_TOPIC", g_input_queue,
-            SERVICE_NAME);
-    g_subscriber = new Subscriber<ExampleMessage>(
-            sub_config, err_cv, "PUBSUB_TOPIC", g_output_queue,
-            SERVICE_NAME);
+    try {
+        g_publisher = new PublisherThread(
+                pub_config, err_cv, "PUBSUB_TOPIC", g_input_queue,
+                SERVICE_NAME);
+        g_subscriber = new SubscriberThread<ExampleMessage>(
+                sub_config, err_cv, "PUBSUB_TOPIC", g_output_queue,
+                SERVICE_NAME);
+    } catch (const std::exception& ex) {
+        LOG_ERROR("Error while initializing publisher/subscriber: %s",
+                  ex.what());
+        delete g_input_queue;
+        delete g_output_queue;
+        return -1;
+    }
 
     g_publisher->start();
     g_subscriber->start();
@@ -221,7 +229,7 @@ int main(int argc, char** argv) {
     LOG_INFO_0("Waiting to receive the message");
     g_output_queue->wait();
 
-    ExampleMessage* received = (ExampleMessage*) g_output_queue->front();
+    ExampleMessage* received = (ExampleMessage*) g_output_queue->pop();
     LOG_INFO("Received: %s", received->get_message());
 
     delete received;

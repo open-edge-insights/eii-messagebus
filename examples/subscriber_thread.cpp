@@ -30,7 +30,7 @@
 
 #include <eii/utils/logger.h>
 #include <eii/utils/json_config.h>
-#include "eii/msgbus/msgbus.h"
+#include "eii/msgbus/msgbus.hpp"
 
 #define TOPIC "publish_test"
 #define SERVICE_NAME "sub-thread-example"
@@ -125,13 +125,13 @@ int main(int argc, char** argv) {
     std::condition_variable err_cv;
 
     MessageQueue* output_queue = new MessageQueue(-1);
-    Subscriber<ExampleMessage>* subscriber = NULL;
+    SubscriberThread<ExampleMessage>* subscriber = NULL;
 
     if(argc == 3) {
-        subscriber = new Subscriber<ExampleMessage>(
+        subscriber = new SubscriberThread<ExampleMessage>(
                 sub_config, err_cv, argv[2], output_queue, SERVICE_NAME);
     } else {
-        subscriber = new Subscriber<ExampleMessage>(
+        subscriber = new SubscriberThread<ExampleMessage>(
                 sub_config, err_cv, TOPIC, output_queue, SERVICE_NAME);
     }
 

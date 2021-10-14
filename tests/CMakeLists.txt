@@ -55,17 +55,6 @@ add_executable(msgbus-tests "msgbus_tests.cpp")
 target_link_libraries(msgbus-tests eiimsgbus gtest_main)
 add_test(NAME msgbus-tests COMMAND msgbus-tests)
 
-# Make temporary IPC socket file directory
-file(MAKE_DIRECTORY "/tmp/socks")
-
-# Copy JSON configuration for msgbus-tests
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/ipc_unittest_config.json"
-     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/tcp_unittest_config.json"
-     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/dyn_unittest_config.json"
-     DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-
 # Compile test protocol plugin library
 add_library(test-proto SHARED "test_proto_plugin.c")
 target_link_libraries(test-proto eiimsgbus ${EIIUtils_LIBRARIES})
