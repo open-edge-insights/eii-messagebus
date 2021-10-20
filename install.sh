@@ -57,6 +57,7 @@ cjson_version="1.7.12"
 
 # URLs
 zeromq_url="https://github.com/zeromq/libzmq/releases/download/v4.3.3/zeromq-${zeromq_version}.tar.gz"
+
 cjson_url="https://github.com/DaveGamble/cJSON/archive/v${cjson_version}.tar.gz"
 
 if [ ! -d "deps" ] ; then
