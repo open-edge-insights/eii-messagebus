@@ -38,11 +38,11 @@ int main(int argc, char** argv) {
     // Create MsgEnvelope
     MsgEnvelope* msgEnv = new MsgEnvelope(CT_JSON);
 
-    // Create MsgEnvelopeObject & MsgEnvelopeArray
+    // Create MsgEnvelopeObject & MsgEnvelopeList
     MsgEnvelopeObject* msgEnvObj = new MsgEnvelopeObject();
-    MsgEnvelopeArray* msgEnvArr = new MsgEnvelopeArray();
+    MsgEnvelopeList* msgEnvArr = new MsgEnvelopeList();
 
-    // Create MsgEnvelopeObject to add into MsgEnvelopeArray
+    // Create MsgEnvelopeObject to add into MsgEnvelopeList
     MsgEnvelopeObject* msgEnvArrObj = new MsgEnvelopeObject();
 
     try {
@@ -70,23 +70,23 @@ int main(int argc, char** argv) {
         float_value = msgEnvObjElement->to_float();
         std::cout << "MsgEnvelopeElement float value " << float_value << std::endl;
 
-        // Add test (key, value) pairs to MsgEnvelopeArray
+        // Add test (key, value) pairs to MsgEnvelopeList
         msgEnvArr->put_bool(true);
         msgEnvArr->put_string("msgEnvArr_string_test");
         msgEnvArr->put_integer(2);
         msgEnvArr->put_float(2.45);
 
         int_value = msgEnvArr->get_int(2);
-        std::cout << "MsgEnvelopeArray int value " << int_value << std::endl;
+        std::cout << "MsgEnvelopeList int value " << int_value << std::endl;
 
         float_value = msgEnvArr->get_float(3);
-        std::cout << "MsgEnvelopeArray float value " << float_value << std::endl;
+        std::cout << "MsgEnvelopeList float value " << float_value << std::endl;
 
         string_value = msgEnvArr->get_string(1);
-        std::cout << "MsgEnvelopeArray string value " << string_value << std::endl;
+        std::cout << "MsgEnvelopeList string value " << string_value << std::endl;
 
         bool_value = msgEnvArr->get_bool(0);
-        std::cout << "MsgEnvelopeArray bool value " << bool_value << std::endl;
+        std::cout << "MsgEnvelopeList bool value " << bool_value << std::endl;
 
         MsgEnvelopeElement* msgEnvArrElement = msgEnvArr->get_msg_envelope_element(0);
         msgEnvArrElement->get_type();
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
         msgEnvArrObj->put_integer("ArrObjInt", 1);
         msgEnvArrObj->put_float("ArrObjFloat", 1.45);
 
-        // Add MsgEnvelopeObject to MsgEnvelopeArray
+        // Add MsgEnvelopeObject to MsgEnvelopeList
         msgEnvArr->put_object(msgEnvArrObj);
 
         // msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);
@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
 
         // msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);
 
-        // Add MsgEnvelopeArray to MsgEnvelope
+        // Add MsgEnvelopeList to MsgEnvelope
         msgEnv->put_array("array_test", msgEnvArr);
 
         // msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);

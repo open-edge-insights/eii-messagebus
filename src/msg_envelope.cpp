@@ -20,7 +20,7 @@
 
 /**
  * @brief MsgEnvelope Implementation
- * Holds the implementaion of APIs supported by MsgEnvelope & MsgEnvelopeArray class
+ * Holds the implementaion of APIs supported by MsgEnvelope & MsgEnvelopeList class
  */
 
 
@@ -214,7 +214,7 @@ void MsgEnvelope::put_bool(std::string key, bool value) {
     }
 }
 
-void MsgEnvelope::put_array(std::string key, MsgEnvelopeArray* value) {
+void MsgEnvelope::put_array(std::string key, MsgEnvelopeList* value) {
     if (m_msgenv == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Message Envelope already consumed, "
@@ -357,7 +357,7 @@ MsgEnvelope::~MsgEnvelope() {
     }
 }
 
-MsgEnvelopeArray::MsgEnvelopeArray() {
+MsgEnvelopeList::MsgEnvelopeList() {
     m_arr = msgbus_msg_envelope_new_array();
     if (m_arr == NULL) {
         throw MsgbusException(
@@ -366,7 +366,7 @@ MsgEnvelopeArray::MsgEnvelopeArray() {
     m_owns_array = true;
 }
 
-MsgEnvelopeArray::MsgEnvelopeArray(msg_envelope_elem_body_t* arr, bool owns_array) {
+MsgEnvelopeList::MsgEnvelopeList(msg_envelope_elem_body_t* arr, bool owns_array) {
     if (arr == NULL) {
         throw MsgbusException(
             MSG_ERR_UNKNOWN, "Failed to create underlying msg envelope array");
@@ -375,15 +375,15 @@ MsgEnvelopeArray::MsgEnvelopeArray(msg_envelope_elem_body_t* arr, bool owns_arra
     m_owns_array = owns_array;
 }
 
-MsgEnvelopeArray::MsgEnvelopeArray(const MsgEnvelopeArray& src) {
+MsgEnvelopeList::MsgEnvelopeList(const MsgEnvelopeList& src) {
     throw "This object should not be copied";
 }
 
-MsgEnvelopeArray& MsgEnvelopeArray::operator=(const MsgEnvelopeArray& src) {
+MsgEnvelopeList& MsgEnvelopeList::operator=(const MsgEnvelopeList& src) {
     return *this;
 }
 
-void MsgEnvelopeArray::put_integer(int64_t value) {
+void MsgEnvelopeList::put_integer(int64_t value) {
     if (m_arr == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Message Envelope already consumed, "
@@ -393,11 +393,11 @@ void MsgEnvelopeArray::put_integer(int64_t value) {
         msgbus_msg_envelope_elem_array_add_integer(m_arr, value);
     if (ret != MSG_SUCCESS) {
         throw MsgbusException(ret, "Failed to add object "
-                                    "into MsgEnvelopeArray");
+                                    "into MsgEnvelopeList");
     }
 }
 
-void MsgEnvelopeArray::put_string(std::string value) {
+void MsgEnvelopeList::put_string(std::string value) {
     if (m_arr == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Message Envelope already consumed, "
@@ -407,11 +407,11 @@ void MsgEnvelopeArray::put_string(std::string value) {
         msgbus_msg_envelope_elem_array_add_string(m_arr, value.c_str());
     if (ret != MSG_SUCCESS) {
         throw MsgbusException(ret, "Failed to add object "
-                                    "into MsgEnvelopeArray");
+                                    "into MsgEnvelopeList");
     }
 }
 
-void MsgEnvelopeArray::put_float(double value) {
+void MsgEnvelopeList::put_float(double value) {
     if (m_arr == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Message Envelope already consumed, "
@@ -421,11 +421,11 @@ void MsgEnvelopeArray::put_float(double value) {
         msgbus_msg_envelope_elem_array_add_float(m_arr, value);
     if (ret != MSG_SUCCESS) {
         throw MsgbusException(ret, "Failed to add object "
-                                    "into MsgEnvelopeArray");
+                                    "into MsgEnvelopeList");
     }
 }
 
-void MsgEnvelopeArray::put_bool(bool value) {
+void MsgEnvelopeList::put_bool(bool value) {
     if (m_arr == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Message Envelope already consumed, "
@@ -435,11 +435,11 @@ void MsgEnvelopeArray::put_bool(bool value) {
         msgbus_msg_envelope_elem_array_add_bool(m_arr, value);
     if (ret != MSG_SUCCESS) {
         throw MsgbusException(ret, "Failed to add object "
-                                    "into MsgEnvelopeArray");
+                                    "into MsgEnvelopeList");
     }
 }
 
-void MsgEnvelopeArray::put_object(MsgEnvelopeObject* value) {
+void MsgEnvelopeList::put_object(MsgEnvelopeObject* value) {
     if (m_arr == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Message Envelope already consumed, "
@@ -450,11 +450,11 @@ void MsgEnvelopeArray::put_object(MsgEnvelopeObject* value) {
                                            value->get_msg_envelope_object());
     if (ret != MSG_SUCCESS) {
         throw MsgbusException(ret, "Failed to add object into "
-                                    "MsgEnvelopeArray");
+                                    "MsgEnvelopeList");
     }
 }
 
-void MsgEnvelopeArray::remove_at(int64_t index) {
+void MsgEnvelopeList::remove_at(int64_t index) {
     if (m_arr == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Message Envelope already consumed, "
@@ -469,7 +469,7 @@ void MsgEnvelopeArray::remove_at(int64_t index) {
     }
 }
 
-int64_t MsgEnvelopeArray::get_int(int64_t index) {
+int64_t MsgEnvelopeList::get_int(int64_t index) {
     msg_envelope_elem_body_t* body = \
         msgbus_msg_envelope_elem_array_get_at(m_arr, index);
     if (body == NULL) {
@@ -483,7 +483,7 @@ int64_t MsgEnvelopeArray::get_int(int64_t index) {
     return body->body.integer;
 }
 
-double MsgEnvelopeArray::get_float(int64_t index) {
+double MsgEnvelopeList::get_float(int64_t index) {
     msg_envelope_elem_body_t* body = \
         msgbus_msg_envelope_elem_array_get_at(m_arr, index);
     if (body == NULL) {
@@ -497,7 +497,7 @@ double MsgEnvelopeArray::get_float(int64_t index) {
     return body->body.floating;
 }
 
-const char* MsgEnvelopeArray::get_string(int64_t index) {
+const char* MsgEnvelopeList::get_string(int64_t index) {
     msg_envelope_elem_body_t* body = \
         msgbus_msg_envelope_elem_array_get_at(m_arr, index);
     if (body == NULL) {
@@ -511,7 +511,7 @@ const char* MsgEnvelopeArray::get_string(int64_t index) {
     return body->body.string;
 }
 
-bool MsgEnvelopeArray::get_bool(int64_t index) {
+bool MsgEnvelopeList::get_bool(int64_t index) {
     msg_envelope_elem_body_t* body = \
         msgbus_msg_envelope_elem_array_get_at(m_arr, index);
     if (body == NULL) {
@@ -525,7 +525,7 @@ bool MsgEnvelopeArray::get_bool(int64_t index) {
     return body->body.boolean;
 }
 
-MsgEnvelopeElement* MsgEnvelopeArray::get_msg_envelope_element(int64_t index) {
+MsgEnvelopeElement* MsgEnvelopeList::get_msg_envelope_element(int64_t index) {
     msg_envelope_elem_body_t* body = msgbus_msg_envelope_elem_array_get_at(m_arr, index);
     if(body == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN, "Value for key not found");
@@ -534,12 +534,12 @@ MsgEnvelopeElement* MsgEnvelopeArray::get_msg_envelope_element(int64_t index) {
     return msg_envelope_elemnt;
 }
 
-msg_envelope_elem_body_t* MsgEnvelopeArray::get_msg_envelope_array() {
+msg_envelope_elem_body_t* MsgEnvelopeList::get_msg_envelope_array() {
     if (m_owns_array) return m_arr;
     return NULL;
 }
 
-MsgEnvelopeArray::~MsgEnvelopeArray() {
+MsgEnvelopeList::~MsgEnvelopeList() {
     if (m_arr != NULL && m_owns_array) {
         msgbus_msg_envelope_elem_destroy(m_arr);
     }
@@ -732,7 +732,7 @@ MsgEnvelopeObject::~MsgEnvelopeObject() {
     }
 }
 
-MsgEnvelopeArray* MsgEnvelope::get_array(std::string key) {
+MsgEnvelopeList* MsgEnvelope::get_array(std::string key) {
     msg_envelope_elem_body_t* body = NULL;
     msgbus_ret_t ret = msgbus_msg_envelope_get(m_msgenv, key.c_str(), &body);
     if(ret != MSG_SUCCESS) {
@@ -740,7 +740,7 @@ MsgEnvelopeArray* MsgEnvelope::get_array(std::string key) {
             throw MsgbusException(ret, "Value for key not found");
         }
     }
-    return new MsgEnvelopeArray(body, false);
+    return new MsgEnvelopeList(body, false);
 }
 
 MsgEnvelopeObject* MsgEnvelope::get_object(std::string key) {

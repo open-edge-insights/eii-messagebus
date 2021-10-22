@@ -29,6 +29,10 @@
 #include <stdlib.h>
 #include <gtest/gtest.h>
 #include <cjson/cJSON.h>
+#include <cstring>
+#include <csignal>
+#include <vector>
+#include "eii/msgbus/msg_envelope.hpp"
 #include "eii/msgbus/msg_envelope.h"
 
 #define TEST_NAME "topic-or-service-name"
@@ -50,6 +54,8 @@
 #define ASSERT_NOT_NULL(val) { \
     if(val == NULL) FAIL() << "Value shoud not be NULL"; \
 }
+
+using namespace eii::msgbus;
 
 /**
  * Simple initialization and destroy case with no data.
@@ -707,4 +713,160 @@ TEST(msg_envelope_tests, array_put_get_remove) {
     ASSERT_EQ(ret, MSG_SUCCESS);
 
     msgbus_msg_envelope_elem_destroy(arr);
+}
+
+/**
+ * Simple initialization and destroy case with no data.
+ */
+TEST(msg_envelope_tests, cpp_simple_init) {
+    try {
+        // Create MsgEnvelope
+        MsgEnvelope* msgEnv = new MsgEnvelope(CT_JSON);
+        ASSERT_NOT_NULL(msgEnv);
+        delete msgEnv;
+    } catch(const std::exception& MsgbusException) {
+        FAIL() << "Exception thrown: " << MsgbusException.what();
+    } catch(...) {
+        FAIL() << "Exception thrown";
+    }
+}
+
+/**
+ * Simple initialization, addition and destroy case for MsgEnvelope
+ */
+TEST(msg_envelope_tests, cpp_msg_envelope_test) {
+    try {
+        // Create MsgEnvelope
+        MsgEnvelope* msgEnv = new MsgEnvelope(CT_JSON);
+        ASSERT_NOT_NULL(msgEnv);
+
+        // Add test (key, value) pairs to MsgEnvelope
+        msgEnv->put_bool("Bool", true);
+        msgEnv->put_string("Strng", "string_test");
+        msgEnv->put_integer("Int", 3);
+        msgEnv->put_float("Float", 3.45);
+
+        // put_vector example
+        std::vector<int> nums;
+        nums.push_back(1);
+        nums.push_back(2);
+        nums.push_back(3);
+        msgEnv->put_vector("IntVector", nums);
+
+        // put_vector example
+        std::vector<double> floats;
+        floats.push_back(1.4);
+        floats.push_back(2.5);
+        floats.push_back(3.6);
+        msgEnv->put_vector("FloatVector", floats);
+
+        // put_vector example
+        std::vector<bool> bools;
+        bools.push_back(true);
+        bools.push_back(false);
+        msgEnv->put_vector("BoolVector", bools);
+
+        // Verify data put into MsgEnvelope matches with
+        // the fetched data
+        ASSERT_EQ(msgEnv->get_int("Int"), 3);
+        ASSERT_EQ(msgEnv->get_float("Float"), 3.45);
+        ASSERT_EQ(msgEnv->get_bool("Bool"), true);
+
+        // This test case will fail since the string
+        // is converted to a c string internally which changes the
+        // address of the variable but the content remains the same
+        // since a strcpy is performed on the string
+        // ASSERT_EQ(msgEnv->get_string("Strng"), "string_test");
+
+        msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);
+        delete msgEnv;
+    } catch(const std::exception& MsgbusException) {
+        FAIL() << "Exception thrown: " << MsgbusException.what();
+    } catch(...) {
+        FAIL() << "Exception thrown";
+    }
+}
+
+/**
+ * Simple initialization, addition and destroy case for MsgEnvelopeObject
+ */
+TEST(msg_envelope_tests, cpp_msg_envelope_object_test) {
+    try {
+        // Create MsgEnvelope
+        MsgEnvelope* msgEnv = new MsgEnvelope(CT_JSON);
+        ASSERT_NOT_NULL(msgEnv);
+
+        // Create MsgEnvelopeObject
+        MsgEnvelopeObject* msgEnvObj = new MsgEnvelopeObject();
+        ASSERT_NOT_NULL(msgEnvObj);
+
+        // Add test (key, value) pairs to MsgEnvelopeObject
+        msgEnvObj->put_bool("objBool", true);
+        msgEnvObj->put_string("objStrng", "msgEnvObj_string_test");
+        msgEnvObj->put_integer("objInt", 1);
+        msgEnvObj->put_float("objFloat", 1.45);
+
+        msgEnv->put_object("msg_envelope_object", msgEnvObj);
+
+        // Verify data put into MsgEnvelopeObject matches with
+        // the fetched data after putting it into MsgEnvelope
+        ASSERT_EQ(msgEnvObj->get_int("objInt"), 1);
+        ASSERT_EQ(msgEnvObj->get_float("objFloat"), 1.45);
+        ASSERT_EQ(msgEnvObj->get_bool("objBool"), true);
+
+        // This test case will fail since the string
+        // is converted to a c string internally which changes the
+        // address of the variable but the content remains the same
+        // since a strcpy is performed on the string
+        // ASSERT_EQ(msgEnvObj->get_string("objStrng"), "msgEnvObj_string_test");
+
+        msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);
+        delete msgEnv;
+    } catch(const std::exception& MsgbusException) {
+        FAIL() << "Exception thrown: " << MsgbusException.what();
+    } catch(...) {
+        FAIL() << "Exception thrown";
+    }
+}
+
+/**
+ * Simple initialization, addition and destroy case for MsgEnvelopeList
+ */
+TEST(msg_envelope_tests, cpp_msg_envelope_array_test) {
+    try {
+        // Create MsgEnvelope
+        MsgEnvelope* msgEnv = new MsgEnvelope(CT_JSON);
+        ASSERT_NOT_NULL(msgEnv);
+
+        // Create MsgEnvelopeList
+        MsgEnvelopeList* msgEnvArr = new MsgEnvelopeList();
+        ASSERT_NOT_NULL(msgEnvArr);
+
+        // Add test (key, value) pairs to MsgEnvelopeList
+        msgEnvArr->put_bool(true);
+        msgEnvArr->put_string("msgEnvArr_string_test");
+        msgEnvArr->put_integer(2);
+        msgEnvArr->put_float(2.45);
+
+        msgEnv->put_array("msg_envelope_array", msgEnvArr);
+
+        // Verify data put into MsgEnvelopeList matches with
+        // the fetched data after putting it into MsgEnvelope
+        ASSERT_EQ(msgEnvArr->get_bool(0), true);
+        ASSERT_EQ(msgEnvArr->get_int(2), 2);
+        ASSERT_EQ(msgEnvArr->get_float(3), 2.45);
+
+        // This test case will fail since the string
+        // is converted to a c string internally which changes the
+        // address of the variable but the content remains the same
+        // since a strcpy is performed on the string
+        // ASSERT_EQ(msgEnvArr->get_string(1), "msgEnvArr_string_test");
+
+        msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);
+        delete msgEnv;
+    } catch(const std::exception& MsgbusException) {
+        FAIL() << "Exception thrown: " << MsgbusException.what();
+    } catch(...) {
+        FAIL() << "Exception thrown";
+    }
 }

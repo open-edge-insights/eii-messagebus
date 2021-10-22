@@ -79,7 +79,7 @@ class MsgbusException : public std::exception {
 
 // Forward declarations
 class MsgEnvelopeObject;
-class MsgEnvelopeArray;
+class MsgEnvelopeList;
 class MsgEnvelope;
 
 /**
@@ -113,7 +113,7 @@ class MsgEnvelopeElement {
     // Declaring MsgEnvelope as friend so that it can access
     // private constructors
     friend MsgEnvelope;
-    friend MsgEnvelopeArray;
+    friend MsgEnvelopeList;
     friend MsgEnvelopeObject;
 
     /**
@@ -157,9 +157,9 @@ class MsgEnvelopeElement {
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
-     * @return @c MsgEnvelopeArray - returns the @c MsgEnvelopeArray value
+     * @return @c MsgEnvelopeList - returns the @c MsgEnvelopeList value
      */
-    MsgEnvelopeArray* to_array();
+    MsgEnvelopeList* to_array();
 
     /**
      * Fetch integer value from @c MsgEnvelopeElement object.
@@ -275,19 +275,19 @@ class MsgEnvelope {
     void put_bool(const std::string key, bool value);
 
     /**
-     * Add a @c MsgEnvelopeArray to the @c MsgEnvelope object.
+     * Add a @c MsgEnvelopeList to the @c MsgEnvelope object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
      * @param key     -  key to be added into @c MsgEnvelope object
-     * @param value   -  @c MsgEnvelopeArray value to be added into @c MsgEnvelope object
+     * @param value   -  @c MsgEnvelopeList value to be added into @c MsgEnvelope object
      */
-    void put_array(const std::string key, MsgEnvelopeArray* value);
+    void put_array(const std::string key, MsgEnvelopeList* value);
 
     /**
      * Add a vector as an array to the @c MsgEnvelope object.
      * Note: The supported types for the vector are integer, float & bool only.
-     * Add a @c MsgEnvelopeArray to the @c MsgEnvelope object.
+     * Add a @c MsgEnvelopeList to the @c MsgEnvelope object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
@@ -442,16 +442,16 @@ class MsgEnvelope {
     MsgEnvelopeObject* get_object(const std::string key);
 
     /**
-     * To fetch a @c MsgEnvelopeArray value associated with the key provided
+     * To fetch a @c MsgEnvelopeList value associated with the key provided
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
      * @param key   -  key of value to be fetched
      *
-     * @return @c MsgEnvelopeArray - returns the @c MsgEnvelopeArray  value
+     * @return @c MsgEnvelopeList - returns the @c MsgEnvelopeList  value
      *                                associated with the key
      */
-    MsgEnvelopeArray* get_array(const std::string key);
+    MsgEnvelopeList* get_array(const std::string key);
 
     /**
      * To fetch a @c MsgEnvelopeElement value associated with the key provided
@@ -479,25 +479,25 @@ class MsgEnvelope {
 };
 
 /**
- * MsgEnvelopeArray class
+ * MsgEnvelopeList class
  */
-class MsgEnvelopeArray {
+class MsgEnvelopeList {
  private:
     // msg_envelope_elem_body_t object
     msg_envelope_elem_body_t* m_arr;
 
-    // bool whether the MsgEnvelopeArray owns m_arr
+    // bool whether the MsgEnvelopeList owns m_arr
     bool m_owns_array;
 
     /**
-     * Private @c MsgEnvelopeArray copy constructor.
+     * Private @c MsgEnvelopeList copy constructor.
      */
-    MsgEnvelopeArray(const MsgEnvelopeArray& src);
+    MsgEnvelopeList(const MsgEnvelopeList& src);
 
     /**
-     * Private @c MsgEnvelopeArray assignment operator.
+     * Private @c MsgEnvelopeList assignment operator.
      */
-    MsgEnvelopeArray& operator=(const MsgEnvelopeArray& src);
+    MsgEnvelopeList& operator=(const MsgEnvelopeList& src);
 
     /**
      * Private Constructor
@@ -505,10 +505,10 @@ class MsgEnvelopeArray {
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
      * @param obj           -  Underlying @c msg_envelope_elem_body_t object
-     * @param owns_object   -  boolean whether @c MsgEnvelopeArray owns m_arr
+     * @param owns_object   -  boolean whether @c MsgEnvelopeList owns m_arr
      *
      */
-    MsgEnvelopeArray(msg_envelope_elem_body_t* arr, bool owns_array);
+    MsgEnvelopeList(msg_envelope_elem_body_t* arr, bool owns_array);
 
  public:
     // Declaring MsgEnvelope as friend so that it can access
@@ -521,41 +521,41 @@ class MsgEnvelopeArray {
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
      */
-    MsgEnvelopeArray();
+    MsgEnvelopeList();
 
     /**
-     * Add a new integer value to the MsgEnvelopeArray object.
+     * Add a new integer value to the MsgEnvelopeList object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
-     * @param value   -  integer value to be added into @c MsgEnvelopeArray object
+     * @param value   -  integer value to be added into @c MsgEnvelopeList object
      */
     void put_integer(int64_t value);
 
     /**
-     * Add a new float value to the MsgEnvelopeArray object.
+     * Add a new float value to the MsgEnvelopeList object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
-     * @param value   -  float value to be added into @c MsgEnvelopeArray object
+     * @param value   -  float value to be added into @c MsgEnvelopeList object
      */
     void put_float(double value);
 
     /**
-     * Add a new string value to the @c MsgEnvelopeArray object.
+     * Add a new string value to the @c MsgEnvelopeList object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
-     * @param value   -  string value to be added into @c MsgEnvelopeArray object
+     * @param value   -  string value to be added into @c MsgEnvelopeList object
      */
     void put_string(const std::string value);
 
     /**
-     * Add a new boolean value to the @c MsgEnvelopeArray object.
+     * Add a new boolean value to the @c MsgEnvelopeList object.
      *
      * \exception @c MsgbusException thrown if an error occurs in the message bus.
      *
-     * @param value   -  boolean value to be added into @c MsgEnvelopeArray object
+     * @param value   -  boolean value to be added into @c MsgEnvelopeList object
      */
     void put_bool(bool value);
 
@@ -656,7 +656,7 @@ class MsgEnvelopeArray {
     /**
      * Destructor
      */
-    ~MsgEnvelopeArray();
+    ~MsgEnvelopeList();
 };
 
 class MsgEnvelopeObject {
