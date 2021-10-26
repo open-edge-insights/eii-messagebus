@@ -52,10 +52,10 @@ INSTALL_PATH="/usr/local/lib"
 ORIGINAL_CURRENT_DIR=`pwd`
 
 # Library versions
-zeromq_version="4.3.1"
+zeromq_version="4.3.3"
 
 # URLs
-zeromq_url="https://github.com/zeromq/libzmq/releases/download/v4.3.1/zeromq-${zeromq_version}.tar.gz"
+zeromq_url="https://github.com/zeromq/libzmq/releases/download/v4.3.3/zeromq-${zeromq_version}.tar.gz"
 
 if [ ! -d "deps" ] ; then
     mkdir deps
