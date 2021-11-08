@@ -155,9 +155,7 @@ int main(int argc, char** argv) {
             goto err;
         }
 
-        print_msg_envelope(msg, false);
-
-        // Serializing the message so it can easily be printed out
+        LOG_INFO("Received message on topic: %s", msg->name);
         msgbus_msg_envelope_print(msg, true, false);
 
         // Clean up...
