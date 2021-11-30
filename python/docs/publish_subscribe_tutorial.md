@@ -236,14 +236,14 @@ Once this configuration is saved to the file `ipc_config.json`, start the
 publisher in one Terminal window with the following command:
 
 ```sh
-$ python3 publisher.py ipc_config.json
+python3 publisher.py ipc_config.json
 ```
 
 Next, start the subscriber in a different Terminal window with the command
 shown below.
 
 ```sh
-$ python3 subscriber.py ipc_config.json
+python3 subscriber.py ipc_config.json
 ```
 
 At this point you should see the messages being published by the publisher

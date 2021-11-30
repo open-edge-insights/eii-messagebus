@@ -109,9 +109,10 @@ named `example`. To start, create a new header file in the `include/eii/msgbus`
 directory and a new C file in the `src` directory.
 
 ```sh
-$ touch include/eii/msgbus/example.h
-$ touch src/example.c
+touch include/eii/msgbus/example.h
+touch src/example.c
 ```
+
 > **NOTE:** The names of the files above should be the name of your protocol.
 
 Once these files are created, add the following to the `example.h` file.

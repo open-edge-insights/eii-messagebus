@@ -45,15 +45,14 @@
 
 - [EII Message Bus Architecture]()
 - [EII Message Bus Usage]()
-    - [Compilation & Installtion]()
-    - [Python Tutorial]()
-    - [Go Tutorial]()
-    - [C Tutorial]()
+  - [Compilation & Installtion]()
+  - [Python Tutorial]()
+  - [Go Tutorial]()
+  - [C Tutorial]()
 - [EII Message Bus Development]()
-    - [Developing Protocols]()
+  - [Developing Protocols]()
 
 ## EII Message Bus Architecture
-
 
 ## EII Message Bus Usage
 
@@ -63,10 +62,10 @@ The EII Message Bus utilizes the CMake build tools for compiling the `C` and
 `Python` libraries. To compile the library execute the following commands:
 
 ```sh
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make
+mkdir build
+cd build
+cmake ..
+make
 ```
 
 The EII Message Bus adds the following flags to CMake for the build process
@@ -87,7 +86,7 @@ message bus.
 To install the message bus, execute the following command:
 
 ```sh
-$ sudo make install
+sudo make install
 ```
 
 If the `WITH_PYTHON` flag was given to CMake during the compilation step, then
@@ -566,14 +565,14 @@ Once this configuration is saved to the file `ipc_config.json`, start the
 publisher in one Terminal window with the following command:
 
 ```sh
-$ python3 publisher.py ipc_config.json
+python3 publisher.py ipc_config.json
 ```
 
 Next, start the subscriber in a different Terminal window with the command
 shown below.
 
 ```sh
-$ python3 subscriber.py ipc_config.json
+python3 subscriber.py ipc_config.json
 ```
 
 At this point you should see the messages being published by the publisher
