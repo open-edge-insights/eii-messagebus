@@ -492,7 +492,8 @@ msgbus_ret_t proto_zmq_publisher_new(
                return MSG_SUCCESS;
             } else {
                 // Check if the new socket that should be brokered
-                // Check if a specific socket file has been given for the IPC socket
+                // Check if a specific socket file has been given for the
+                // IPC socket
                 config_value_t* ipc_cfg_obj = config_get(
                         zmq_ctx->config, topic);
                 if(ipc_cfg_obj != NULL) {
@@ -508,8 +509,8 @@ msgbus_ret_t proto_zmq_publisher_new(
                             ipc_cfg_obj, BROKERED);
                     if (cvt_brokered != NULL) {
                         if (cvt_brokered->type != CVT_BOOLEAN) {
-                            config_value_destroy(ipc_cfg_obj);
                             config_value_destroy(cvt_brokered);
+                            config_value_destroy(ipc_cfg_obj);
                             LOG_ERROR_0("Brokered must be a boolean");
                             goto err;
                         }
@@ -520,6 +521,37 @@ msgbus_ret_t proto_zmq_publisher_new(
 
                     // Destroy the object
                     config_value_destroy(ipc_cfg_obj);
+                } else {
+                    // Check whether or not a default (i.e. empty key) was
+                    // provided in the configuration specifying whether or not
+                    // the socket is brokered
+                    config_value_t* df_cfg_obj = config_get(
+                            zmq_ctx->config, DEFAULT_KEY);
+                    if(df_cfg_obj != NULL) {
+                        if(df_cfg_obj->type != CVT_OBJECT) {
+                            LOG_ERROR_0(
+                                "Default configuration for must be an object");
+                            config_value_destroy(df_cfg_obj);
+                            goto err;
+                        }
+
+                        // Check if brokered specified in the object
+                        config_value_t* cvt_brokered = config_value_object_get(
+                                df_cfg_obj, BROKERED);
+                        if (cvt_brokered != NULL) {
+                            if (cvt_brokered->type != CVT_BOOLEAN) {
+                                config_value_destroy(cvt_brokered);
+                                config_value_destroy(df_cfg_obj);
+                                LOG_ERROR_0("Brokered must be a boolean");
+                                goto err;
+                            }
+
+                            brokered = cvt_brokered->body.boolean;
+                            config_value_destroy(cvt_brokered);
+                        }
+
+                        config_value_destroy(df_cfg_obj);
+                    }
                 }
             }
         } else {
