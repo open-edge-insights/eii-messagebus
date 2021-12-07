@@ -120,7 +120,7 @@ if(${APKBUILD_REQUIRE_EXTERNAL_APKS})
     add_custom_target(package-apk
         COMMENT "Generating APK"
         COMMAND rm -rf ${CMAKE_BINARY_DIR}/apkbuilder/src/build/
-        COMMAND tar -C ${CMAKE_SOURCE_DIR} -czf ${CMAKE_BINARY_DIR}/apkbuilder/apkbuild_source.tar.gz --exclude=${BASENAME_BINARY_DIR} ./
+        COMMAND tar -C ${CMAKE_SOURCE_DIR} -czf ${CMAKE_BINARY_DIR}/apkbuilder/apkbuild_source.tar.gz --exclude=${BASENAME_BINARY_DIR} --exclude=build/* ./
         COMMAND ${DOCKER} run --rm -it
             -e PACKAGE_NAME=${APKBUILD_APK_FILENAME}
             -e EXTERNAL_APKS=${APKBUILD_EXTERNAL_APKS}
@@ -133,7 +133,7 @@ else()
     add_custom_target(package-apk
         COMMENT "Generating APK"
         COMMAND rm -rf ${CMAKE_BINARY_DIR}/apkbuilder/src/build/
-        COMMAND tar -C ${CMAKE_SOURCE_DIR} -czf ${CMAKE_BINARY_DIR}/apkbuilder/apkbuild_source.tar.gz --exclude=${BASENAME_BINARY_DIR} ./
+        COMMAND tar -C ${CMAKE_SOURCE_DIR} -czf ${CMAKE_BINARY_DIR}/apkbuilder/apkbuild_source.tar.gz --exclude=${BASENAME_BINARY_DIR} --exclude=build/* ./
         COMMAND ${DOCKER} run --rm -it
             -e PACKAGE_NAME=${APKBUILD_APK_FILENAME}
             -v ${CMAKE_BINARY_DIR}/apkbuilder:/package

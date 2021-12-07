@@ -5,6 +5,7 @@
   - [Compilation](#compilation)
     - [Generating Documentation](#generating-documentation)
     - [Potential Compilation Issues](#potential-compilation-issues)
+  - [Packaging](#packaging)
   - [Installation](#installation)
     - [Install Python Binding](#install-python-binding)
     - [Install Golang Binding](#install-golang-binding)
@@ -68,19 +69,17 @@ get altered. Details on setting up and using python virtual environment can
 be found here: <https://www.geeksforgeeks.org/python-virtual-environment/>
 
 ```sh
-sudo -E ./install.sh
+sudo apt install libcjson-dev libzmq3-dev
 ```
 
-Additionally, EIIMessageBus depends on the below libraries. Follow their documentation to install them.
+> **NOTE:** For Fedora, the packages should be `cjson-devel zeromq-devel` and for
+> Alpine it is `cjson-dev zeromq-dev`.
 
-* [IntelSafeString](https://github.com/open-edge-insights/eii-c-utils/blob/master/IntelSafeString/README.md)
-- [EIIUtils](https://github.com/open-edge-insights/eii-c-utils/blob/master/README.md)
-
-If you wish to compile the Python binding as well, then run the `install.sh`
-script with the `--cython` flag (as shown below).
+If you wish to compile the Python binding as well, then you must also install
+the Python requirements. To do this, execute the following `pip` command:
 
 ```sh
-sudo -E ./install.sh --cython
+pip3 install --user -r ./python/requirements.txt
 ```
 
 ## Compilation
@@ -192,10 +191,120 @@ building of the PDFs. Any file that does not end in `.pdf` can be ignored.
     `make clean` before running make again to compile the changes in the
     Python binding. This will need to be fixed later.
 
+## Packaging
+
+This library supports being packaged as a Debian, RPM, or Alpine APK packages.
+This is all accomplished via CMake. By default, packaging is disabled. To
+enable packaging, add the `-DPACKAGING=ON` flag to your CMake command (see
+Compilation section above). This command will look something like:
+
+```sh
+cmake -DPACKAGING=ON ..
+```
+
+By default, the packaging utilities will scan the system for the required
+toolchains it needs to build each package type (Deb, RPM, and APK). If it does
+not find the required toolsets, then it will disable that form of packaging.
+The packaging utilities provide CMake flags to force packaging as any of the
+supported package types. If a given package type, ex. APK, is set to be enabled
+manually by its CMake flag and its required packaging toolchain does not exist,
+then CMake will raise a fatal error.
+
+The table below provides the required toolchains for each package type as well
+as the CMake flag to set to `ON` to manually enable a packaging type:
+
+| Package Type | Required Tools | Manual Package Flag |
+| :----------: | :------------: | :-----------------: |
+| `deb`        | `dpkg-deb`     | `PACKAGE_DEB`       |
+| `rpm`        | `rpmbuild`     | `PACKAGE_RPM`       |
+| `apk`        | `docker`       | `PACKAGE_APK`       |
+
+> **NOTE:** Manually setting a given package type to be built (e.g. setting
+> `-DPACKAGE_DEB=ON`) still requires that the `-DPACKAGING=ON` to be set.
+
+After the required toolchains have been installed and CMake has been run with
+some combination of the packaging flags, the library can be packaged with the
+following commands:
+
+```sh
+make package
+```
+
+The command above will build the Debian and RPM packages (depending on the
+specified CMake flags).
+
+To build the Alpine APK package, execute the following command:
+
+```sh
+make package-apk
+```
+
+**IMPORTANT:**
+
+The EII Message Bus depends on the EII Utils library. In order to compile the
+Alpine APK package for the EII Message Bus it must have the APK package for the
+EII Utils module.
+
+To provide this, you must first build or download the Alpine APK package for the
+EII Utils library (see it's repo [here](https://github.com/open-edge-insights/eii-c-utils)
+to obtain the library).
+
+Once you have the APK, create an, "apks" directory at the top level of this
+repository.
+
+```sh
+mkdir apks/
+```
+
+Next, place the EII Utils APK package into the, "apks", directory. Then execute
+the `make package-apk` command. If this is not done, then the build will fail.
+
+### A Note on Alpine APK Packaging
+
+In order to package the library as an Alpine APK package, the packaging utility
+must use a Docker container to have access to the proper Alpine APK toolchains.
+This container will automatically be built when the CMake command is ran to
+configure your build environment.
+
+By default, Alpine 3.14 is used to build the package. However, this version
+can be changed by setting the `APKBUILD_ALPINE_VERSION` CMake flag to the
+version of Alpine you wish to use (ex. `-DAPKBUILD_ALPINE_VERSION=3.12`).
+
 ## Installation
 
-If you wish to install the EII Message Bus on your system, execute the
-following command after building the library:
+The EII Messsage Bus library can be installed in two different ways.
+
+1. Through published Debian, Fedora, or Alpine APK packages
+2. Installing form source
+
+If you are installing from one of the packages, select the package you wish to
+install from the releases assets, and then run one of the following depending
+on the OS you are installing on:
+
+```sh
+# Debian
+sudo apt install libcjson1 libzmq5
+sudo dpkg -i <debian package>
+
+# Fedora
+sudo dnf install cjson zeromq
+sudo rpm -i <rpm package>
+
+# Alpine (NOTE: the depencies get automatically installed by the apk command)
+sudo apk add --allow-untrusted <apk package>
+```
+
+In the above commands, installing the cJSON and ZeroMQ dependencies
+is required, however, in general, installation of the dev module is not required
+(i.e. the OS packages which include all of the headers for the libraries). If
+you are compiling an application that is linking to this library, then it is
+recommended that you install the dev versions of the libraries. For Ubuntu this
+would mean installing `libcjson-dev libzmq3-dev`. For Fedora the
+packages would be `cjson-devel zeromq-devel`. In Alpine, the packages
+would be `cjson-dev zeromq-dev`.
+
+If you wish to install the EII Message Bus on your system from source, execute
+the following command after building the library:
 
 ```sh
 sudo make install

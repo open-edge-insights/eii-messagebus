@@ -53,7 +53,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Finding libraries
 find_package(ZMQ REQUIRED)
 find_package(Threads REQUIRED)
-find_package(cJSON REQUIRED)
 find_package(EIIUtils REQUIRED)
 find_package(IntelSafeString REQUIRED)
 
@@ -62,7 +61,6 @@ include_directories(
     include/
     ${EIIUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
-    ${CJSON_INCLUDE_DIRS}
     ${IntelSafeString_INCLUDE})
 
 # List out all source files for the EIIMsgEnv library
@@ -79,8 +77,8 @@ link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 add_library(eiimsgenv SHARED ${MSGENV_SRC})
 target_link_libraries(eiimsgenv
     PRIVATE
+        cjson
         ${EIIUtils_LIBRARIES}
-        ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
 
 # Get all source files
@@ -95,8 +93,8 @@ target_link_libraries(eiimsgbus
         eiimsgenv
         ${EIIUtils_LIBRARIES}
     PRIVATE
+        cjson
         ${ZMQ_LIBRARIES}
-        ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
 
 # If compile in debug mode, set DEBUG flag for C code
