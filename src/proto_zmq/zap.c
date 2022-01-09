@@ -202,7 +202,8 @@ int zap_initialize(void* zmq_ctx, config_t* config, zap_ctx_t** zap_ctx) {
     config_value_t* obj = config->get_config_value(
             config->cfg, ZMQ_CFG_TCP_ALLOWED_CLIENTS);
     if(obj == NULL) {
-        LOG_WARN_0("Running ZeroMQ TCP sockets without ZAP authentication");
+        LOG_WARN("Running ZeroMQ TCP sockets without %s",
+                 ZMQ_CFG_TCP_ALLOWED_CLIENTS);
         rc = -2;
         goto err;
     }
