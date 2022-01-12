@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
 
         LOG_INFO_0("Subscriber running...");
         while (!g_stop.load()) {
-            msg = subscriber->recv_timedwait(std::chrono::microseconds(300));
+            msg = subscriber->recv_timedwait(std::chrono::milliseconds(300));
             if (msg != NULL) {
                 print_msg_envelope(msg->get_msg_envelope(), false);
 

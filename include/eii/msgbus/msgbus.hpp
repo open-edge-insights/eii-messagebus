@@ -191,7 +191,7 @@ public:
      * This method will attempt receive for the given duration of time, if no
      * message is received then the method shall return NULL.
      *
-     * \note The timeout value must be a minimum is one microsecond.
+     * \note The timeout value must be a minimum is one millisecond.
      *
      * \exception MsgbusException Thrown if an error occurs in the message bus.
      *
@@ -201,7 +201,7 @@ public:
     template<class Rep, class Period>
     MsgEnvelope* recv_timedwait(
             const std::chrono::duration<Rep, Period>& timeout) {
-        int timeout_ms = std::chrono::microseconds(timeout).count();
+        int timeout_ms = std::chrono::milliseconds(timeout).count();
         msg_envelope_t* msg = NULL;
 
         msgbus_ret_t ret = msgbus_recv_timedwait(
@@ -488,7 +488,7 @@ private:
 
     // Timeout for time to wait between receiving and checking if the stop
     // signal has been sent
-    std::chrono::microseconds m_timeout;
+    std::chrono::milliseconds m_timeout;
 
     // AppName variable
     std::string m_service_name;
@@ -527,28 +527,24 @@ protected:
 
                 // Received message
                 msg = env->get_msg_envelope();
+
+                // Add timestamp after message is received if profiling is
+                // enabled
+                DO_PROFILING(this->m_profile, msg, subscriber_ts.c_str());
+
+                // Parse the message into user's provided object
                 received = new T(msg);
 
                 // env is no longer needed after this point, delete it
                 delete env;
                 env = NULL;
 
-                // Add timestamp after message is received if profiling is
-                // enabled
-                DO_PROFILING(this->m_profile, msg, subscriber_ts.c_str());
-
                 ret_queue = m_output_queue->push(received);
                 if (ret_queue == utils::QueueRetCode::QUEUE_FULL) {
-                    // Add timestamp which acts as a marker if queue is blocked
-                    DO_PROFILING(
-                        this->m_profile, msg, subscriber_blocked_ts.c_str());
-
                     ret_queue = m_output_queue->push_wait(received);
                     if(ret_queue != utils::QueueRetCode::SUCCESS) {
                         LOG_ERROR_0("Failed to enqueue received message, "
                                     "message dropped");
-                        // THIS SHOULD BE DONE BY RECEIVED...
-                        // msgbus_msg_envelope_destroy(msg);
                         m_err_cv.notify_all();
                         break;
                     } else {
@@ -561,9 +557,6 @@ protected:
                         msg = NULL;
                         received = NULL;
                 }
-
-                // Add timestamp for subscriber exit
-                DO_PROFILING(this->m_profile, msg, subscriber_exit_ts.c_str());
             }
         } catch (const std::exception& ex) {
             LOG_ERROR("Error in subscriber thread: %s", ex.what());
@@ -605,14 +598,14 @@ public:
      *                        application if an error has occurred
      * @param topic         - Topic to subscribe on
      * @param output_queue  - Output queue for received messages
-     * @param timeout       - Timeout in microseconds to use in between
+     * @param timeout       - Timeout in milliseconds to use in between
      *                        checking if the thread should stop
      */
     SubscriberThread(config_t* msgbus_config, std::condition_variable& err_cv,
                      std::string topic, MessageQueue* output_queue,
                      std::string service_name,
-                     std::chrono::microseconds timeout=
-                         std::chrono::microseconds(250)) :
+                     std::chrono::milliseconds timeout=
+                         std::chrono::milliseconds(250)) :
         BaseMsgbusThread(msgbus_config, err_cv) {
 
         static_assert(std::is_base_of<Serializable, T>::value,

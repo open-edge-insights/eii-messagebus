@@ -536,7 +536,7 @@ TEST(msgbus_test, cpp_pubsub_recv_nowait) {
 }
 
 TEST(msgbus_test, cpp_pubsub_recv_timedwait) {
-    auto timeout = std::chrono::microseconds(500);
+    auto timeout = std::chrono::milliseconds(500);
     config_t* config = create_config();
     eii::msgbus::MsgbusContext* ctx = new eii::msgbus::MsgbusContext(config);
     eii::msgbus::Publisher* pub = ctx->new_publisher(PUB_SUB_TOPIC);
@@ -575,7 +575,7 @@ TEST(msgbus_test, cpp_pubsub_recv_timedwait) {
 }
 
 TEST(msgbus_test, cpp_reqresp) {
-    auto timeout = std::chrono::microseconds(500);
+    auto timeout = std::chrono::milliseconds(500);
     config_t* config = create_config();
     eii::msgbus::MsgbusContext* ctx = new eii::msgbus::MsgbusContext(config);
     eii::msgbus::Service* service = ctx->new_service(SERVICE_NAME);

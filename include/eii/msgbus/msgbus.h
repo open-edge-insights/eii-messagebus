@@ -208,7 +208,7 @@ msgbus_ret_t msgbus_recv_wait(
  * @param[in]  ctx      - Message bus context
  * @param[in]  recv_ctx - Receive context
  * @param[in]  timeout  - Timeout for waiting to receive a message in
- *                        microseconds
+ *                        milliseconds
  * @param[out] message  - Received message, NULL if timedout
  * @return msgbus_ret_t, MSG_RECV_NO_MESSAGE if no message received
  */
