@@ -33,6 +33,7 @@
     - [Using ZAP Authentication](#using-zap-authentication-1)
     - [Disabling Security](#disabling-security)
   - [Known issues](#known-issues)
+  - [Generation of python .whl file (Optional)](#generation-of-python-.whl-file-(optional))
 
 # EII Message Bus
 
@@ -1049,3 +1050,20 @@ if (data->type == MSG_ENV_DT_INT) {
     LOG_INFO("Received float: %f", data->body.floating);
 }
 ```
+
+## Generation of python .whl file (Optional)
+
+**Note**: This is an optional as we have already hosted .whl file.
+If user wants to create .whl file freshly, then one has to follow below steps.
+
+1. Installation of `wheel`
+
+    ```sh
+    pip3 install –upgrade setuptools wheel
+    ```
+
+2. Navigate to `[WORKDIR]/IEdgeInsights/common/libs/EIIMessageBus/python` and execute the below command
+    ```sh
+    python3 setup_packaging.py sdist bdist_wheel --plat-name=manylinux2014_x86_64
+    ```
+3. EIIMessageBus .whl package will be created in the folder `dist` as `eii_msgbus-2.6-cp38-cp38-manylinux2014_x86_64.whl`
