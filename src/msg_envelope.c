@@ -1152,7 +1152,10 @@ void msgbus_msg_envelope_print(
                 msg_envelope_elem_body_t* blob = NULL;
                 for (int i = 0; i < num_blobs; i++) {
                     blob = msgbus_msg_envelope_elem_array_get_at(msg->blob, i);
-                    fprintf(stderr, "Blob %d:\n%s\n", i, blob->body.blob->data);
+                    if (blob != NULL) {
+                        fprintf(stderr, "Blob %d:\n%s\n", i,
+                                blob->body.blob->data);
+                    }
                 }
             }
         }
@@ -1168,7 +1171,10 @@ void msgbus_msg_envelope_print(
                 msg_envelope_elem_body_t* blob = NULL;
                 for (int i = 0; i < num_blobs; i++) {
                     blob = msgbus_msg_envelope_elem_array_get_at(msg->blob, i);
-                    fprintf(stderr, "Blob %d:\n%s\n", i, blob->body.blob->data);
+                    if (blob != NULL) {
+                        fprintf(stderr, "Blob %d:\n%s\n", i,
+                                blob->body.blob->data);
+                    }
                 }
             }
         } else {

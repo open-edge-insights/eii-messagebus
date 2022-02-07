@@ -438,6 +438,11 @@ private:
     // Profiling variable
     eii::utils::Profiling* m_profile;
 
+    /**
+     * Private @c PublisherThread copy constructor.
+     */
+    PublisherThread(const PublisherThread& src);
+
     PublisherThread& operator=(const PublisherThread& src);
 
 protected:
