@@ -24,14 +24,14 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 
 
-eii_version = os.getenv("EII_VERSION","2.6")
+eii_version = os.getenv("EII_VERSION", "2.6")
 cmake_install_prefix = os.getenv("CMAKE_INSTALL_PREFIX", "/opt/intel/eii")
 
 extensions = [
-    Extension('*',['./eii/*.pyx'],
-    include_dirs=[cmake_install_prefix + '/include'],
-    library_dirs=[cmake_install_prefix + '/lib'],
-    libraries=['eiimsgbus', 'eiiutils', 'eiimsgenv'])
+    Extension('*', ['./eii/*.pyx'],
+              include_dirs=[cmake_install_prefix + '/include'],
+              library_dirs=[cmake_install_prefix + '/lib'],
+              libraries=['eiimsgbus', 'eiiutils', 'eiimsgenv'])
 ]
 
 

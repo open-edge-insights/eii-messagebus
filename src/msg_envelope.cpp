@@ -49,8 +49,7 @@ const char* msgbus_msg_envelope_elem_type_str(msg_envelope_data_type_t dt) {
 }
 
 MsgbusException::MsgbusException(msgbus_ret_t ret, const char* msg) :
-    m_ret(ret)
-{
+    m_ret(ret) {
     const char* ret_str = msgbus_ret_str(ret);
     std::ostringstream os;
     os << "[" << ret_str << "(" << ret << ")] " << msg;
@@ -91,7 +90,7 @@ const char* MsgEnvelopeElement::get_type_str() {
 }
 
 int64_t MsgEnvelopeElement::to_int() {
-    if(m_elem->type != MSG_ENV_DT_INT) {
+    if (m_elem->type != MSG_ENV_DT_INT) {
         msgbus_msg_envelope_elem_destroy(m_elem);
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Value type is not an integer");
@@ -100,7 +99,7 @@ int64_t MsgEnvelopeElement::to_int() {
 }
 
 const char* MsgEnvelopeElement::to_string() {
-    if(m_elem->type != MSG_ENV_DT_STRING) {
+    if (m_elem->type != MSG_ENV_DT_STRING) {
         msgbus_msg_envelope_elem_destroy(m_elem);
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Value type is not a string");
@@ -109,7 +108,7 @@ const char* MsgEnvelopeElement::to_string() {
 }
 
 double MsgEnvelopeElement::to_float() {
-    if(m_elem->type != MSG_ENV_DT_FLOATING) {
+    if (m_elem->type != MSG_ENV_DT_FLOATING) {
         msgbus_msg_envelope_elem_destroy(m_elem);
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Value type is not an integer");
@@ -118,7 +117,7 @@ double MsgEnvelopeElement::to_float() {
 }
 
 bool MsgEnvelopeElement::to_bool() {
-    if(m_elem->type != MSG_ENV_DT_BOOLEAN) {
+    if (m_elem->type != MSG_ENV_DT_BOOLEAN) {
         msgbus_msg_envelope_elem_destroy(m_elem);
         throw MsgbusException(MSG_ERR_UNKNOWN,
                               "Value type is not an integer");
@@ -286,12 +285,12 @@ msg_envelope_t* MsgEnvelope::get_msg_envelope() {
 int64_t MsgEnvelope::get_int(const std::string key) {
     msg_envelope_elem_body_t* body = NULL;
     msgbus_ret_t ret = msgbus_msg_envelope_get(m_msgenv, key.c_str(), &body);
-    if(ret != MSG_SUCCESS) {
+    if (ret != MSG_SUCCESS) {
         if (ret == MSG_ERR_ELEM_NOT_EXIST) {
             throw MsgbusException(ret, "Value for key not found");
         }
     }
-    if(body->type != MSG_ENV_DT_INT) {
+    if (body->type != MSG_ENV_DT_INT) {
         throw MsgbusException(ret, "Value type is not an integer");
     }
     return body->body.integer;
@@ -300,12 +299,12 @@ int64_t MsgEnvelope::get_int(const std::string key) {
 const char* MsgEnvelope::get_string(const std::string key) {
     msg_envelope_elem_body_t* body = NULL;
     msgbus_ret_t ret = msgbus_msg_envelope_get(m_msgenv, key.c_str(), &body);
-    if(ret != MSG_SUCCESS) {
+    if (ret != MSG_SUCCESS) {
         if (ret == MSG_ERR_ELEM_NOT_EXIST) {
             throw MsgbusException(ret, "Value for key not found");
         }
     }
-    if(body->type != MSG_ENV_DT_STRING) {
+    if (body->type != MSG_ENV_DT_STRING) {
         throw MsgbusException(ret, "Value type is not a string");
     }
     return body->body.string;
@@ -314,12 +313,12 @@ const char* MsgEnvelope::get_string(const std::string key) {
 double MsgEnvelope::get_float(const std::string key) {
     msg_envelope_elem_body_t* body = NULL;
     msgbus_ret_t ret = msgbus_msg_envelope_get(m_msgenv, key.c_str(), &body);
-    if(ret != MSG_SUCCESS) {
+    if (ret != MSG_SUCCESS) {
         if (ret == MSG_ERR_ELEM_NOT_EXIST) {
             throw MsgbusException(ret, "Value for key not found");
         }
     }
-    if(body->type != MSG_ENV_DT_FLOATING) {
+    if (body->type != MSG_ENV_DT_FLOATING) {
         throw MsgbusException(ret, "Value type is not a float");
     }
     return body->body.floating;
@@ -328,12 +327,12 @@ double MsgEnvelope::get_float(const std::string key) {
 bool MsgEnvelope::get_bool(const std::string key) {
     msg_envelope_elem_body_t* body = NULL;
     msgbus_ret_t ret = msgbus_msg_envelope_get(m_msgenv, key.c_str(), &body);
-    if(ret != MSG_SUCCESS) {
+    if (ret != MSG_SUCCESS) {
         if (ret == MSG_ERR_ELEM_NOT_EXIST) {
             throw MsgbusException(ret, "Value for key not found");
         }
     }
-    if(body->type != MSG_ENV_DT_BOOLEAN) {
+    if (body->type != MSG_ENV_DT_BOOLEAN) {
         throw MsgbusException(ret, "Value type is not a boolean");
     }
     return body->body.boolean;
@@ -342,7 +341,7 @@ bool MsgEnvelope::get_bool(const std::string key) {
 MsgEnvelopeElement* MsgEnvelope::get_msg_envelope_element(const std::string key) {
     msg_envelope_elem_body_t* body = NULL;
     msgbus_ret_t ret = msgbus_msg_envelope_get(m_msgenv, key.c_str(), &body);
-    if(ret != MSG_SUCCESS) {
+    if (ret != MSG_SUCCESS) {
         if (ret == MSG_ERR_ELEM_NOT_EXIST) {
             throw MsgbusException(ret, "Value for key not found");
         }
@@ -476,7 +475,7 @@ int64_t MsgEnvelopeList::get_int(int64_t index) {
         throw MsgbusException(MSG_ERR_ELEM_NOT_EXIST,
                               "Value for key not found");
     }
-    if(body->type != MSG_ENV_DT_INT) {
+    if (body->type != MSG_ENV_DT_INT) {
         throw MsgbusException(MSG_ERR_ELEM_OBJ,
                               "Value type is not an integer");
     }
@@ -490,7 +489,7 @@ double MsgEnvelopeList::get_float(int64_t index) {
         throw MsgbusException(MSG_ERR_ELEM_NOT_EXIST,
                               "Value for key not found");
     }
-    if(body->type != MSG_ENV_DT_FLOATING) {
+    if (body->type != MSG_ENV_DT_FLOATING) {
         throw MsgbusException(MSG_ERR_ELEM_OBJ,
                               "Value type is not a float");
     }
@@ -504,7 +503,7 @@ const char* MsgEnvelopeList::get_string(int64_t index) {
         throw MsgbusException(MSG_ERR_ELEM_NOT_EXIST,
                               "Value for key not found");
     }
-    if(body->type != MSG_ENV_DT_STRING) {
+    if (body->type != MSG_ENV_DT_STRING) {
         throw MsgbusException(MSG_ERR_ELEM_OBJ,
                               "Value type is not a string");
     }
@@ -518,7 +517,7 @@ bool MsgEnvelopeList::get_bool(int64_t index) {
         throw MsgbusException(MSG_ERR_ELEM_NOT_EXIST,
                               "Value for key not found");
     }
-    if(body->type != MSG_ENV_DT_BOOLEAN) {
+    if (body->type != MSG_ENV_DT_BOOLEAN) {
         throw MsgbusException(MSG_ERR_ELEM_OBJ,
                               "Value type is not a boolean");
     }
@@ -527,7 +526,7 @@ bool MsgEnvelopeList::get_bool(int64_t index) {
 
 MsgEnvelopeElement* MsgEnvelopeList::get_msg_envelope_element(int64_t index) {
     msg_envelope_elem_body_t* body = msgbus_msg_envelope_elem_array_get_at(m_arr, index);
-    if(body == NULL) {
+    if (body == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN, "Value for key not found");
     }
     MsgEnvelopeElement* msg_envelope_elemnt = new MsgEnvelopeElement(body);
@@ -659,7 +658,7 @@ int64_t MsgEnvelopeObject::get_int(const std::string key) {
         throw MsgbusException(MSG_ERR_ELEM_NOT_EXIST,
                               "Value for key not found");
     }
-    if(body->type != MSG_ENV_DT_INT) {
+    if (body->type != MSG_ENV_DT_INT) {
         throw MsgbusException(MSG_ERR_ELEM_OBJ,
                               "Value type is not an integer");
     }
@@ -674,7 +673,7 @@ double MsgEnvelopeObject::get_float(const std::string key) {
         throw MsgbusException(MSG_ERR_ELEM_NOT_EXIST,
                               "Value for key not found");
     }
-    if(body->type != MSG_ENV_DT_FLOATING) {
+    if (body->type != MSG_ENV_DT_FLOATING) {
         throw MsgbusException(MSG_ERR_ELEM_OBJ,
                               "Value type is not a float");
     }
@@ -689,7 +688,7 @@ const char* MsgEnvelopeObject::get_string(const std::string key) {
         throw MsgbusException(MSG_ERR_ELEM_NOT_EXIST,
                               "Value for key not found");
     }
-    if(body->type != MSG_ENV_DT_STRING) {
+    if (body->type != MSG_ENV_DT_STRING) {
         throw MsgbusException(MSG_ERR_ELEM_OBJ,
                               "Value type is not a string");
     }
@@ -704,7 +703,7 @@ bool MsgEnvelopeObject::get_bool(const std::string key) {
         throw MsgbusException(MSG_ERR_ELEM_NOT_EXIST,
                               "Value for key not found");
     }
-    if(body->type != MSG_ENV_DT_BOOLEAN) {
+    if (body->type != MSG_ENV_DT_BOOLEAN) {
         throw MsgbusException(MSG_ERR_ELEM_OBJ,
                               "Value type is not a boolean");
     }
@@ -714,7 +713,7 @@ bool MsgEnvelopeObject::get_bool(const std::string key) {
 MsgEnvelopeElement* MsgEnvelopeObject::get_msg_envelope_element(const std::string key) {
     msg_envelope_elem_body_t* body = msgbus_msg_envelope_elem_object_get(m_msgenvobj,
                                                                          key.c_str());
-    if(body == NULL) {
+    if (body == NULL) {
         throw MsgbusException(MSG_ERR_UNKNOWN, "Value for key not found");
     }
     MsgEnvelopeElement* msg_envelope_elemnt = new MsgEnvelopeElement(body);
@@ -735,7 +734,7 @@ MsgEnvelopeObject::~MsgEnvelopeObject() {
 MsgEnvelopeList* MsgEnvelope::get_array(std::string key) {
     msg_envelope_elem_body_t* body = NULL;
     msgbus_ret_t ret = msgbus_msg_envelope_get(m_msgenv, key.c_str(), &body);
-    if(ret != MSG_SUCCESS) {
+    if (ret != MSG_SUCCESS) {
         if (ret == MSG_ERR_ELEM_NOT_EXIST) {
             throw MsgbusException(ret, "Value for key not found");
         }
@@ -746,7 +745,7 @@ MsgEnvelopeList* MsgEnvelope::get_array(std::string key) {
 MsgEnvelopeObject* MsgEnvelope::get_object(std::string key) {
     msg_envelope_elem_body_t* body = NULL;
     msgbus_ret_t ret = msgbus_msg_envelope_get(m_msgenv, key.c_str(), &body);
-    if(ret != MSG_SUCCESS) {
+    if (ret != MSG_SUCCESS) {
         if (ret == MSG_ERR_ELEM_NOT_EXIST) {
             throw MsgbusException(ret, "Value for key not found");
         }

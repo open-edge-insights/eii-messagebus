@@ -121,13 +121,13 @@ static uint32_t crc32_tab[] = {
       0xcdd70693, 0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8,
       0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b,
       0x2d02ef8d
-   };
+    };
 
 uint32_t msgbus_crc32(const void* buf, size_t len) {
     uint32_t crc = 0;
     const uint8_t* p = buf;
 
-    while(len--)
+    while (len--)
         crc = crc32_tab[(crc ^ *p++) & 0xFF] ^ (crc >> 8);
 
     return crc;

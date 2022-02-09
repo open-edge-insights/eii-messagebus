@@ -43,16 +43,16 @@
     "\"bool\":true,"\
     "\"str\":\"Hello, World!\""\
     "\"obj\":{\"test\":65},"\
-    "\"none\":null",\
+    "\"none\":null", \
     "\"arr\":[\"test\",65]"\
     "}"
 
 #define ASSERT_NULL(val) { \
-    if(val != NULL) FAIL() << "Value should be NULL"; \
+    if (val != NULL) FAIL() << "Value should be NULL"; \
 }
 
 #define ASSERT_NOT_NULL(val) { \
-    if(val == NULL) FAIL() << "Value shoud not be NULL"; \
+    if (val == NULL) FAIL() << "Value shoud not be NULL"; \
 }
 
 using namespace eii::msgbus;
@@ -62,7 +62,7 @@ using namespace eii::msgbus;
  */
 TEST(msg_envelope_tests, simple_init) {
     msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
-    if(msg == NULL)
+    if (msg == NULL)
         FAIL() << "NULL";
     msgbus_msg_envelope_destroy(msg);
 }
@@ -72,7 +72,7 @@ TEST(msg_envelope_tests, simple_init) {
  */
 TEST(msg_envelope_tests, topic_envelope) {
     msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
-    if(msg == NULL)
+    if (msg == NULL)
         FAIL() << "NULL";
 
     msg_envelope_elem_body_t* data = msgbus_msg_envelope_new_integer(42);
@@ -154,7 +154,7 @@ TEST(msg_envelope_tests, ct_blob_put) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], data[i]);
     }
 
@@ -191,7 +191,7 @@ TEST(msg_envelope_tests, ct_blob_serialize) {
     char* data = (char*) malloc(sizeof(char) * 10);
     memcpy(data, "\x01\x01\x02\x03\x04\x05\x06\x07\x08\x09", 10);
     msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 10);
-    if(blob == NULL)
+    if (blob == NULL)
         FAIL() << "Failed to initialize blob";
 
     msgbus_ret_t ret = msgbus_msg_envelope_put(msg, NULL, blob);
@@ -201,7 +201,7 @@ TEST(msg_envelope_tests, ct_blob_serialize) {
     int num_parts = msgbus_msg_envelope_serialize(msg, &parts);
     ASSERT_EQ(parts[0].len, 10) << "Incorrect serialized length";
 
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(parts[0].bytes[i], data[i]);
     }
 
@@ -217,7 +217,7 @@ TEST(msg_envelope_tests, ct_blob_serialize) {
     ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to retrieve 'testing' from body";
     ASSERT_EQ(data_get->type, MSG_ENV_DT_BLOB) << "Value of data type wrong";
 
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], data[i]);
     }
 
@@ -319,7 +319,7 @@ TEST(msg_envelope_tests, ct_json_serialize) {
     //     ASSERT_EQ(parts[0].bytes[i], EXPECTED_JSON[i]);
     // }
 
-    for(int i = 0; i < parts[1].len; i++) {
+    for (int i = 0; i < parts[1].len; i++) {
         ASSERT_EQ(parts[1].bytes[i], blob->body.blob->data[i]);
     }
 
@@ -388,19 +388,19 @@ TEST(msg_envelope_tests, ct_multi_blob_serialize) {
     char* data = (char*) malloc(sizeof(char) * 10);
     memcpy(data, "\x01\x01\x02\x03\x04\x05\x06\x07\x08\x09", 10);
     msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 10);
-    if(blob == NULL)
+    if (blob == NULL)
         FAIL() << "Failed to initialize blob";
 
     char* data_two = (char*) malloc(sizeof(char) * 10);
     memcpy(data_two, "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19", 10);
     msg_envelope_elem_body_t* blob_two = msgbus_msg_envelope_new_blob(data_two, 10);
-    if(blob_two == NULL)
+    if (blob_two == NULL)
         FAIL() << "Failed to initialize blob_two";
 
     char* data_three = (char*) malloc(sizeof(char) * 10);
     memcpy(data_three, "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29", 10);
     msg_envelope_elem_body_t* blob_three = msgbus_msg_envelope_new_blob(data_three, 10);
-    if(blob_three == NULL)
+    if (blob_three == NULL)
         FAIL() << "Failed to initialize blob_three";
 
     msgbus_ret_t ret = msgbus_msg_envelope_put(msg, NULL, blob);
@@ -514,19 +514,19 @@ TEST(msg_envelope_tests, ct_multi_json_serialize) {
     char* data = (char*) malloc(sizeof(char) * 10);
     memcpy(data, "\x01\x01\x02\x03\x04\x05\x06\x07\x08\x09", 10);
     msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 10);
-    if(blob == NULL)
+    if (blob == NULL)
         FAIL() << "Failed to initialize blob";
 
     char* data_two = (char*) malloc(sizeof(char) * 10);
     memcpy(data_two, "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19", 10);
     msg_envelope_elem_body_t* blob_two = msgbus_msg_envelope_new_blob(data_two, 10);
-    if(blob_two == NULL)
+    if (blob_two == NULL)
         FAIL() << "Failed to initialize blob_two";
 
     char* data_three = (char*) malloc(sizeof(char) * 10);
     memcpy(data_three, "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29", 10);
     msg_envelope_elem_body_t* blob_three = msgbus_msg_envelope_new_blob(data_three, 10);
-    if(blob_three == NULL)
+    if (blob_three == NULL)
         FAIL() << "Failed to initialize blob_three";
 
     ret = msgbus_msg_envelope_put(msg, NULL, blob);

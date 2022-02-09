@@ -26,12 +26,12 @@
 // Enable use of timeit utility
 #define WITH_TIMEIT
 
+#include <eii/utils/logger.h>
+#include <eii/utils/string.h>
 #include <limits.h>
 #include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
-#include <eii/utils/logger.h>
-#include <eii/utils/string.h>
 #include "eii/msgbus/msgbus.h"
 #include "eii/msgbus/msgbus.hpp"
 #include "eii/utils/timeit.h"
@@ -83,7 +83,7 @@ static char* update_ld_library_path();
  * Helper to create the config_t object.
  */
 static config_t* create_config() {
-    if(g_use_tcp)
+    if (g_use_tcp)
         return json_config_new_from_buffer(TCP_CONFIG);
     else
         return json_config_new_from_buffer(IPC_CONFIG);
@@ -95,7 +95,7 @@ static config_t* create_config() {
 TEST(msgbus_test, msgbus_init_test) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
     msgbus_destroy(ctx);
@@ -107,7 +107,7 @@ TEST(msgbus_test, msgbus_init_test) {
 TEST(msgbus_test, msgbus_publish_blob) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -152,7 +152,7 @@ TEST(msgbus_test, msgbus_publish_blob) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -170,7 +170,7 @@ TEST(msgbus_test, msgbus_publish_blob) {
 TEST(msgbus_test, msgbus_publish_json) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -242,7 +242,7 @@ TEST(msgbus_test, msgbus_publish_json) {
     ASSERT_EQ(data_get->type, MSG_ENV_DT_BLOB) << "Incorrect data type";
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -260,7 +260,7 @@ TEST(msgbus_test, msgbus_publish_json) {
 TEST(msgbus_test, msgbus_publish_blob_timedwait) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -305,7 +305,7 @@ TEST(msgbus_test, msgbus_publish_blob_timedwait) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -324,7 +324,7 @@ TEST(msgbus_test, msgbus_publish_blob_timedwait) {
 TEST(msgbus_test, msgbus_publish_blob_timedwait_timeout) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -355,7 +355,7 @@ TEST(msgbus_test, msgbus_publish_blob_timedwait_timeout) {
 TEST(msgbus_test, msgbus_request_response) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -400,7 +400,7 @@ TEST(msgbus_test, msgbus_request_response) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -422,7 +422,7 @@ TEST(msgbus_test, msgbus_request_response) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -444,7 +444,7 @@ TEST(msgbus_test, msgbus_load_proto) {
     // Load JSON configuration
     config_t* config = json_config_new_from_buffer(DYN_CONFIG);
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL)
+    if (ctx == NULL)
         FAIL() << "Failed to initlize msgbus";
 
     recv_ctx_t* recv_ctx;
@@ -676,7 +676,7 @@ TEST(msgbus_test, cpp_reqresp) {
 //     msg_envelope_t* received = NULL;
 //     config_t* config = create_config();
 //     void* ctx = msgbus_initialize(config);
-//     if(ctx == NULL) {
+//     if (ctx == NULL) {
 //         FAIL() << "Init failed";
 //     }
 //
@@ -712,17 +712,17 @@ GTEST_API_ int main(int argc, char** argv) {
 
     log_lvl_t log_lvl = LOG_LVL_ERROR;
 
-    if(argc > 1) {
+    if (argc > 1) {
         int idx = 1;
 
-        while(argc != 1) {
-            if(strcmp(argv[idx], "--tcp") == 0) {
+        while (argc != 1) {
+            if (strcmp(argv[idx], "--tcp") == 0) {
                 LOG_INFO_0("Running msgbus tests over TCP");
                 g_use_tcp = true;
                 idx++;
                 argc--;
-            } else if(strcmp(argv[idx], "--log-level") == 0) {
-                if(argc < 3) {
+            } else if (strcmp(argv[idx], "--log-level") == 0) {
+                if (argc < 3) {
                     LOG_ERROR_0("Too few arguments");
                     return -1;
                 }
@@ -754,7 +754,7 @@ GTEST_API_ int main(int argc, char** argv) {
 
     set_log_level(log_lvl);
 
-    if(g_use_tcp) {
+    if (g_use_tcp) {
         LOG_INFO_0("Running msgbus tests over TCP");
     } else {
         LOG_INFO_0("Running msgbus tests over IPC");
@@ -777,25 +777,25 @@ static char* update_ld_library_path() {
     size_t len = (ld_library_path != NULL) ? strlen(ld_library_path) : 0;
 
     // Get current working directory
-   char cwd[PATH_MAX];
-   char* result = getcwd(cwd, PATH_MAX);
-   assert(result != NULL);
+    char cwd[PATH_MAX];
+    char* result = getcwd(cwd, PATH_MAX);
+    assert(result != NULL);
 
-   size_t dest_len = strlen(LD_PATH_SET) + strlen(cwd) + len + 2;
-   char* env_str = NULL;
+    size_t dest_len = strlen(LD_PATH_SET) + strlen(cwd) + len + 2;
+    char* env_str = NULL;
 
-   if(ld_library_path == NULL) {
-       // Setting the environmental variable from scratch
-       env_str = concat_s(dest_len, 3, LD_PATH_SET, LD_SEP, cwd);
-   } else {
-       // Setting the environmental variable with existing path
-       env_str = concat_s(
-               dest_len, 4, LD_PATH_SET, ld_library_path, LD_SEP, cwd);
-   }
-   assert(env_str != NULL);
+    if (ld_library_path == NULL) {
+        // Setting the environmental variable from scratch
+        env_str = concat_s(dest_len, 3, LD_PATH_SET, LD_SEP, cwd);
+    } else {
+        // Setting the environmental variable with existing path
+        env_str = concat_s(
+                dest_len, 4, LD_PATH_SET, ld_library_path, LD_SEP, cwd);
+    }
+    assert(env_str != NULL);
 
-   // Put the new LD_LIBRARY_PATH into the environment
-   putenv(env_str);
+    // Put the new LD_LIBRARY_PATH into the environment
+    putenv(env_str);
 
-   return env_str;
+    return env_str;
 }

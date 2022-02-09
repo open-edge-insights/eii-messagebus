@@ -23,13 +23,12 @@
  * @brief EII Message Bus example using the C++ thread helper classes.
  */
 
+#include <eii/utils/logger.h>
+#include <eii/utils/json_config.h>
+#include <condition_variable>
 #include <chrono>
 #include <cstring>
 #include <csignal>
-#include <condition_variable>
-
-#include <eii/utils/logger.h>
-#include <eii/utils/json_config.h>
 #include "eii/msgbus/msgbus.hpp"
 
 #define SERVICE_NAME "pubsub-threads"
@@ -52,8 +51,7 @@ public:
      * @param message - Message for the example message
      */
     ExampleMessage(char* message) :
-        Serializable(NULL)
-    {
+        Serializable(NULL) {
         m_message = message;
     };
 
@@ -63,15 +61,14 @@ public:
      * @param msg - Message Envelope
      */
     ExampleMessage(msg_envelope_t* msg) :
-        Serializable(NULL)
-    {
+        Serializable(NULL) {
         // Retrieve data out of the message envelope
         msg_envelope_elem_body_t* body = NULL;
         msgbus_ret_t ret = msgbus_msg_envelope_get(msg, "message", &body);
-        if(ret != MSG_SUCCESS) {
+        if (ret != MSG_SUCCESS) {
             throw "Failed to retrieve \"message\" key from envelope";
         }
-        if(body->type != MSG_ENV_DT_STRING) {
+        if (body->type != MSG_ENV_DT_STRING) {
             msgbus_msg_envelope_elem_destroy(body);
             throw "\"message\" value must be a string";
         }
@@ -98,21 +95,21 @@ public:
      */
     msg_envelope_t* serialize() override {
         msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
-        if(msg == NULL) {
+        if (msg == NULL) {
             LOG_ERROR_0("Failed to initialize message");
             return NULL;
         }
 
         msg_envelope_elem_body_t* body = msgbus_msg_envelope_new_string(
                 m_message);
-        if(body == NULL) {
+        if (body == NULL) {
             LOG_ERROR_0("Failed to initialize message envelope body");
             msgbus_msg_envelope_destroy(msg);
             return NULL;
         }
 
         msgbus_ret_t ret = msgbus_msg_envelope_put(msg, "message", body);
-        if(ret != MSG_SUCCESS) {
+        if (ret != MSG_SUCCESS) {
             LOG_ERROR_0("Failed to put \"message\" key into envelope");
             msgbus_msg_envelope_elem_destroy(body);
             msgbus_msg_envelope_destroy(msg);
@@ -152,22 +149,22 @@ void usage(const char* name) {
  */
 void signal_handler(int signo) {
     LOG_INFO_0("Quitting...");
-    if(g_publisher != NULL)     delete g_publisher;
-    if(g_subscriber != NULL)    delete g_subscriber;
-    if(g_input_queue != NULL)   delete g_input_queue;
-    if(g_output_queue != NULL)  delete g_output_queue;
+    if (g_publisher != NULL)     delete g_publisher;
+    if (g_subscriber != NULL)    delete g_subscriber;
+    if (g_input_queue != NULL)   delete g_input_queue;
+    if (g_output_queue != NULL)  delete g_output_queue;
 }
 
 int main(int argc, char** argv) {
-    if(argc == 1) {
+    if (argc == 1) {
         LOG_ERROR_0("Too few arguments");
         return -1;
-    } else if(argc > 2) {
+    } else if (argc > 2) {
         LOG_ERROR_0("Too many arguments");
         return -1;
     }
 
-    if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+    if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
         usage(argv[0]);
         return 0;
     }
@@ -177,12 +174,12 @@ int main(int argc, char** argv) {
     signal(SIGTERM, signal_handler);
 
     config_t* pub_config = json_config_new(argv[1]);
-    if(pub_config == NULL) {
+    if (pub_config == NULL) {
         LOG_ERROR_0("Failed to load JSON configuration");
         return -1;
     }
     config_t* sub_config = json_config_new(argv[1]);
-    if(pub_config == NULL) {
+    if (pub_config == NULL) {
         LOG_ERROR_0("Failed to load JSON configuration");
         config_destroy(pub_config);
         return -1;

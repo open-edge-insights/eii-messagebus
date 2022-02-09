@@ -59,12 +59,12 @@ void* msgbus_initialize(config_t* config) {
     dynlib_ctx_t* proto_lib = NULL;
     config_value_t* value = config->get_config_value(config->cfg, "type");
 
-    if(value == NULL) {
+    if (value == NULL) {
         LOG_ERROR_0("Config missing 'type' key");
         goto err;
     }
 
-    if(value->type != CVT_STRING) {
+    if (value->type != CVT_STRING) {
         LOG_ERROR_0("Config 'type' value MUST be a string");
         goto err;
     }
@@ -76,9 +76,9 @@ void* msgbus_initialize(config_t* config) {
     strcmp_s(proto_name, strlen(ZMQ_IPC), ZMQ_IPC, &ind_ipc);
     strcmp_s(proto_name, strlen(ZMQ_TCP), ZMQ_TCP, &ind_tcp);
 
-    if(ind_ipc == 0 ||ind_tcp == 0) {
+    if (ind_ipc == 0 ||ind_tcp == 0) {
         proto = proto_zmq_initialize(value->body.string, config);
-        if(proto == NULL)
+        if (proto == NULL)
             goto err;
     } else {
         // Creating library name string
@@ -86,12 +86,12 @@ void* msgbus_initialize(config_t* config) {
         size_t dest_len = proto_name_len + PROTO_LIB_LEN;
         lib_name = concat_s(
                 dest_len, 3, PROTO_LIB_LIB, proto_name, PROTO_LIB_SO);
-        if(lib_name == NULL) { goto err; }
+        if (lib_name == NULL) { goto err; }
 
         // Load the library
         LOG_DEBUG("Loading library: %s", lib_name);
         int rc = dynlib_new(lib_name, &proto_lib);
-        if(rc != DYNLOAD_SUCCESS) {
+        if (rc != DYNLOAD_SUCCESS) {
             LOG_ERROR("(rc: %d) Failed to load protocol plugin %s",
                       rc, lib_name);
             goto err;
@@ -101,7 +101,7 @@ void* msgbus_initialize(config_t* config) {
         LOG_DEBUG("Getting '%s()' symbol from %s library",
                   PROTO_SYM_NAME, lib_name);
         void* exports_sym =  dynlib_load_sym(proto_lib, PROTO_SYM_NAME);
-        if(exports_sym == NULL) {
+        if (exports_sym == NULL) {
             LOG_ERROR("Failed to load symbol '%s' in %s library",
                       PROTO_SYM_NAME, lib_name);
             goto err;
@@ -119,7 +119,7 @@ void* msgbus_initialize(config_t* config) {
 
         // Casting symbol to expected function
         proto = proto_exports->initialize(proto_name, config);
-        if(proto == NULL) {
+        if (proto == NULL) {
             LOG_ERROR("Failed to initialize protocol '%s'", proto_name);
             goto err;
         }
@@ -129,7 +129,7 @@ void* msgbus_initialize(config_t* config) {
     config_value_destroy(value);
 
     msgbus_ctx_t* msgbus_ctx = (msgbus_ctx_t*) malloc(sizeof(msgbus_ctx_t));
-    if(msgbus_ctx == NULL) {
+    if (msgbus_ctx == NULL) {
         LOG_ERROR_0("Failed to initialize msgbus context");
         goto err;
     }
@@ -140,11 +140,11 @@ void* msgbus_initialize(config_t* config) {
 
     return (void*) msgbus_ctx;
 err:
-    if(value != NULL)
+    if (value != NULL)
         free(value);
-    if(lib_name != NULL)
+    if (lib_name != NULL)
         free(lib_name);
-    if(proto_lib != NULL)
+    if (proto_lib != NULL)
         dynlib_destroy(proto_lib);
     return NULL;
 }
@@ -162,7 +162,7 @@ void msgbus_destroy(void* ctx) {
     config_destroy(msgbus_ctx->config);
 
     // Destroy the dynamically loaded library if it is initialized
-    if(msgbus_ctx->proto_lib != NULL)
+    if (msgbus_ctx->proto_lib != NULL)
         dynlib_destroy(msgbus_ctx->proto_lib);
 
     // Destroy the message bus context
@@ -196,9 +196,9 @@ msgbus_ret_t msgbus_subscriber_new(
     msgbus_ret_t ret =  proto->subscriber_new(
             proto->proto_ctx, topic, &proto_sub_ctx);
 
-    if(ret == MSG_SUCCESS) {
+    if (ret == MSG_SUCCESS) {
         recv_ctx_t* recv_ctx = (recv_ctx_t*) malloc(sizeof(recv_ctx_t));
-        if(recv_ctx == NULL) {
+        if (recv_ctx == NULL) {
             LOG_ERROR_0("Out of memory");
             proto->recv_ctx_destroy(proto->proto_ctx, proto_sub_ctx);
             return MSG_ERR_NO_MEMORY;
@@ -220,9 +220,9 @@ msgbus_ret_t msgbus_service_get(
     msgbus_ret_t ret = proto->service_get(
             proto->proto_ctx, service_name, &proto_service_ctx);
 
-    if(ret == MSG_SUCCESS) {
+    if (ret == MSG_SUCCESS) {
         recv_ctx_t* recv_ctx = (recv_ctx_t*) malloc(sizeof(recv_ctx_t));
-        if(recv_ctx == NULL) {
+        if (recv_ctx == NULL) {
             LOG_ERROR_0("Out of memory");
             proto->recv_ctx_destroy(proto->proto_ctx, proto_service_ctx);
             return MSG_ERR_NO_MEMORY;
@@ -244,9 +244,9 @@ msgbus_ret_t msgbus_service_new(
     msgbus_ret_t ret = proto->service_new(
             proto->proto_ctx, service_name, &proto_service_ctx);
 
-    if(ret == MSG_SUCCESS) {
+    if (ret == MSG_SUCCESS) {
         recv_ctx_t* recv_ctx = (recv_ctx_t*) malloc(sizeof(recv_ctx_t));
-        if(recv_ctx == NULL) {
+        if (recv_ctx == NULL) {
             LOG_ERROR_0("Out of memory");
             proto->recv_ctx_destroy(proto->proto_ctx, proto_service_ctx);
             return MSG_ERR_NO_MEMORY;
@@ -262,7 +262,7 @@ msgbus_ret_t msgbus_service_new(
 void msgbus_recv_ctx_destroy(void* ctx, recv_ctx_t* recv_ctx) {
     protocol_t* proto = ((msgbus_ctx_t*) ctx)->proto;
     proto->recv_ctx_destroy(proto->proto_ctx, recv_ctx->ctx);
-    if(recv_ctx->user_data)
+    if (recv_ctx->user_data)
         recv_ctx->user_data->free(recv_ctx->user_data->data);
     free(recv_ctx);
 }

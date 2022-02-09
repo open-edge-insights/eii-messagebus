@@ -24,6 +24,7 @@
  * @brief Example EII message bus subscriber using the C++ API wrappers.
  */
 
+#include <eii/utils/json_config.h>
 #include <signal.h>
 #include <chrono>
 #include <thread>
@@ -31,7 +32,6 @@
 #include <string>
 #include <atomic>
 #include <eii/msgbus/msgbus.hpp>
-#include <eii/utils/json_config.h>
 #include "common.h"
 
 #define TOPIC "publish_test"

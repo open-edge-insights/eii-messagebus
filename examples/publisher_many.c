@@ -75,7 +75,7 @@ void* pub_run(void* vargs) {
     bool keep_running = true;
     pub_thread_ctx_t* ctx = (pub_thread_ctx_t*) vargs;
 
-    while(keep_running) {
+    while (keep_running) {
         msg_envelope_t* msg = initialize_message(ctx->topic);
         LOG_INFO("Publishing message for '%s'", ctx->topic);
         msgbus_publisher_publish(g_msgbus_ctx, ctx->pub_ctx, msg);
@@ -111,8 +111,8 @@ void signal_handler(int signo) {
     pthread_mutex_unlock(&g_mutex);
 
     // Join with all publisher threads
-    for(int i = 0; i < g_num_publishers; i++) {
-        if(g_pub_threads[i] != NULL) {
+    for (int i = 0; i < g_num_publishers; i++) {
+        if (g_pub_threads[i] != NULL) {
             LOG_INFO("Waiting to join with publisher thread %d", i);
             pthread_join(*g_pub_threads[i], NULL);
             free(g_pub_threads[i]);
@@ -141,9 +141,9 @@ void usage(const char* name) {
 }
 
 int main(int argc, char** argv) {
-    if(argc < 3) {
-        if(argc == 2) {
-            if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+    if (argc < 3) {
+        if (argc == 2) {
+            if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
                 usage(argv[0]);
                 return 0;
             } else {
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
             LOG_ERROR_0("Too few arguments");
             return -1;
         }
-    } else if(argc > 3) {
+    } else if (argc > 3) {
         LOG_ERROR_0("Too many arguments");
         return -1;
     }
@@ -167,13 +167,13 @@ int main(int argc, char** argv) {
 
     LOG_INFO("Initializing msgbus context with config '%s'", config_file);
     config_t* config = json_config_new(config_file);
-    if(config == NULL) {
+    if (config == NULL) {
         LOG_ERROR_0("Failed to load configuration file");
         return -1;
     }
 
     g_msgbus_ctx = msgbus_initialize(config);
-    if(g_msgbus_ctx == NULL) {
+    if (g_msgbus_ctx == NULL) {
         LOG_ERROR_0("Failed to initialize the message bus context");
         config_destroy(config);
         return -1;
@@ -186,21 +186,21 @@ int main(int argc, char** argv) {
 
     g_pub_threads = (pthread_t**) malloc(
             sizeof(pthread_t*) * g_num_publishers);
-    if(g_pub_threads == NULL) {
+    if (g_pub_threads == NULL) {
         LOG_ERROR_0("malloc failed");
         goto err;
     }
 
     // Assign all pthread contexts to NULL to keep clean up easy
-    for(int i = 0; i < g_num_publishers; i++) {
+    for (int i = 0; i < g_num_publishers; i++) {
         g_pub_threads[i] = NULL;
     }
 
     msgbus_ret_t ret;
-    for(int i = 0; i < g_num_publishers; i++) {
+    for (int i = 0; i < g_num_publishers; i++) {
         pub_thread_ctx_t* ctx = (pub_thread_ctx_t*) malloc(
                 sizeof(pub_thread_ctx_t));
-        if(ctx == NULL) {
+        if (ctx == NULL) {
             LOG_ERROR_0("malloc failed");
             goto err;
         }
@@ -213,7 +213,7 @@ int main(int argc, char** argv) {
 
         // Create publisher
         ret = msgbus_publisher_new(g_msgbus_ctx, ctx->topic, &ctx->pub_ctx);
-        if(ret != MSG_SUCCESS) {
+        if (ret != MSG_SUCCESS) {
             LOG_ERROR("Error creating publisher (errno: %d)", ret);
             goto err;
         }

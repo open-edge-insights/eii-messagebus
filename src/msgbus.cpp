@@ -188,7 +188,7 @@ BaseMsgbusThread::~BaseMsgbusThread() {
 }
 
 void BaseMsgbusThread::start() {
-    if(m_th == NULL) {
+    if (m_th == NULL) {
         m_stop.store(false);
         m_th = new std::thread(&BaseMsgbusThread::run, this);
     }
@@ -221,7 +221,7 @@ void PublisherThread::run() {
     MsgEnvelope* msg_env = NULL;
 
     // Profiling related variables
-    int64_t serilization_start= 0;
+    int64_t serilization_start = 0;
     std::string serialization_start_ts_str =
         m_service_name + "_serialization_entry";
     std::string serialization_end_ts_str =

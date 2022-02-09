@@ -44,25 +44,25 @@ static void free_elem(void* vargs) {
 
 msg_envelope_t* msgbus_msg_envelope_new(content_type_t ct) {
     msg_envelope_t* env = (msg_envelope_t*) malloc(sizeof(msg_envelope_t));
-    if(!env) goto err;
+    if (!env) goto err;
 
     env->correlation_id = NULL; // TODO: Need to assign this
     env->content_type = ct;
     env->blob = NULL;
     env->name = NULL; // topic name/ service name
 
-    if(ct == CT_BLOB) {
+    if (ct == CT_BLOB) {
         env->map = NULL;
     } else {
         env->map = hashmap_new(INITIAL_SIZE);
-        if(env->map == NULL)
+        if (env->map == NULL)
             goto err;
     }
 
     return env;
 
 err:
-    if(env)
+    if (env)
         msgbus_msg_envelope_destroy(env);
     return NULL;
 }
@@ -70,7 +70,7 @@ err:
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_none() {
     msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
             sizeof(msg_envelope_elem_body_t));
-    if(elem == NULL) {
+    if (elem == NULL) {
         return NULL;
     }
 
@@ -83,14 +83,14 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_none() {
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_array() {
     msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
             sizeof(msg_envelope_elem_body_t));
-    if(elem == NULL) {
+    if (elem == NULL) {
         return NULL;
     }
 
     // Initialize element values
     elem->type = MSG_ENV_DT_ARRAY;
     elem->body.array = linkedlist_new();
-    if(elem->body.array == NULL) {
+    if (elem->body.array == NULL) {
         free(elem);
         return NULL;
     }
@@ -101,13 +101,13 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_array() {
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_object() {
     msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
             sizeof(msg_envelope_elem_body_t));
-    if(elem == NULL) {
+    if (elem == NULL) {
         return NULL;
     }
 
     // Initializing underlying hashmap structure for the object.
     hashmap_t* map = hashmap_new(INITIAL_SIZE);
-    if(map == NULL) {
+    if (map == NULL) {
         free(elem);
         return NULL;
     }
@@ -122,7 +122,7 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_object() {
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_string(const char* string) {
     msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
             sizeof(msg_envelope_elem_body_t));
-    if(elem == NULL) {
+    if (elem == NULL) {
         return NULL;
     }
 
@@ -130,7 +130,7 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_string(const char* string) {
 
     elem->type = MSG_ENV_DT_STRING;
     elem->body.string = (char*) malloc(sizeof(char) * (len + 1));
-    if(elem->body.string == NULL) {
+    if (elem->body.string == NULL) {
         free(elem);
         return NULL;
     }
@@ -143,7 +143,7 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_string(const char* string) {
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_integer(int64_t integer) {
     msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
             sizeof(msg_envelope_elem_body_t));
-    if(elem == NULL) {
+    if (elem == NULL) {
         return NULL;
     }
 
@@ -156,7 +156,7 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_integer(int64_t integer) {
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_floating(double floating) {
     msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
             sizeof(msg_envelope_elem_body_t));
-    if(elem == NULL) {
+    if (elem == NULL) {
         return NULL;
     }
 
@@ -169,7 +169,7 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_floating(double floating) {
 msg_envelope_elem_body_t* msgbus_msg_envelope_new_bool(bool boolean) {
     msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
             sizeof(msg_envelope_elem_body_t));
-    if(elem == NULL) {
+    if (elem == NULL) {
         return NULL;
     }
 
@@ -185,12 +185,12 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_blob(char* data, size_t len)
     msg_envelope_blob_t* blob = NULL;
 
     owned_blob_t* shared = owned_blob_new((void*) data, free, data, len);
-    if(shared == NULL) {
+    if (shared == NULL) {
         goto err;
     }
 
     blob = (msg_envelope_blob_t*) malloc(sizeof(msg_envelope_blob_t));
-    if(blob == NULL) {
+    if (blob == NULL) {
         goto err;
     }
     blob->shared = shared;
@@ -199,7 +199,7 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_blob(char* data, size_t len)
 
     elem = (msg_envelope_elem_body_t*) malloc(
             sizeof(msg_envelope_elem_body_t));
-    if(elem == NULL) {
+    if (elem == NULL) {
         goto err;
     }
 
@@ -209,11 +209,11 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_new_blob(char* data, size_t len)
     return elem;
 
 err:
-    if(shared != NULL) {
+    if (shared != NULL) {
         shared->free(shared->ptr);
         free(shared);
     }
-    if(blob != NULL)
+    if (blob != NULL)
         free(blob);
     return NULL;
 }
@@ -223,14 +223,14 @@ msgbus_ret_t msgbus_msg_envelope_elem_object_put(
         msg_envelope_elem_body_t* value)
 {
     // Verify that the given msg envelope element is an object
-    if(obj->type != MSG_ENV_DT_OBJECT)
+    if (obj->type != MSG_ENV_DT_OBJECT)
         return MSG_ERR_ELEM_OBJ;
 
     // Attempt to put the element into the object hashmap
     hashmap_ret_t ret = hashmap_put(
             obj->body.object, key, (void*) value, free_elem);
-    if(ret != MAP_SUCCESS) {
-        if(ret == MAP_KEY_EXISTS)
+    if (ret != MAP_SUCCESS) {
+        if (ret == MAP_KEY_EXISTS)
             return MSG_ERR_ELEM_ALREADY_EXISTS;
         return MSG_ERR_ELEM_OBJ;
     }
@@ -317,12 +317,12 @@ msgbus_ret_t msgbus_msg_envelope_elem_object_put_bool(
 msg_envelope_elem_body_t* msgbus_msg_envelope_elem_object_get(
         msg_envelope_elem_body_t* obj, const char* key) {
     // Verify that the given msg envelope element is an object
-    if(obj->type != MSG_ENV_DT_OBJECT)
+    if (obj->type != MSG_ENV_DT_OBJECT)
         return NULL;
 
     // Retrieve the value (if it exists) from the hashmap of the object
     void* value = hashmap_get(obj->body.object, key);
-    if(value == NULL)
+    if (value == NULL)
         return NULL;
 
     return (msg_envelope_elem_body_t*) value;
@@ -332,12 +332,12 @@ msgbus_ret_t msgbus_msg_envelope_elem_object_remove(
         msg_envelope_elem_body_t* obj, const char* key)
 {
     // Verify that the given msg envelope element is an object
-    if(obj->type != MSG_ENV_DT_OBJECT)
+    if (obj->type != MSG_ENV_DT_OBJECT)
         return MSG_ERR_ELEM_OBJ;
 
     // Attempt to remove the element from the underlying hashmap
     hashmap_ret_t ret = hashmap_remove(obj->body.object, key);
-    if(ret != MAP_SUCCESS) {
+    if (ret != MAP_SUCCESS) {
         return MSG_ERR_ELEM_NOT_EXIST;
     }
 
@@ -349,17 +349,17 @@ msgbus_ret_t msgbus_msg_envelope_elem_array_add(
         msg_envelope_elem_body_t* value)
 {
     // Verify that the given msg envelope element is an array
-    if(arr->type != MSG_ENV_DT_ARRAY)
+    if (arr->type != MSG_ENV_DT_ARRAY)
         return MSG_ERR_ELEM_ARR;
 
     // Initialize the new node to add
     node_t* node = linkedlist_node_new(value, free_elem);
-    if(node == NULL)
+    if (node == NULL)
         return MSG_ERR_ELEM_ARR;
 
     // Attempt to add the element to the array's linked list
     linkedlist_ret_t ret = linkedlist_add(arr->body.array, node);
-    if(ret != LL_SUCCESS)
+    if (ret != LL_SUCCESS)
         return MSG_ERR_ELEM_ARR;
 
     return MSG_SUCCESS;
@@ -445,12 +445,12 @@ msg_envelope_elem_body_t* msgbus_msg_envelope_elem_array_get_at(
         msg_envelope_elem_body_t* arr, int idx)
 {
     // Verify that the given msg envelope element is an array
-    if(arr->type != MSG_ENV_DT_ARRAY)
+    if (arr->type != MSG_ENV_DT_ARRAY)
         return NULL;
 
     // Attempt to get the element to the array's linked list
     node_t* node = linkedlist_get_at(arr->body.array, idx);
-    if(node == NULL)
+    if (node == NULL)
         return NULL;
     else
         return (msg_envelope_elem_body_t*) node->value;
@@ -460,12 +460,12 @@ msgbus_ret_t msgbus_msg_envelope_elem_array_remove_at(
         msg_envelope_elem_body_t* arr, int idx)
 {
     // Verify that the given msg envelope element is an array
-    if(arr->type != MSG_ENV_DT_ARRAY)
+    if (arr->type != MSG_ENV_DT_ARRAY)
         return MSG_ERR_ELEM_ARR;
 
     // Attempt to add the element to the array's linked list
     linkedlist_ret_t ret = linkedlist_remove_at(arr->body.array, idx);
-    if(ret == LL_ERR_NOT_FOUND)
+    if (ret == LL_ERR_NOT_FOUND)
         return MSG_ERR_ELEM_NOT_EXIST;
 
     return MSG_SUCCESS;
@@ -475,14 +475,14 @@ msgbus_ret_t msgbus_msg_envelope_elem_array_remove_at(
 void msgbus_msg_envelope_elem_destroy(msg_envelope_elem_body_t* body) {
     if (body == NULL) { return; }
 
-    if(body->type == MSG_ENV_DT_STRING) {
+    if (body->type == MSG_ENV_DT_STRING) {
         free(body->body.string);
-    } else if(body->type == MSG_ENV_DT_BLOB) {
+    } else if (body->type == MSG_ENV_DT_BLOB) {
         owned_blob_destroy(body->body.blob->shared);
         free(body->body.blob);
-    } else if(body->type == MSG_ENV_DT_OBJECT) {
+    } else if (body->type == MSG_ENV_DT_OBJECT) {
         hashmap_destroy(body->body.object);
-    } else if(body->type == MSG_ENV_DT_ARRAY) {
+    } else if (body->type == MSG_ENV_DT_ARRAY) {
         linkedlist_destroy(body->body.array);
     }
 
@@ -535,10 +535,10 @@ msgbus_ret_t msgbus_msg_envelope_put(
     } else {
         hashmap_ret_t put_ret = hashmap_put(
                 env->map, key, (void*) data, free_elem);
-        if(put_ret != MAP_SUCCESS) {
+        if (put_ret != MAP_SUCCESS) {
             // The only possible errors returned from hashmap_put() are
             // MAP_OMEM and MAP_KEY_EXISTS
-            if(put_ret == MAP_KEY_EXISTS) {
+            if (put_ret == MAP_KEY_EXISTS) {
                 return MSG_ERR_ELEM_ALREADY_EXISTS;
             } else {
                 return MSG_ERR_NO_MEMORY;
@@ -624,11 +624,11 @@ msgbus_ret_t msgbus_msg_envelope_put_bool(
 
 msgbus_ret_t msgbus_msg_envelope_remove(msg_envelope_t* env, const char* key) {
     // Immediately return if the message is a blob
-    if(env->content_type == CT_BLOB)
+    if (env->content_type == CT_BLOB)
         return MSG_ERR_ELEM_NOT_EXIST;
 
     hashmap_ret_t ret = hashmap_remove(env->map, key);
-    if(ret != MAP_SUCCESS)
+    if (ret != MAP_SUCCESS)
         return MSG_ERR_ELEM_NOT_EXIST;
     else
         return MSG_SUCCESS;
@@ -650,7 +650,7 @@ msgbus_ret_t msgbus_msg_envelope_get(
     }
 
     (*data) = (msg_envelope_elem_body_t*) hashmap_get(env->map, key);
-    if((*data) == NULL) {
+    if ((*data) == NULL) {
         return MSG_ERR_ELEM_NOT_EXIST;
     } else {
         return MSG_SUCCESS;
@@ -664,7 +664,7 @@ msgbus_ret_t msgbus_msg_envelope_get(
 static cJSON* elem_to_json(msg_envelope_elem_body_t* elem) {
     cJSON* obj = NULL;
 
-    switch(elem->type) {
+    switch (elem->type) {
         case MSG_ENV_DT_INT:
             obj = cJSON_CreateNumber(elem->body.integer);
             break;
@@ -679,7 +679,7 @@ static cJSON* elem_to_json(msg_envelope_elem_body_t* elem) {
             break;
         case MSG_ENV_DT_OBJECT:
             obj = cJSON_CreateObject();
-            if(obj == NULL) break;  // Failed to initialize JSON object...
+            if (obj == NULL) break;  // Failed to initialize JSON object...
 
             // Get pointer to the map to make code cleaner going forward
             hashmap_t* map = elem->body.object;
@@ -687,7 +687,7 @@ static cJSON* elem_to_json(msg_envelope_elem_body_t* elem) {
             // Loop over all hashmap items... This could probably be improved
             HASHMAP_LOOP(map, msg_envelope_elem_body_t, {
                 cJSON* subobj = elem_to_json(value);
-                if(subobj == NULL) {
+                if (subobj == NULL) {
                     // Failed to create a sub-JSON object
                     cJSON_Delete(obj);
                     obj = NULL;
@@ -699,11 +699,11 @@ static cJSON* elem_to_json(msg_envelope_elem_body_t* elem) {
             break;
         case MSG_ENV_DT_ARRAY:
             obj = cJSON_CreateArray();
-            if(obj == NULL) break; // Failed to initialize JSON object...
+            if (obj == NULL) break; // Failed to initialize JSON object...
 
             LINKEDLIST_FOREACH(elem->body.array, msg_envelope_elem_body_t, {
                 cJSON* subobj = elem_to_json(value);
-                if(subobj == NULL) {
+                if (subobj == NULL) {
                     // Failed to create a sub-JSON object
                     cJSON_Delete(obj);
                     obj = NULL;
@@ -750,7 +750,7 @@ static void serialize_blob(
 
 int msgbus_msg_envelope_serialize(
         msg_envelope_t* env, msg_envelope_serialized_part_t** parts) {
-    if(env->content_type == CT_BLOB) {
+    if (env->content_type == CT_BLOB) {
         if (env->blob == NULL)
             return -1;
         // For single only blob scenario
@@ -883,9 +883,9 @@ int msgbus_msg_envelope_serialize(
 static msg_envelope_elem_body_t* deserialize_json(cJSON* obj) {
     msg_envelope_elem_body_t* elem = NULL;
 
-    if(cJSON_IsArray(obj)) {
+    if (cJSON_IsArray(obj)) {
         elem = msgbus_msg_envelope_new_array();
-        if(elem == NULL)
+        if (elem == NULL)
             return NULL;
 
         cJSON* subobj = NULL;
@@ -893,23 +893,23 @@ static msg_envelope_elem_body_t* deserialize_json(cJSON* obj) {
 
         cJSON_ArrayForEach(subobj, obj) {
             msg_envelope_elem_body_t* subelem = deserialize_json(subobj);
-            if(subelem == NULL) {
+            if (subelem == NULL) {
                 msgbus_msg_envelope_elem_destroy(elem);
                 elem = NULL;
                 break;
             }
 
             ret = msgbus_msg_envelope_elem_array_add(elem, subelem);
-            if(ret != MSG_SUCCESS) {
+            if (ret != MSG_SUCCESS) {
                 msgbus_msg_envelope_elem_destroy(subelem);
                 msgbus_msg_envelope_elem_destroy(elem);
                 elem = NULL;
                 break;
             }
         }
-    } else if(cJSON_IsObject(obj)) {
+    } else if (cJSON_IsObject(obj)) {
         elem = msgbus_msg_envelope_new_object();
-        if(elem == NULL)
+        if (elem == NULL)
             return NULL;
 
         cJSON* subobj = NULL;
@@ -917,34 +917,34 @@ static msg_envelope_elem_body_t* deserialize_json(cJSON* obj) {
 
         cJSON_ArrayForEach(subobj, obj) {
             msg_envelope_elem_body_t* subelem = deserialize_json(subobj);
-            if(subelem == NULL) {
+            if (subelem == NULL) {
                 msgbus_msg_envelope_elem_destroy(elem);
                 return NULL;
             }
 
             ret = msgbus_msg_envelope_elem_object_put(
                     elem, subobj->string, subelem);
-            if(ret != MSG_SUCCESS) {
+            if (ret != MSG_SUCCESS) {
                 msgbus_msg_envelope_elem_destroy(subelem);
                 msgbus_msg_envelope_elem_destroy(elem);
                 elem = NULL;
                 break;
             }
         }
-    } else if(cJSON_IsBool(obj)) {
-        if(cJSON_IsTrue(obj))
+    } else if (cJSON_IsBool(obj)) {
+        if (cJSON_IsTrue(obj))
             elem = msgbus_msg_envelope_new_bool(true);
         else
             elem = msgbus_msg_envelope_new_bool(false);
-    } else if(cJSON_IsNumber(obj)) {
+    } else if (cJSON_IsNumber(obj)) {
         double value = obj->valuedouble;
-        if(value == (int64_t) value)
+        if (value == (int64_t) value)
             elem = msgbus_msg_envelope_new_integer((int64_t) value);
         else
             elem = msgbus_msg_envelope_new_floating(value);
-    } else if(cJSON_IsString(obj)) {
+    } else if (cJSON_IsString(obj)) {
         elem = msgbus_msg_envelope_new_string(obj->valuestring);
-    } else if(cJSON_IsNull(obj)) {
+    } else if (cJSON_IsNull(obj)) {
         elem = msgbus_msg_envelope_new_none();
     } else {
         return NULL;
@@ -975,12 +975,12 @@ static msgbus_ret_t deserialize_blob(
         size_t len = current_part->len;
         msg_envelope_blob_t* blob = (msg_envelope_blob_t*) malloc(
                 sizeof(msg_envelope_blob_t));
-        if(blob == NULL) return MSG_ERR_NO_MEMORY;
+        if (blob == NULL) return MSG_ERR_NO_MEMORY;
         blob->len = len;
         blob->data = current_part->bytes;
         blob->shared = NULL;
         blob->shared = owned_blob_copy(current_part->shared);
-        if(blob->shared == NULL) {
+        if (blob->shared == NULL) {
             free(blob);
             return MSG_ERR_NO_MEMORY;
         }
@@ -994,8 +994,8 @@ static msgbus_ret_t deserialize_blob(
         // Initialize body element
         msg_envelope_elem_body_t* elem = (msg_envelope_elem_body_t*) malloc(
                 sizeof(msg_envelope_elem_body_t));
-        if(elem == NULL) {
-            if(blob->shared)
+        if (elem == NULL) {
+            if (blob->shared)
                 owned_blob_destroy(blob->shared);
             free(blob);
             return MSG_ERR_NO_MEMORY;
@@ -1019,7 +1019,7 @@ msgbus_ret_t msgbus_msg_envelope_deserialize(
 {
     msgbus_ret_t ret = MSG_SUCCESS;
     msg_envelope_t* msg = msgbus_msg_envelope_new(ct);
-    if(msg == NULL) return MSG_ERR_NO_MEMORY;
+    if (msg == NULL) return MSG_ERR_NO_MEMORY;
 
     if (ct == CT_BLOB) {
         ret = deserialize_blob(msg, parts, num_parts, ct);
@@ -1080,12 +1080,12 @@ msgbus_ret_t msgbus_msg_envelope_serialize_parts_new(
     msg_envelope_serialized_part_t* tmp_parts =
         (msg_envelope_serialized_part_t*) malloc(
                 sizeof(msg_envelope_serialized_part_t) * num_parts);
-    if(tmp_parts == NULL) {
+    if (tmp_parts == NULL) {
         return MSG_ERR_NO_MEMORY;
     }
 
     // Initialize initial values
-    for(int i = 0; i < num_parts; i++) {
+    for (int i = 0; i < num_parts; i++) {
         tmp_parts[i].shared = NULL;
         tmp_parts[i].len = 0;
         tmp_parts[i].bytes = NULL;
@@ -1100,8 +1100,8 @@ msgbus_ret_t msgbus_msg_envelope_serialize_parts_new(
 
 void msgbus_msg_envelope_serialize_destroy(
         msg_envelope_serialized_part_t* parts, int num_parts) {
-    for(int i = 0; i < num_parts; i++) {
-        if(parts[i].shared != NULL)
+    for (int i = 0; i < num_parts; i++) {
+        if (parts[i].shared != NULL)
             owned_blob_destroy(parts[i].shared);
     }
     free(parts);
@@ -1180,9 +1180,9 @@ void msgbus_msg_envelope_print(
 }
 
 void msgbus_msg_envelope_destroy(msg_envelope_t* env) {
-    if(env->blob != NULL)
+    if (env->blob != NULL)
         msgbus_msg_envelope_elem_destroy(env->blob);
-    if(env->map != NULL)
+    if (env->map != NULL)
         hashmap_destroy(env->map);
     if (env->name != NULL)
         free(env->name);
@@ -1193,7 +1193,7 @@ owned_blob_t* owned_blob_new(
         void* ptr, void (*free_fn)(void*), const char* data, size_t len)
 {
     owned_blob_t* shared = (owned_blob_t*) malloc(sizeof(owned_blob_t));
-    if(shared == NULL) {
+    if (shared == NULL) {
         return NULL;
     }
 
@@ -1208,7 +1208,7 @@ owned_blob_t* owned_blob_new(
 
 owned_blob_t* owned_blob_copy(owned_blob_t* to_copy) {
     owned_blob_t* shared = (owned_blob_t*) malloc(sizeof(owned_blob_t));
-    if(shared == NULL) {
+    if (shared == NULL) {
         return NULL;
     }
 

@@ -83,6 +83,7 @@ def run_publisher(ctx, args):
     finally:
         publisher.close()
 
+
 def run_subscriber(ctx, args):
     """Run subscriber end of benchmarking.
     """

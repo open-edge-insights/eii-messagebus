@@ -22,14 +22,14 @@
  * @brief EII Message Bus example using the C++ thread helper classes.
  */
 
+#include <eii/utils/logger.h>
+#include <eii/utils/json_config.h>
+
 #include <chrono>
 #include <cstring>
 #include <csignal>
 #include <atomic>
 #include <condition_variable>
-
-#include <eii/utils/logger.h>
-#include <eii/utils/json_config.h>
 #include "eii/msgbus/msgbus.hpp"
 
 #define TOPIC "publish_test"
@@ -93,15 +93,15 @@ void usage(const char* name) {
 }
 
 int main(int argc, char** argv) {
-    if(argc == 1) {
+    if (argc == 1) {
         LOG_ERROR_0("Too few arguments");
         return -1;
-    } else if(argc > 3) {
+    } else if (argc > 3) {
         LOG_ERROR_0("Too many arguments");
         return -1;
     }
 
-    if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
+    if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
         usage(argv[0]);
         return 0;
     }
@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
     set_log_level(LOG_LVL_DEBUG);
 
     config_t* sub_config = json_config_new(argv[1]);
-    if(sub_config == NULL) {
+    if (sub_config == NULL) {
         LOG_ERROR_0("Failed to load JSON configuration");
         config_destroy(sub_config);
         return -1;
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
     MessageQueue* output_queue = new MessageQueue(-1);
     SubscriberThread<ExampleMessage>* subscriber = NULL;
 
-    if(argc == 3) {
+    if (argc == 3) {
         subscriber = new SubscriberThread<ExampleMessage>(
                 sub_config, err_cv, argv[2], output_queue, SERVICE_NAME);
     } else {
@@ -138,8 +138,8 @@ int main(int argc, char** argv) {
     subscriber->start();
 
     auto timeout = std::chrono::milliseconds(250);
-    while(!g_stop.load()) {
-        if(output_queue->wait_for(timeout)) {
+    while (!g_stop.load()) {
+        if (output_queue->wait_for(timeout)) {
             LOG_INFO_0("Received message");
             ExampleMessage* received = (ExampleMessage*) output_queue->front();
             output_queue->pop();
