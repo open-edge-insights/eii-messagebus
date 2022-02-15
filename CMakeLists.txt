@@ -20,7 +20,7 @@
 
 cmake_minimum_required(VERSION 3.11)
 project(eii-messagebus
-    VERSION 2.6.0
+    VERSION 3.0.0
     LANGUAGES C CXX
     DESCRIPTION "Intel's Edge Insights for Industrial (EII) C/C++ Message Bus Library"
     HOMEPAGE_URL "https://github.com/open-edge-insights/eii-messagebus")

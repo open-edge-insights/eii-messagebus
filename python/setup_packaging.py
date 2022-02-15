@@ -24,7 +24,7 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 
 
-eii_version = os.getenv("EII_VERSION", "2.6")
+eii_version = os.getenv("EII_VERSION", "3.0")
 cmake_install_prefix = os.getenv("CMAKE_INSTALL_PREFIX", "/opt/intel/eii")
 
 extensions = [
