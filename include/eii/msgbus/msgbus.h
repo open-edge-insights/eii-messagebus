@@ -88,9 +88,12 @@ void msgbus_destroy(void* ctx);
 /**
  * Create a new publisher context object.
  *
- * \note{The `get_config_value()` method for the configuration will be called
+ * \note The `get_config_value()` method for the configuration will be called
  *  to retrieve values needed for the underlying protocol to initialize the
- *  context for publishing.}
+ *  context for publishing.
+ *
+ * \note This method is not necessarily thread-safe. Calls to this method
+ *  should either all be done from the same thread or surrounded by a lock.
  *
  * @param[in]  ctx     - Message bus context
  * @param[out] pub_ctx - Publisher context
@@ -120,6 +123,9 @@ void msgbus_publisher_destroy(void* ctx, publisher_ctx_t* pub_ctx);
 
 /**
  * Subscribe to the given topic.
+ *
+ * \note This method is not necessarily thread-safe. Calls to this method
+ *  should either all be done from the same thread or surrounded by a lock.
  *
  * @param[in]  ctx        - Message bus context
  * @param[in]  topic      - Subscription topic string
@@ -164,6 +170,9 @@ msgbus_ret_t msgbus_response(
 /**
  * Create a context to send requests to a service.
  *
+ * \note This method is not necessarily thread-safe. Calls to this method
+ *  should either all be done from the same thread or surrounded by a lock.
+ *
  * @param[in]  ctx          - Message bus context
  * @param[in]  service_name - Name of the service
  * @param[in]  user_data    - User data
@@ -176,6 +185,9 @@ msgbus_ret_t msgbus_service_get(
 
 /**
  * Create context to receive requests over the message bus.
+ *
+ * \note This method is not necessarily thread-safe. Calls to this method
+ *  should either all be done from the same thread or surrounded by a lock.
  *
  * @param[in]  ctx          - Message bus context
  * @param[in]  service_name - Name of the service
