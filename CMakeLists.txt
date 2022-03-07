@@ -188,8 +188,8 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/open-edge-insights/eii-messag
 
 # Debian package dependencies
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Intel Corporation")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libzmq5 (>= 4.2.5), libcjson1 (>= 1.7.10), eii-utils (>= 2.6.0)")
-
+## TODO: Come up with right way for adding dependency versions
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "eii-utils (>= 2.6.0)")
 # RPM package specific settings
 set(CPACK_RPM_PACKAGE_REQUIRES "zeromq >= 4.3.4, cjson >= 1.7.14, eii-utils >= 2.6.0")
 
