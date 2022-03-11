@@ -128,8 +128,9 @@ def main():
     if not os.path.exists('./.socks'):
         os.mkdir('./.socks')
 
-    with open(args.msgbus_config, 'r') as f:
-        config = json.load(f)
+    if os.path.isfile(args.msgbus_config):
+        with open(args.msgbus_config, 'r') as f:
+            config = json.load(f)
 
     print('[INFO] Initializing message bus context')
     ctx = msgbus.MsgbusContext(config)
