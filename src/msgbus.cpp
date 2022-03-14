@@ -184,6 +184,9 @@ BaseMsgbusThread::~BaseMsgbusThread() {
             // Stop the thread because it is still running...
             this->stop();
         }
+        if (m_ctx) {
+            delete m_ctx;
+        }
     }
 }
 
