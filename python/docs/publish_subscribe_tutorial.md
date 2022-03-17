@@ -1,9 +1,11 @@
-## Publish/Subscribe Tutorial
+# Publish/Subscribe Tutorial
 
 The following tutorial will cover how to do publish/subscribe messaging using
-the EII Message Bus. The outcome of this tutorial will be two Python scripts,
+the Message Bus. The outcome of this tutorial will be two Python scripts,
 one of which will publish messages and the other which will subscribe to
 messages.
+
+>**Note:** In this document, you will find labels of 'Edge Insights for Industrial (EII)' for filenames, paths, code snippets, and so on. Consider the references of EII as Open Edge Insights. This is due to the product name change of EII as OEI.
 
 To start, we will create a script named, `publisher.py`. To start, we will
 add a few necessary imports which will be utilized later in the tutorial.
@@ -16,7 +18,7 @@ import argparse
 import eii.msgbus as mb
 ```
 
-The last line of the imports above is where we import the EII Message Bus
+The last line of the imports above is where we import the Message Bus
 Python binding, which for sake of clarity will be referenced as `mb` in all
 of the code to follow.
 
@@ -39,7 +41,7 @@ which will give us the topic string under which to publish messages.
 
 It is important to note at this point that a JSON configuration is going to be
 used for the publisher, however, this is not required of an application using
-the Python binding. The EII Message Bus Python API requires that a Python
+the Python binding. The Message Bus Python API requires that a Python
 `dict` object be used to configure the bus. For ease of use, JSON has been
 used in this example.
 
@@ -134,8 +136,7 @@ finally:
         publisher.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/publisher.py` in the EII
-> Message Bus source code.
+> **NOTE:** This code is provided in `python/examples/publisher.py` in the Message Bus source code.
 
 Now that the publisher script is finished, we will create the subscriber script
 called `subscriber.py`. The script will essentially be the same as the publiser
@@ -181,8 +182,7 @@ finally:
         subscriber.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/subscriber.py` in the EII
-> Message Bus source code.
+> **NOTE:** This code is provided in `python/examples/subscriber.py` in the Message Bus source code.
 
 As can be seen in the code above, the `msgbus.new_publisher()` call has now
 been replace with: `msgbus.new_subscriber()`. This call connects to the given
