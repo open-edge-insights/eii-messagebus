@@ -1,11 +1,13 @@
-**Contents**
+# Contents
 
-- [EII Message Bus](#eii-message-bus)
+- [Contents](#contents)
+  - [Message Bus](#message-bus)
   - [Dependency Installation](#dependency-installation)
   - [Compilation](#compilation)
     - [Generating Documentation](#generating-documentation)
     - [Potential Compilation Issues](#potential-compilation-issues)
   - [Packaging](#packaging)
+    - [A Note on Alpine APK Packaging](#a-note-on-alpine-apk-packaging)
   - [Installation](#installation)
     - [Install Python Binding](#install-python-binding)
     - [Install Golang Binding](#install-golang-binding)
@@ -33,15 +35,17 @@
     - [Using ZAP Authentication](#using-zap-authentication-1)
     - [Disabling Security](#disabling-security)
   - [Known issues](#known-issues)
-  - [Generation of python .whl file (Optional)](#generation-of-python-.whl-file-(optional))
+  - [Generation of python .whl file (Optional)](#generation-of-python-whl-file-optional)
 
-# EII Message Bus
+## Message Bus
 
-Message bus used between containers inside of EII.
+Message bus used between containers inside of Open Edge Insights (OEI).
+
+>**Note:** In this document, you will find labels of 'Edge Insights for Industrial (EII)' for filenames, paths, code snippets, and so on. Consider the references of EII as OEI. This is due to the product name change of EII as OEI.
 
 ## Dependency Installation
 
-The EII Message Bus depends on CMake version 3.11+. For Ubuntu 18.04 this is not
+The OEI Message Bus depends on CMake version 3.11+. For Ubuntu 18.04 this is not
 the default version installed via `apt-get`. To install the correct version
 of CMake, execute the following commands:
 
@@ -85,7 +89,7 @@ pip3 install --user -r ./python/requirements.txt
 
 ## Compilation
 
-The EII Message Bus utilizes CMake as the build tool for compiling the library.
+The OEI Message Bus utilizes CMake as the build tool for compiling the library.
 The simplest sequence of commands for building the library are shown below.
 
 ```sh
@@ -95,7 +99,7 @@ cmake ..
 make
 ```
 
-This will compile only the C library for the EII Message Bus. If you wish to
+This will compile only the C library for the OEI Message Bus. If you wish to
 build with the Python binding, then specify the `WITH_PYTHON` flag when
 executing the `cmake` command (as shown below).
 
@@ -104,7 +108,7 @@ cmake -DWITH_PYTHON=ON ..
 ```
 
 If you wish to include installation of the Go binding with the installation of
-the EII library, then specify the `WITH_GO` flag when executing the `cmake`
+the OEI library, then specify the `WITH_GO` flag when executing the `cmake`
 command (as shown below).
 
 ```sh
@@ -115,14 +119,14 @@ Note that this only copies the Go binding library to your system's `$GOPATH`.
 If you do not have your `$GOPATH` specified in your system's environmental
 variables then an error will occur while executing the `cmake` command.
 
-In addition to the `WITH_PYTHON` and `WITH_GO` flags, the EII Message Bus
+In addition to the `WITH_PYTHON` and `WITH_GO` flags, the Message Bus
 CMake files add flags for building the C examples and the unit tests associated
 with the library. The table below specifies all of the available flags that can
-be given to CMake for building the EII Message Bus.
+be given to CMake for building the Message Bus.
 
 |       Flag      | Default |                                       Description                                    |
 | :-------------: | :-----: | ------------------------------------------------------------------------------------ |
-| `WITH_TESTS`    | `OFF`   | If set to `ON`, builds the C unit tests with the EII Message Bus compilation         |
+| `WITH_TESTS`    | `OFF`   | If set to `ON`, builds the C unit tests with the Message Bus compilation             |
 | `WITH_EXAMPLES` | `OFF`   | If set to `ON`, then CMake will compile the C examples in addition to the library    |
 | `WITH_DOCS`     | `OFF`   | If set to `ON`, then CMake will add a `docs` build target to generate documentation  |
 
@@ -132,7 +136,7 @@ be given to CMake for building the EII Message Bus.
 > **NOTE:** See the [Generating Documentation](#generating-documentation)
 > section.
 
-If you wish to compile the EII Message Bus in debug mode, then you can set the
+If you wish to compile the Message Bus in debug mode, then you can set the
 the `CMAKE_BUILD_TYPE` to `Debug` when executing the `cmake` command (as shown
 below).
 
@@ -242,12 +246,12 @@ make package-apk
 
 **IMPORTANT:**
 
-The EII Message Bus depends on the EII Utils library. In order to compile the
-Alpine APK package for the EII Message Bus it must have the APK package for the
-EII Utils module.
+The Message Bus depends on the OEI Utils library. In order to compile the
+Alpine APK package for the Message Bus it must have the APK package for the
+OEI Utils module.
 
 To provide this, you must first build or download the Alpine APK package for the
-EII Utils library (see it's repo [here](https://github.com/open-edge-insights/eii-c-utils)
+OEI Utils library (see it's repo [here](https://github.com/open-edge-insights/eii-c-utils)
 to obtain the library).
 
 Once you have the APK, create an, "apks" directory at the top level of this
@@ -257,7 +261,7 @@ repository.
 mkdir apks/
 ```
 
-Next, place the EII Utils APK package into the, "apks", directory. Then execute
+Next, place the OEI Utils APK package into the, "apks", directory. Then execute
 the `make package-apk` command. If this is not done, then the build will fail.
 
 ### A Note on Alpine APK Packaging
@@ -273,7 +277,7 @@ version of Alpine you wish to use (ex. `-DAPKBUILD_ALPINE_VERSION=3.12`).
 
 ## Installation
 
-The EII Messsage Bus library can be installed in two different ways.
+The OEI Messsage Bus library can be installed in two different ways.
 
 1. Through published Debian, Fedora, or Alpine APK packages
 2. Installing form source
@@ -304,17 +308,17 @@ would mean installing `libcjson-dev libzmq3-dev`. For Fedora the
 packages would be `cjson-devel zeromq-devel`. In Alpine, the packages
 would be `cjson-dev zeromq-dev`.
 
-If you wish to install the EII Message Bus on your system from source, execute
+If you wish to install the Message Bus on your system from source, execute
 the following command after building the library:
 
 ```sh
 sudo make install
 ```
 
-By default, this command will install the EII Message Bus C library into
+By default, this command will install the Message Bus C library into
 `/opt/intel/eii/lib`. On some platforms this is not included in the `LD_LIBRARY_PATH`
 by default. As a result, you must add this directory to you `LD_LIBRARY_PATH`,
-otherwise you will encounter issues using the EII Message Bus. This can
+otherwise you will encounter issues using the Message Bus. This can
 be accomplished with the following `export`:
 
 ```sh
@@ -328,8 +332,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/eii/lib
 
 ### Install Python Binding
 
-To install the Python binding for the EII Message Bus execute the following
-commands:
+To install the Python binding for the Message Bus execute the following commands:
 
 ```sh
 # Change directories into the python/ directory
@@ -339,21 +342,20 @@ cd python/
 sudo python3 setup.py install
 ```
 
-> **NOTE:** In order for the installation to be successful, you must have run
+> **Note:** In order for the installation to be successful, you must have run
 > the `install.sh` script with the `--cython` flag when installing the
 > message bus dependencies.
 
 ### Install Golang Binding
 
-To install the Golang binding for the EII Message Bus execute the following
-command:
+To install the Golang binding for the Message Bus execute the following command:
 
 ```sh
 # Copy the Golang source to your $GOPATH/src directory
 cp -a go/EIIMessageBus/ $GOPATH/src/
 ```
 
-> **NOTE:** The above command assumes Golang is installed and configured on
+> **Note:** The above command assumes Golang is installed and configured on
 > the target system.
 
 ## Running Unit Tests
@@ -382,7 +384,7 @@ To run the message bus tests over TCP, execute the following command:
 
 ## Configuration
 
-The EII Message Bus is configured through a `key, value` pair interface. The
+The Message Bus is configured through a `key, value` pair interface. The
 values can be objects, arrays, integers, floating point, boolean, or strings.
 The keys that are required to be available in the configuration are largly
 determined by the underlying protocol which the message bus will use. The
@@ -451,7 +453,7 @@ An example of this is shown below.
 }
 ```
 
-The example above uses JSON to represent the EII Message Bus configuration.
+The example above uses JSON to represent the Message Bus configuration.
 See the, "Examples", below section for more details and more examples.
 
 ### ZeroMQ TCP Configuration
@@ -553,8 +555,8 @@ properties. The table below specifies each of the supported properties.
 > **NOTE:** The examples will only be compiled if the `WITH_EXAMPLES=ON` option
 > is set when CMake is executed during compilation.
 
-All of the examples provided for the EII Message Bus use a JSON configuration
-file to configure the EII Message Bus. There are several example configurations
+All of the examples provided for the Message Bus use a JSON configuration
+file to configure the Message Bus. There are several example configurations
 provided with the message bus for running in IPC and TCP mode accross the
 various different messaging patterns (i.e. Publish/Subscribe and Request/Response).
 All of these example configurations are in the `examples/configs/` directory.
@@ -626,7 +628,7 @@ example. This example is explained more in-depth in the next section.
 
 The `examples/publisher_many.c` example serves as a reference for implementing
 an application which contains many publishers. This also serves as a way of
-testing this functionality in the EII Message Bus.
+testing this functionality in the Message Bus.
 
 The example can be run with the following command (from the `build/examples/`
 directory):
@@ -751,7 +753,7 @@ script, i.e. `python3 <python-script>.py <json-config-file>.json`.
 
 When the `sudo make install` command is executed on your system, the Go binding
 will be copied to your system's `$GOPATH`. To execute the examples provided
-with the EII Message Bus Go binding go to the `$GOPATH/src/EIIMessageBus/examples`
+with the Message Bus Go binding go to the `$GOPATH/src/EIIMessageBus/examples`
 directory on your system in a terminal window.
 
 Once you are in this directory choose an example (i.e. publisher, subscriber,
@@ -767,11 +769,11 @@ For the echo-client and echo-server examples the `-topic` flag should be
 `-serviceName`.
 
 Additionally, there are example configurations provided in the
-`build/examples/configs/` directory after building the EII Message Bus library.
+`build/examples/configs/` directory after building the Message Bus library.
 
 ### Running Go Examples without Installing
 
-If you wish to run the Go binding examples with out installing the EII Message
+If you wish to run the Go binding examples with out installing the Message
 Bus library, then this can be accomplished by either copying or creating a
 soft-link to the `go/EIIMessageBus` directory in your `$GOPATH`. This can be
 accomplished with one of the commands shown below.
@@ -788,7 +790,7 @@ ln -s go/EIIMessageBus/ $GOPATH/src
 > EIIMessageBus source root directory.
 
 Since it is assumed you have not ran the `sudo make install` command to install
-the EII Message Bus library, you must set the environmental variables specified
+the Message Bus library, you must set the environmental variables specified
 below prior to running the examples.
 
 ```sh
@@ -805,7 +807,7 @@ run any of the Go examples as specified in the previous section.
 
 ### Brokered Publish/Subscribe
 
-EII provides a ZeroMQ Broker. Any of the publisher and subscriber examples can
+OEI provides a ZeroMQ Broker. Any of the publisher and subscriber examples can
 be used with this broker. There are three example JSON configuration provided
 to showcase the required configuration of the publishers/subscribers to connect
 to the broker. These examples are listed below:
@@ -881,10 +883,7 @@ to easily try out this feature.
 > **NOTE:** Example configurations using for enabling security in the examples
 > are provided in the `examples` directory.
 
-The ZeroMQ protocol for the EII Message Bus enables to usage of
-[CurveZMQ](http://curvezmq.org/) for encryption and authentication where the
-[ZAP](https://rfc.zeromq.org/spec:27/ZAP/) protocol is used for the
-authentication.
+The ZeroMQ protocol for the Message Bus enables to usage of [CurveZMQ](http://curvezmq.org/) for encryption and authentication where the [ZAP](https://rfc.zeromq.org/spec:27/ZAP/) protocol is used for the authentication.
 
 The ZeroMQ protocol for the message bus allows for using both CurveZMQ and ZAP
 together, only CurveZMQ encryption, or no encryption/authentication for TCP
