@@ -2,40 +2,40 @@
 
 - [Contents](#contents)
   - [Message Bus](#message-bus)
-  - [Dependency Installation](#dependency-installation)
-  - [Compilation](#compilation)
+    - [Dependency Installation](#dependency-installation)
+    - [Compilation](#compilation)
     - [Generating Documentation](#generating-documentation)
     - [Potential Compilation Issues](#potential-compilation-issues)
-  - [Packaging](#packaging)
-    - [A Note on Alpine APK Packaging](#a-note-on-alpine-apk-packaging)
-  - [Installation](#installation)
-    - [Install Python Binding](#install-python-binding)
-    - [Install Golang Binding](#install-golang-binding)
-  - [Running Unit Tests](#running-unit-tests)
-  - [Configuration](#configuration)
-    - [ZeroMQ IPC Configuration](#zeromq-ipc-configuration)
-    - [ZeroMQ TCP Configuration](#zeromq-tcp-configuration)
-      - [Publishers](#publishers)
-      - [Subscribers](#subscribers)
-      - [Services](#services)
-      - [Requesters](#requesters)
-      - [Using ZAP Authentication](#using-zap-authentication)
-    - [Additional ZeroMQ Configuration Properties](#additional-zeromq-configuration-properties)
-  - [Example Usage](#example-usage)
-    - [C Examples](#c-examples)
-      - [Publisher Many Example](#publisher-many-example)
-    - [Python Examples](#python-examples)
-    - [Go Examples](#go-examples)
-    - [Running Go Examples without Installing](#running-go-examples-without-installing)
-    - [Brokered Publish/Subscribe](#brokered-publishsubscribe)
-  - [Security](#security)
-    - [Using Only CurveZMQ Encryption](#using-only-curvezmq-encryption)
-      - [Publish/Subscribe](#publishsubscribe)
-      - [Request/Response](#requestresponse)
-    - [Using ZAP Authentication](#using-zap-authentication-1)
-    - [Disabling Security](#disabling-security)
-  - [Known issues](#known-issues)
-  - [Generation of python .whl file (Optional)](#generation-of-python-whl-file-optional)
+    - [Packaging](#packaging)
+      - [A Note on Alpine APK Packaging](#a-note-on-alpine-apk-packaging)
+    - [Installation](#installation)
+      - [Install Python Binding](#install-python-binding)
+      - [Install Golang Binding](#install-golang-binding)
+    - [Running Unit Tests](#running-unit-tests)
+    - [Configuration](#configuration)
+      - [ZeroMQ IPC Configuration](#zeromq-ipc-configuration)
+      - [ZeroMQ TCP Configuration](#zeromq-tcp-configuration)
+        - [Publishers](#publishers)
+        - [Subscribers](#subscribers)
+        - [Services](#services)
+        - [Requesters](#requesters)
+        - [Using ZAP Authentication](#using-zap-authentication)
+      - [Additional ZeroMQ Configuration Properties](#additional-zeromq-configuration-properties)
+    - [Example Usage](#example-usage)
+      - [C Examples](#c-examples)
+        - [Publisher Many Example](#publisher-many-example)
+      - [Python Examples](#python-examples)
+      - [Go Examples](#go-examples)
+      - [Running Go Examples without Installing](#running-go-examples-without-installing)
+      - [Brokered Publish/Subscribe](#brokered-publishsubscribe)
+    - [Security](#security)
+      - [Using Only CurveZMQ Encryption](#using-only-curvezmq-encryption)
+        - [Publish/Subscribe](#publishsubscribe)
+        - [Request/Response](#requestresponse)
+      - [Using ZAP Authentication](#using-zap-authentication-1)
+      - [Disabling Security](#disabling-security)
+    - [Known issues](#known-issues)
+    - [Generation of python .whl file (Optional)](#generation-of-python-whl-file-optional)
 
 ## Message Bus
 
@@ -43,7 +43,7 @@ Message bus used between containers inside of Open Edge Insights (OEI).
 
 >**Note:** In this document, you will find labels of 'Edge Insights for Industrial (EII)' for filenames, paths, code snippets, and so on. Consider the references of EII as OEI. This is due to the product name change of EII as OEI.
 
-## Dependency Installation
+### Dependency Installation
 
 The OEI Message Bus depends on CMake version 3.11+. For Ubuntu 18.04 this is not
 the default version installed via `apt-get`. To install the correct version
@@ -77,7 +77,7 @@ be found here: <https://www.geeksforgeeks.org/python-virtual-environment/>
 sudo apt install libcjson-dev libzmq3-dev
 ```
 
-> **NOTE:** For Fedora, the packages should be `cjson-devel zeromq-devel` and for
+> **Note:** For Fedora, the packages should be `cjson-devel zeromq-devel` and for
 > Alpine it is `cjson-dev zeromq-dev`.
 
 If you wish to compile the Python binding as well, then you must also install
@@ -87,7 +87,7 @@ the Python requirements. To do this, execute the following `pip` command:
 pip3 install --user -r ./python/requirements.txt
 ```
 
-## Compilation
+### Compilation
 
 The OEI Message Bus utilizes CMake as the build tool for compiling the library.
 The simplest sequence of commands for building the library are shown below.
@@ -130,11 +130,10 @@ be given to CMake for building the Message Bus.
 | `WITH_EXAMPLES` | `OFF`   | If set to `ON`, then CMake will compile the C examples in addition to the library    |
 | `WITH_DOCS`     | `OFF`   | If set to `ON`, then CMake will add a `docs` build target to generate documentation  |
 
-> **NOTE:** These flags are in addition to any and all flags that are available
-> for the `cmake` command. See the CMake documentation for additional flags.
-
-> **NOTE:** See the [Generating Documentation](#generating-documentation)
-> section.
+> **Note:**
+>
+> - These flags are in addition to any and all flags that are available for the `cmake` command. See the CMake documentation for additional flags.
+> - See the [Generating Documentation](#generating-documentation) section.
 
 If you wish to compile the Message Bus in debug mode, then you can set the
 the `CMAKE_BUILD_TYPE` to `Debug` when executing the `cmake` command (as shown
@@ -166,7 +165,7 @@ sudo apt install python3-sphinx
 sudo -H -E pip3 install m2r
 ```
 
-> **NOTE:** The commands above assume you already have Python 3.6 and pip
+>**Note:** The commands above assume you already have Python 3.6 and pip
 > installed on your system.
 
 **Go documentation generation is WIP.**
@@ -196,7 +195,7 @@ building of the PDFs. Any file that does not end in `.pdf` can be ignored.
     `make clean` before running make again to compile the changes in the
     Python binding. This will need to be fixed later.
 
-## Packaging
+### Packaging
 
 This library supports being packaged as a Debian, RPM, or Alpine APK packages.
 This is all accomplished via CMake. By default, packaging is disabled. To
@@ -224,7 +223,7 @@ as the CMake flag to set to `ON` to manually enable a packaging type:
 | `rpm`        | `rpmbuild`     | `PACKAGE_RPM`       |
 | `apk`        | `docker`       | `PACKAGE_APK`       |
 
-> **NOTE:** Manually setting a given package type to be built (e.g. setting
+> **Note:** Manually setting a given package type to be built (e.g. setting
 > `-DPACKAGE_DEB=ON`) still requires that the `-DPACKAGING=ON` to be set.
 
 After the required toolchains have been installed and CMake has been run with
@@ -264,7 +263,7 @@ mkdir apks/
 Next, place the OEI Utils APK package into the, "apks", directory. Then execute
 the `make package-apk` command. If this is not done, then the build will fail.
 
-### A Note on Alpine APK Packaging
+#### A Note on Alpine APK Packaging
 
 In order to package the library as an Alpine APK package, the packaging utility
 must use a Docker container to have access to the proper Alpine APK toolchains.
@@ -275,7 +274,7 @@ By default, Alpine 3.14 is used to build the package. However, this version
 can be changed by setting the `APKBUILD_ALPINE_VERSION` CMake flag to the
 version of Alpine you wish to use (ex. `-DAPKBUILD_ALPINE_VERSION=3.12`).
 
-## Installation
+### Installation
 
 The OEI Messsage Bus library can be installed in two different ways.
 
@@ -325,12 +324,12 @@ be accomplished with the following `export`:
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/eii/lib
 ```
 
-> **NOTE:** You can also specify a different library prefix to CMake through
+> **Note:** You can also specify a different library prefix to CMake through
 > the `CMAKE_INSTALL_PREFIX` flag. If different installation path is given via
 > `CMAKE_INSTALL_PREFIX`, then `$LD_LIBRARY_PATH` should be appended by
 > $CMAKE_INSTALL_PREFIX/lib.
 
-### Install Python Binding
+#### Install Python Binding
 
 To install the Python binding for the Message Bus execute the following commands:
 
@@ -346,7 +345,7 @@ sudo python3 setup.py install
 > the `install.sh` script with the `--cython` flag when installing the
 > message bus dependencies.
 
-### Install Golang Binding
+#### Install Golang Binding
 
 To install the Golang binding for the Message Bus execute the following command:
 
@@ -358,9 +357,9 @@ cp -a go/EIIMessageBus/ $GOPATH/src/
 > **Note:** The above command assumes Golang is installed and configured on
 > the target system.
 
-## Running Unit Tests
+### Running Unit Tests
 
-> **NOTE:** The unit tests will only be compiled if the `WITH_TESTS=ON` option
+> **Note:** The unit tests will only be compiled if the `WITH_TESTS=ON` option
 > is specified when running CMake.
 
 Execute one of the following commands from the `build/tests` folder to execute
@@ -382,7 +381,7 @@ To run the message bus tests over TCP, execute the following command:
 ./msgbus-tests --tcp
 ```
 
-## Configuration
+### Configuration
 
 The Message Bus is configured through a `key, value` pair interface. The
 values can be objects, arrays, integers, floating point, boolean, or strings.
@@ -397,7 +396,7 @@ following:
 The following sections specify the configuration attributes expected for the
 TCP and IPC ZeroMQ protocols.
 
-### ZeroMQ IPC Configuration
+#### ZeroMQ IPC Configuration
 
 The ZeroMQ IPC protocol implementation only requires one configuration
 attribute: `socket_dir`. The value of this attribute specifies the directory
@@ -456,13 +455,13 @@ An example of this is shown below.
 The example above uses JSON to represent the Message Bus configuration.
 See the, "Examples", below section for more details and more examples.
 
-### ZeroMQ TCP Configuration
+#### ZeroMQ TCP Configuration
 
 The ZeroMQ TCP protocol has several configuration attributes which must be
 specified based on the communication pattern the application is using and
 based on the security the application wishes to enable for its communication.
 
-#### Publishers
+##### Publishers
 
 For an application which wishes to publish messages over specific topics, the
 configuration must contain the key `zmq_tcp_publish`. This attribute must be
@@ -483,7 +482,7 @@ The `brokered` key must be a boolean value. This will determine whether or not
 the publishers attempt to bind or connect to the given  TCP (host, port)
 combination.
 
-#### Subscribers
+##### Subscribers
 
 To subscribe to messages coming from a publisher over TCP, the configuration
 must contain a key for the topic you wish to subscribe to. For example, if
@@ -503,10 +502,10 @@ table below.
 | `client_secret_key` | `string` | No       | Specifies the subscribers's secret key for authentication  |
 | `client_public_key` | `string` | No       | Specifies the subcribers's public key for authentication   |
 
-> **NOTE:** If one of the `*_key` values is specifed, then all of them must be
+> **Note:** If one of the `*_key` values is specifed, then all of them must be
 > specified.
 
-#### Services
+##### Services
 
 The configuration to host a service to receive and respond to requests is
 similar to the configuration for doing publications on a message bus context.
@@ -518,7 +517,7 @@ then the configuration must contain an a key called `example-service`. The value
 for that key must be an object containing the keys listed in the table of
 the Publishers section.
 
-#### Requesters
+##### Requesters
 
 The configuration to issue requests to a service is the exact same as a
 subscriber. In the case of a requester, instead of the configuration being
@@ -526,7 +525,7 @@ under the name of the topic, the configuration is placed under the name of
 the service it wishes to connect to. For the details of the allowed values,
 see the table in the Subscribers section above.
 
-#### Using ZAP Authentication
+##### Using ZAP Authentication
 
 For services and publishers additional security can be enabled for all incoming
 connections (i.e. requesters and subscribers). This method utilizes the ZMQ
@@ -536,7 +535,7 @@ whitelisted clients.
 The list of allowed clients is given to the message bus via the `allowed_clients`
 key. This key must be a list of Z85 encoded CurveZMQ keys.
 
-### Additional ZeroMQ Configuration Properties
+#### Additional ZeroMQ Configuration Properties
 
 The configuration interface for the ZeroMQ protocol exposes additional socket
 properties. The table below specifies each of the supported properties.
@@ -546,13 +545,12 @@ properties. The table below specifies each of the supported properties.
 | `zmq_recv_hwm`         | `int`  | `1000`   | Sets `ZMQ_RCVHWM` socket property (queue size for pending received messages) |
 | `zmq_connect_retries`  | `int`  | `1000`   | Sets number of connect failures before recreating ZMQ socket object          |
 
-## Example Usage
+### Example Usage
 
 > **IMPORTANT NOTE:** Some of the example configurations contain public/private
-> keys for the purpose of show how to use the message bus with security enabled.
-> THESE KEYS SHOULD **NEVER** BE USED IN PRODUCTION.
+> keys for the purpose of show how to use the message bus with security enabled. Never use these keys in production.
 
-> **NOTE:** The examples will only be compiled if the `WITH_EXAMPLES=ON` option
+> **Note:** The examples will only be compiled if the `WITH_EXAMPLES=ON` option
 > is set when CMake is executed during compilation.
 
 All of the examples provided for the Message Bus use a JSON configuration
@@ -585,7 +583,7 @@ The table below specifies all of the provided example configurations.
 | tcp_service_client_no_security.json             | TCP configuration for a service client side (i.e. `echo-client`) with no security.  |
 | tcp_service_client_with_security.json           | TCP configuration for a service client side with security enabled.                  |
 
-> **NOTE:** When using the brokered examples, you must also launch the broker
+> **Note:** When using the brokered examples, you must also launch the broker
 > first. For more information on the broker and how to use it, see the
 > ZmqBroker/README.md.
 
@@ -600,7 +598,7 @@ to the specified port. This list oporates as a whitelist of allowed client publi
 keys. If a connection is attempted with a key not in that list, then the connection
 is denied.
 
-### C Examples
+#### C Examples
 
 There are currently 5 C examples:
 
@@ -617,14 +615,14 @@ them, execute the following command:
 ./publisher ./configs/ipc_example_config.json
 ```
 
-> **NOTE:** The `tcp_example_config.json` can also be used in lieu of the IPC
+> **Note:** The `tcp_example_config.json` can also be used in lieu of the IPC
 > configuration file.
 
 All of the examples follow the command structure above, i.e.
 `<command> <json-config-file>.json`, except for the `publisher_many.c`
 example. This example is explained more in-depth in the next section.
 
-#### Publisher Many Example
+##### Publisher Many Example
 
 The `examples/publisher_many.c` example serves as a reference for implementing
 an application which contains many publishers. This also serves as a way of
@@ -667,7 +665,7 @@ need to contain the following to subscribe to the `pub-0` topic:
     }
 ```
 
-> **NOTE:** The `host` and `port` are assumed above, they may be different.
+> **Note:** The `host` and `port` are assumed above, they may be different.
 
 In order to simplify the creation of the configuration for subscribing to
 topics over TCP, the `gen_tcp_sub_conf.py` helper script is provided. This
@@ -712,9 +710,9 @@ Similiarly for IPC mode of communicatin with multi topics, the sample JSON confi
 
 Here, `pub-0` & `pub-1` are the PUB topics & `pub-` is the SUB topics, where we have given just the prefix name. If we don't intend to give the SUB topic prefix, we can as well give the entire SUB topic name. In this example all these topics communicate over a common socket file `multi-topics`.
 
-### Python Examples
+#### Python Examples
 
-> **NOTE:** The Python examples will only be present if the `WITH_EXAMPLES=ON`
+> **Note:** The Python examples will only be present if the `WITH_EXAMPLES=ON`
 > and `WITH_PYTHON=ON` flags are set when CMake is executed during compilation.
 
 There are currently 4 Python examples:
@@ -737,13 +735,13 @@ Then, execute one of the following commands:
 python3 ./publisher.py <CONFIG-FILE-PATH>/ipc_example_config.json
 ```
 
-> **NOTE:** The `tcp_example_config.json` can also be used in lieu of the IPC
+> **Note:** The `tcp_example_config.json` can also be used in lieu of the IPC
 > configuration file.
 
 All of the examples follow the same command structure as the `publisher.py`
 script, i.e. `python3 <python-script>.py <json-config-file>.json`.
 
-### Go Examples
+#### Go Examples
 
 > **IMPORANT NOTE:** It is assumed that when compiling the C library prior to
 > running the examples that the `WITH_GO=ON` flag was specified when executing
@@ -771,7 +769,7 @@ For the echo-client and echo-server examples the `-topic` flag should be
 Additionally, there are example configurations provided in the
 `build/examples/configs/` directory after building the Message Bus library.
 
-### Running Go Examples without Installing
+#### Running Go Examples without Installing
 
 If you wish to run the Go binding examples with out installing the Message
 Bus library, then this can be accomplished by either copying or creating a
@@ -786,7 +784,7 @@ cp -r go/EIIMessageBus/ $GOPATH/src
 ln -s go/EIIMessageBus/ $GOPATH/src
 ```
 
-> **NOTE:** The command above assumes that you are currently in the
+> **Note:** The command above assumes that you are currently in the
 > EIIMessageBus source root directory.
 
 Since it is assumed you have not ran the `sudo make install` command to install
@@ -805,7 +803,7 @@ that this is the absolute path.
 Once you have exported these variables, once you have done these steps, you can
 run any of the Go examples as specified in the previous section.
 
-### Brokered Publish/Subscribe
+#### Brokered Publish/Subscribe
 
 OEI provides a ZeroMQ Broker. Any of the publisher and subscriber examples can
 be used with this broker. There are three example JSON configuration provided
@@ -840,7 +838,7 @@ An example of this is shown below:
 ./subscriber ./configs/ipc_subscriber_brokered.json
 ```
 
-> **NOTE:** These configurations work with the, "examples/ipc_frontend_example.json",
+> **Note:** These configurations work with the, "examples/ipc_frontend_example.json",
 > and, "examples/ipc_backend_example.json", examples provided with the EII
 > ZeroMQ Broker.
 
@@ -854,7 +852,7 @@ An example of this is shown below:
 ./subscriber ./configs/tcp_subscriber_with_security.json
 ```
 
-> **NOTE:** These configurations work with the, "examples/tcp_frontend_example.json",
+> **Note:** These configurations work with the, "examples/tcp_frontend_example.json",
 > and, "examples/tcp_backend_example.json", examples provided with the EII
 > ZeroMQ Broker.
 
@@ -874,13 +872,13 @@ To make this easy, the ZeroMQ Broker provides example configurations for TCP
 and IPC which use the same socket directory / files and (host, port) combinations
 to easily try out this feature.
 
-## Security
+### Security
 
 > **IMPORTANT NOTE:** Security is only available for TCP communications. If IPC
 > is being used, then all access must be controlled using Linux file
 > permissions.
 
-> **NOTE:** Example configurations using for enabling security in the examples
+> **Note:** Example configurations using for enabling security in the examples
 > are provided in the `examples` directory.
 
 The ZeroMQ protocol for the Message Bus enables to usage of [CurveZMQ](http://curvezmq.org/) for encryption and authentication where the [ZAP](https://rfc.zeromq.org/spec:27/ZAP/) protocol is used for the authentication.
@@ -894,10 +892,10 @@ is given to the `msgbus_initialize()` method. The example configurations below
 showcase how to use the security features enabled in the message bus. It is
 important to note that although the examples below use JSON to convey the
 configurations it is not required that you use a JSON configuration for the
-message bus. However, utilities are provided in the C library for the EII
+message bus. However, utilities are provided in the C library for the 
 message bus for using a JSON file to configure the bus.
 
-### Using Only CurveZMQ Encryption
+#### Using Only CurveZMQ Encryption
 
 If you wish to use the message bus with only CurveZMQ encryption, then you
 specify the following keys for the communication types specified in the
@@ -906,7 +904,7 @@ sections below.
 **IMPORTANT NOTE:** All keys must be Z85 encoded (see ZeroMQ documentation for
 more information).
 
-#### Publish/Subscribe
+##### Publish/Subscribe
 
 For publications over TCP, the configuration must contain a `server_secret_key`
 value which the secret key of the Curve key pair that is Z85 encoded (see
@@ -952,7 +950,7 @@ but are more clear text to help the example).
 In the example configurations above, it is assumed that the publisher is
 sending messages on the `pub-sub-topic` topic.
 
-#### Request/Response
+##### Request/Response
 
 For every service which is going to accept and respond to requests, there must
 exist the `server_secret_key` in the configuration object for the service. The
@@ -996,7 +994,7 @@ and `client_secret_key`.
 In the example above, the service requester will connect to the `example-service`
 and issue requests to it on the port: `127.0.0.1:3000`.
 
-### Using ZAP Authentication
+#### Using ZAP Authentication
 
 To enable ZAP authentication protocol using CurveZMQ on top of the encryption,
 then in the configuration specify the key `allowed_clients`. This key must have
@@ -1019,14 +1017,14 @@ configuration would be modified to be the following:
 }
 ```
 
-### Disabling Security
+#### Disabling Security
 
 To disable all encryption and authentication for TCP communication do not
 specify any of the configuration keys documented above. This will cause the
 message bus to initialize the ZeroMQ protocol without any of the CurveZMQ
 security primitives.
 
-## Known issues
+### Known issues
 
 Due to certain limitations imposed by cJSON, there is no proper distinction
 between an integer and a floating point in **EIIMsgEnv**. As a result of this limitation,
@@ -1050,7 +1048,7 @@ if (data->type == MSG_ENV_DT_INT) {
 }
 ```
 
-## Generation of python .whl file (Optional)
+### Generation of python .whl file (Optional)
 
 **Note**: This is an optional as we have already hosted .whl file.
 If user wants to create .whl file freshly, then one has to follow below steps.
@@ -1061,8 +1059,10 @@ If user wants to create .whl file freshly, then one has to follow below steps.
     pip3 install –upgrade setuptools wheel
     ```
 
-2. Navigate to `[WORKDIR]/IEdgeInsights/common/libs/EIIMessageBus/python` and execute the below command
-    ```sh
+2. Navigate to `[WORKDIR]/IEdgeInsights/common/libs/EIIMessageBus/python` and run the following command
+
+   ```sh
     python3 setup_packaging.py sdist bdist_wheel --plat-name=manylinux2014_x86_64
-    ```
+   ```
+
 3. EIIMessageBus .whl package will be created in the folder `dist` as `eii_msgbus-2.6-cp38-cp38-manylinux2014_x86_64.whl`
