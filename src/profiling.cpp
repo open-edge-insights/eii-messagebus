@@ -23,12 +23,12 @@
 
 eii::utils::Profiling::Profiling() {
     char* prof_mode_str = getenv("PROFILING_MODE");
-    if(prof_mode_str != NULL) {
+    if (prof_mode_str != NULL) {
         std::string prof_mode = std::string(prof_mode_str);
         std::transform(prof_mode.begin(), prof_mode.end(), prof_mode.begin(),
             [](unsigned char c){ return std::tolower(c); });
 
-        if(prof_mode.compare(std::string("true")) == 0) {
+        if (prof_mode.compare(std::string("true")) == 0) {
             this->m_profiling_enabled = true;
         } else {
             this->m_profiling_enabled = false;
@@ -60,13 +60,13 @@ void eii::utils::Profiling::add_profiling_ts(msg_envelope_t* meta, const char* k
             throw "Failed to create profiling timestamp element";
         }
         msgbus_ret_t ret = msgbus_msg_envelope_put(meta, key, curr_time_body);
-        if(ret != MSG_SUCCESS) {
+        if (ret != MSG_SUCCESS) {
             throw "Failed to wrap msgBody into meta-data envelope";
         }
     } catch(const char *err) {
         LOG_ERROR("Exception: %s", err);
     } catch(std::exception& err) {
-        LOG_ERROR("Exception: %s",err.what());
+        LOG_ERROR("Exception: %s", err.what());
     } catch(...) {
         LOG_ERROR("Generic Exception Occured");
     }

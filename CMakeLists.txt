@@ -19,46 +19,49 @@
 # IN THE SOFTWARE.
 
 cmake_minimum_required(VERSION 3.11)
-project(eii-messagebus VERSION 2.4.0 LANGUAGES C CXX)
+project(eii-messagebus
+    VERSION 3.0.0
+    LANGUAGES C CXX
+    DESCRIPTION "Intel's Edge Insights for Industrial (EII) C/C++ Message Bus Library"
+    HOMEPAGE_URL "https://github.com/open-edge-insights/eii-messagebus")
+
+set(PROJECT_LICENSE "MIT")
 
 # Define CMake options
 option(WITH_TESTS    "Compile with unit tests" OFF)
 option(WITH_DOCS     "Generate message bus documentation" OFF)
 option(WITH_EXAMPLES "Compile with examples" OFF)
 
-# Set C standard to C11
+if(NOT DEFINED "CMAKE_BUILD_TYPE" OR "${CMAKE_BUILD_TYPE}" STREQUAL "")
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
+# Set C++ version
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 # Set CFLAGS
-set(CMAKE_C_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -D_FORTIFY_SOURCE=2")
+set(CMAKE_C_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -D_FORTIFY_SOURCE=2")
+set(CMAKE_CXX_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -D_FORTIFY_SOURCE=2")
 
 # Set LDFLAGS
 set(CMAKE_SHARED_LINKER_FLAGS "-z noexecstack -z relro -z now")
 
 # Add cmake module path
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
-    EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
-    )
-endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Finding libraries
 find_package(ZMQ REQUIRED)
 find_package(Threads REQUIRED)
-find_package(cJSON REQUIRED)
 find_package(EIIUtils REQUIRED)
 find_package(IntelSafeString REQUIRED)
 
 # Include header directories
 include_directories(
     include/
+    ${CMAKE_INSTALL_PREFIX}/include
     ${EIIUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
-    ${CJSON_INCLUDE_DIRS}
     ${IntelSafeString_INCLUDE})
 
 # List out all source files for the EIIMsgEnv library
@@ -67,20 +70,21 @@ set(MSGENV_SRC
     "src/hashmap.c"
     "src/linkedlist.c"
     "src/crc32.c"
+    "src/msg_envelope.cpp"
+    "src/msgbusret.c"
     "src/profiling.cpp")
-# set_source_files_properties(${MSGENV_SRC} PROPERTIES LANGUAGE C)
 link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 
 add_library(eiimsgenv SHARED ${MSGENV_SRC})
 target_link_libraries(eiimsgenv
     PRIVATE
+        cjson
         ${EIIUtils_LIBRARIES}
-        ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
 
 # Get all source files
 file(GLOB ZMQ_SOURCE "src/proto_zmq/*.c")
-set(MSGBUS_SRC "src/msgbus.c" "src/msgbus.c" ${ZMQ_SOURCE})
+set(MSGBUS_SRC "src/msgbus.c" "src/msgbus.cpp" ${ZMQ_SOURCE})
 set_source_files_properties(${MSGBUS_SRC} PROPERTIES LANGUAGE C)
 
 add_library(eiimsgbus SHARED ${MSGBUS_SRC})
@@ -90,8 +94,8 @@ target_link_libraries(eiimsgbus
         eiimsgenv
         ${EIIUtils_LIBRARIES}
     PRIVATE
+        cjson
         ${ZMQ_LIBRARIES}
-        ${CJSON_LIBRARIES}
         ${IntelSafeString_LIBRARIES})
 
 # If compile in debug mode, set DEBUG flag for C code
@@ -177,7 +181,32 @@ if(WITH_DOCS)
 endif()
 
 # Generate DEB package for EIIMessageBus
-set(CPACK_GENERATOR "DEB")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "EII")
-set(CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-include(CPack)
+set(CPACK_PACKAGE_VENDOR "Intel Corporation")
+
+set(CPACK_PACKAGE_DESCRIPTION "Intel's Edge Insights for Industrial (EII) C/C++ Message Bus Library")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/open-edge-insights/eii-messagebus")
+
+# Debian package dependencies
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Intel Corporation")
+## TODO: Come up with right way for adding dependency versions
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "eii-utils (>= 2.6.0)")
+# RPM package specific settings
+set(CPACK_RPM_PACKAGE_REQUIRES "zeromq >= 4.3.4, cjson >= 1.7.14, eii-utils >= 2.6.0")
+
+# APK specific settings
+set(APKBUILD_DEPENDS "zeromq eii-utils cjson")
+set(APKBUILD_DEPENDS_DEV "")
+set(APKBUILD_DEPENDS_MAKE "zeromq-dev cjson-dev eii-utils")
+set(APKBUILD_REQUIRE_EXTERNAL_APKS TRUE)
+set(APKBUILD_EXTERNAL_APKS "eii-utils")
+
+# Include packaging utility
+include(cmake/Package.cmake)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
+    EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+    )
+endif()

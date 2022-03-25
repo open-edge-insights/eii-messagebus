@@ -33,52 +33,56 @@
 #include <eii/utils/logger.h>
 
 namespace eii {
-    namespace utils {
-        class Profiling {
-        private:
-            // flag for if profiling enabled
-            bool m_profiling_enabled;
+namespace utils {
 
-        public:
-            /** Constructor which read the profiling mode value from env variable
-             * ,converts it to lower case & stores in member variable to be used 
-             * the clients who create Profiling objects.
-             * */
-            Profiling();
+class Profiling {
+private:
+    // flag for if profiling enabled
+    bool m_profiling_enabled;
 
-            /**
-             * API to check if profiling is enabled or not.
-             * @return bool
-             */
-            bool is_profiling_enabled();
+public:
+    /**
+     * Constructor which reads the profiling mode value from env variable,
+     * converts it to lower case & stores in member variable to be used
+     * the clients who create Profiling objects.
+     * */
+    Profiling();
 
-            /**
-             * Add a profiling timestamp to the given meta data message envelope
-             * API which Reads the current time as no: of miliseconds since epoch, then
-             * converts it to int64_t format & then wraps it into msg_envelope_elem_body_t
-             * format which is then encloses in msg_envelope format
-             * @param meta                  -Input parameter: Message envelope to add meta-data to
-             *                               The metadata object pointer of type msg_envelope_t to be
-             *                               passed by the calling module.
-             * @param key                   - INput parameter string: Key for the timestamp to be added
-             *                                The "key" value to be placed in teh metadata
-             *                                key/value pair for profiling.
-             * */
-            void add_profiling_ts(msg_envelope_t* meta_data, const char* key);
+    /**
+     * Check if profiling is enabled or not.
+     *
+     * @return bool
+     */
+    bool is_profiling_enabled();
 
-            /**
-             * Utility function to be used to get the current time since epoch in miliseconds 
-             * in int64_t format
-             * */
-            int64_t get_curr_time_as_int_epoch();
-        };
+    /**
+     * Add a profiling timestamp to the given meta data message envelope.
+     *
+     * This method reads the current time as no. of miliseconds since epoch,
+     * then * converts it to int64_t format and adds the value to the given
+     * @c msg_envelope_t.
+     *
+     * @param meta - Message envelope to add the timestamp to
+     * @param key - Key for the timestamp to be added
+     */
+    void add_profiling_ts(msg_envelope_t* meta_data, const char* key);
 
-        //Macros for ease of use by calling modules
-        #define DO_PROFILING(profile, meta, ts_key) \
-            if(profile->is_profiling_enabled()) { profile->add_profiling_ts(meta, ts_key);}
-
-    };
+    /**
+     * Utility function to be used to get the current time since epoch in
+     * miliseconds as an int64_t.
+     *
+     * @return int64_t
+     */
+    int64_t get_curr_time_as_int_epoch();
 };
 
+//Macros for ease of use by calling modules
+#define DO_PROFILING(profile, meta, ts_key) \
+    if(profile->is_profiling_enabled()) { \
+        profile->add_profiling_ts(meta, ts_key); \
+    }
+
+}  // namespace utils
+}  // namespace eii
 
 #endif

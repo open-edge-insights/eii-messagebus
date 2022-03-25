@@ -27,7 +27,7 @@
 
 linkedlist_t* linkedlist_new() {
     linkedlist_t* ll = (linkedlist_t*) malloc(sizeof(linkedlist_t));
-    if(ll == NULL)
+    if (ll == NULL)
         return NULL;
 
     ll->root = NULL;
@@ -38,7 +38,7 @@ linkedlist_t* linkedlist_new() {
 
 node_t* linkedlist_node_new(void* value, void (*free_fn)(void*)) {
     node_t* node = (node_t*) malloc(sizeof(node_t));
-    if(node == NULL)
+    if (node == NULL)
         return NULL;
 
     node->next = NULL;
@@ -49,11 +49,11 @@ node_t* linkedlist_node_new(void* value, void (*free_fn)(void*)) {
 }
 
 linkedlist_ret_t linkedlist_add(linkedlist_t* ll, node_t* node) {
-    if(ll->root == NULL) {
+    if (ll->root == NULL) {
         ll->root = node;
     } else {
         node_t* curr = ll->root;
-        while(curr->next != NULL) {
+        while (curr->next != NULL) {
             curr = curr->next;
         }
         curr->next = node;
@@ -65,11 +65,11 @@ linkedlist_ret_t linkedlist_add(linkedlist_t* ll, node_t* node) {
 }
 
 node_t* linkedlist_get_at(linkedlist_t* ll, int idx) {
-    if(idx >= ll->len || ll->root == NULL)
+    if (idx >= ll->len || ll->root == NULL)
         return NULL;
 
     node_t* node = ll->root;
-    for(int i = 0; i < idx; i++) {
+    for (int i = 0; i < idx; i++) {
         node = node->next;
     }
 
@@ -78,10 +78,10 @@ node_t* linkedlist_get_at(linkedlist_t* ll, int idx) {
 
 linkedlist_ret_t linkedlist_remove_at(linkedlist_t* ll, int idx) {
     // Covers out-of-bounds and no elements cases
-    if(idx >= ll->len || ll->root == NULL)
+    if (idx >= ll->len || ll->root == NULL)
         return LL_ERR_NOT_FOUND;
 
-    if(ll->root->next == NULL) {
+    if (ll->root->next == NULL) {
         // Single element case
         ll->root->free(ll->root->value);
         free(ll->root);
@@ -92,12 +92,12 @@ linkedlist_ret_t linkedlist_remove_at(linkedlist_t* ll, int idx) {
 
     node_t* prev = NULL;
     node_t* curr = ll->root;
-    for(int i = 0; i < idx; i++) {
+    for (int i = 0; i < idx; i++) {
         prev = curr;
         curr = curr->next;
     }
 
-    if(prev == NULL) {
+    if (prev == NULL) {
         // Removing the first element
         ll->root = curr->next;
     } else {
@@ -116,11 +116,11 @@ linkedlist_ret_t linkedlist_remove_at(linkedlist_t* ll, int idx) {
 }
 
 void linkedlist_destroy(linkedlist_t* ll) {
-    if(ll->root != NULL) {
+    if (ll->root != NULL) {
         // Free all the elements
         node_t* prev = NULL;
         node_t* curr = ll->root;
-        while(curr != NULL) {
+        while (curr != NULL) {
             prev = curr;
             curr = curr->next;
 

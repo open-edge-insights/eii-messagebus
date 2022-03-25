@@ -8,6 +8,8 @@
 **/*.so
 compile_commands.json
 python/eii/*.c
+apks/
+go/
 
 # Automatically generated during documenation generation
 python/docs/eii.rst

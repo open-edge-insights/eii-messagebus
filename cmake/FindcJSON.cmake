@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Intel Corporation.
+# Copyright (c) 2021 Intel Corporation.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -18,14 +18,24 @@
 # FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-get_filename_component(EIIMsgEnv_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-include(CMakeFindDependencyMacro)
-
-list(APPEND CMAKE_MODULE_PATH ${EIIMsgEnv_CMAKE_DIR})
-
-if(NOT TARGET EIIMsgEnv)
-    include("${EIIMsgEnv_CMAKE_DIR}/EIIMsgEnvTargets.cmake")
+# Find wjelement
+find_path(CJSON_INCLUDE_DIR
+    NAMES cJSON.h
+    HINTS
+        /usr/local/include/cjson
+        /usr/include/cjson)
+if(NOT CJSON_INCLUDE_DIR)
+    message(FATAL_ERROR "-- Failed to find cJSON include path")
 endif()
 
-set(EIIMsgEnv_LIBRARIES EIIMsgEnv)
-set(EIIMsgEnv_INCLUDE "@CMAKE_INSTALL_FULL_INCLUDEDIR@")
+find_library(CJSON_LIBRARY NAMES cjson)
+if(NOT CJSON_LIBRARY)
+    message(FATAL_ERROR "-- Failed to find cJSON library")
+endif()
+
+set(CJSON_LIBRARIES ${CJSON_LIBRARY})
+set(CJSON_INCLUDE_DIRS ${CJSON_INCLUDE_DIR})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(
+    CJSON DEFAULT_MSG CJSON_LIBRARIES CJSON_INCLUDE_DIRS)

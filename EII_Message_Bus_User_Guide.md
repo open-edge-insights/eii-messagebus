@@ -1,28 +1,29 @@
-**Contents**
+# Contents
 
-- [EII Message Bus User Guide](#eii-message-bus-user-guide)
-  - [Overview](#overview)
-  - [EII Message Bus Architecture](#eii-message-bus-architecture)
-  - [EII Message Bus Usage](#eii-message-bus-usage)
-    - [Compilation & Installation](#compilation--installation)
-    - [Configuration](#configuration)
-      - [ZeroMQ IPC Configuration](#zeromq-ipc-configuration)
-      - [ZeroMQ TCP Configuration](#zeromq-tcp-configuration)
-        - [Publishers](#publishers)
-        - [Subscribers](#subscribers)
-        - [Services](#services)
-        - [Requesters](#requesters)
-        - [Using ZAP Authentication](#using-zap-authentication)
+- [Contents](#contents)
+  - [Message Bus User Guide](#message-bus-user-guide)
+    - [Message Bus Overview](#message-bus-overview)
+    - [Message Bus Architecture](#message-bus-architecture)
+    - [Message Bus Usage](#message-bus-usage)
+      - [Compilation and Installation](#compilation-and-installation)
+      - [Configuration](#configuration)
+        - [ZeroMQ IPC Configuration](#zeromq-ipc-configuration)
+        - [ZeroMQ TCP Configuration](#zeromq-tcp-configuration)
+          - [Publishers](#publishers)
+          - [Subscribers](#subscribers)
+          - [Services](#services)
+          - [Requesters](#requesters)
+          - [Using ZAP Authentication](#using-zap-authentication)
     - [Python Tutorial](#python-tutorial)
       - [Publish/Subscribe](#publishsubscribe)
       - [Request/Response](#requestresponse)
-      - [Request/Response](#requestresponse-1)
+      - [Request and Response](#request-and-response)
     - [Go Tutorial](#go-tutorial)
-      - [Publish/Subscribe](#publishsubscribe-1)
-      - [Request/Response](#requestresponse-2)
-  - [EII Message Bus Development](#eii-message-bus-development)
+      - [Publish and Subscribe](#publish-and-subscribe)
+      - [Request/Response (TBD)](#requestresponse-tbd)
+  - [Message Bus Development](#message-bus-development)
     - [Developing Protocols](#developing-protocols)
-      - [Overview](#overview-1)
+      - [Protocols Overview](#protocols-overview)
       - [Adding a New Protocol](#adding-a-new-protocol)
       - [`protocol_t` Function Definition](#protocol_t-function-definition)
         - [`destroy()`](#destroy)
@@ -39,37 +40,38 @@
         - [`recv_timedwait()`](#recv_timedwait)
         - [`recv_nowait()`](#recv_nowait)
 
-# EII Message Bus User Guide
+## Message Bus User Guide
 
-## Overview
+>**Note:** In this document, you will find labels of 'Edge Insights for Industrial (EII)' for filenames, paths, code snippets, and so on. Consider the references of EII as Open Edge Insights (OEI). This is due to the product name change of EII as OEI.
 
-- [EII Message Bus Architecture]()
-- [EII Message Bus Usage]()
-    - [Compilation & Installtion]()
-    - [Python Tutorial]()
-    - [Go Tutorial]()
-    - [C Tutorial]()
-- [EII Message Bus Development]()
-    - [Developing Protocols]()
+### Message Bus Overview
 
-## EII Message Bus Architecture
+- [Message Bus Architecture](#message-bus-architecture)
+- [Message Bus Usage](#message-bus-usage)
+  - [Compilation and Installtion](#compilation-and-installation)
+  - [Python Tutorial](#python-tutorial)
+  - [Go Tutorial](#go-tutorial)
+  - [C Tutorial](#c-tutorial)
+- [Message Bus Development](#message-bus-development)
+  - [Developing Protocols](#developing-protocols)
 
+### Message Bus Architecture
 
-## EII Message Bus Usage
+### Message Bus Usage
 
-### Compilation & Installation
+#### Compilation and Installation
 
-The EII Message Bus utilizes the CMake build tools for compiling the `C` and
+The Message Bus utilizes the CMake build tools for compiling the `C` and
 `Python` libraries. To compile the library execute the following commands:
 
 ```sh
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make
+mkdir build
+cd build
+cmake ..
+make
 ```
 
-The EII Message Bus adds the following flags to CMake for the build process
+The Message Bus adds the following flags to CMake for the build process
 to enable and disable features in the message bus. The table below specifies
 all of the additional flags which can be given to CMake while building the
 message bus.
@@ -81,22 +83,22 @@ message bus.
 | `WITH_EXAMPLES` | Compile the C examples.                        |
 | `WITH_TESTS`    | Compile the C unit tests.                      |
 
-> **NOTE:** All of the flags are passed to CMake using the following CLI
+> **Note:** All of the flags are passed to CMake using the following CLI
 > format: `-D<FLAG>=[ON | OFF]`. For example, `cmake -DWITH_PYTHON=ON ..`.
 
 To install the message bus, execute the following command:
 
 ```sh
-$ sudo make install
+sudo make install
 ```
 
 If the `WITH_PYTHON` flag was given to CMake during the compilation step, then
 the Python binding will also be installed into the `dist-packages` in your
 environment.
 
-### Configuration
+#### Configuration
 
-The EII Message Bus is configured through a `key, value` pair interface. The
+The Message Bus is configured through a `key, value` pair interface. The
 values can be objects, arrays, integers, floating point, boolean, or strings.
 The keys that are required to be available in the configuration are largly
 determined by the underlying protocol which the message bus will use. The
@@ -109,20 +111,20 @@ following:
 The following sections specify the configuration attributes expected for the
 TCP and IPC ZeroMQ protocols.
 
-#### ZeroMQ IPC Configuration
+##### ZeroMQ IPC Configuration
 
 The ZeroMQ IPC protocol implementation only requires one configuration
 attribute: `socket_dir`. The value of this attribute specifies the directory
 where the message bus should create the Unix socket files to establish the IPC
 based communication.
 
-#### ZeroMQ TCP Configuration
+##### ZeroMQ TCP Configuration
 
 The ZeroMQ TCP protocol has several configuration attributes which must be
 specified based on the communication pattern the application is using and
 based on the security the application wishes to enable for its communication.
 
-##### Publishers
+###### Publishers
 
 For an application which wishes to publish messages over specific topics, the
 configuration must contain the key `zmq_tcp_publish`. This attribute must be
@@ -138,7 +140,7 @@ The `server_secret_key` must be a Curve Z85 encoded string value that is
 specified if the application wishes to use CurveZMQ authentication with to
 secure incoming connections from subscribers.
 
-##### Subscribers
+###### Subscribers
 
 To subscribe to messages coming from a publisher over TCP, the configuration
 must contain a key for the topic you wish to subscribe to. For example, if
@@ -161,7 +163,7 @@ table below.
 > **NOTE:** If one of the `*_key` values is specifed, then all of them must be
 > specified.
 
-##### Services
+###### Services
 
 The configuration to host a service to receive and respond to requests is
 similar to the configuration for doing publications on a message bus context.
@@ -173,7 +175,7 @@ then the configuration must contain an a key called `example-service`. The value
 for that key must be an object containing the keys listed in the table of
 the Publishers section.
 
-##### Requesters
+###### Requesters
 
 The configuration to issue requests to a service is the exact same as a
 subscriber. In the case of a requester, instead of the configuration being
@@ -181,7 +183,7 @@ under the name of the topic, the configuration is placed under the name of
 the service it wishes to connect to. For the details of the allowed values,
 see the table in the Subscribers section above.
 
-##### Using ZAP Authentication
+###### Using ZAP Authentication
 
 For services and publishers additional security can be enabled for all incoming
 connections (i.e. requesters and subscribers). This method utilizes the ZMQ
@@ -196,7 +198,7 @@ key. This key must be a list of Z85 encoded CurveZMQ keys.
 #### Publish/Subscribe
 
 The following tutorial will cover how to do publish/subscribe messaging using
-the EII Message Bus. The outcome of this tutorial will be two Python scripts,
+the Message Bus. The outcome of this tutorial will be two Python scripts,
 one of which will publish messages and the other which will subscribe to
 messages.
 
@@ -211,7 +213,7 @@ import argparse
 import eii.msgbus as mb
 ```
 
-The last line of the imports above is where we import the EII Message Bus
+The last line of the imports above is where we import the Message Bus
 Python binding, which for sake of clarity will be referenced as `mb` in all
 of the code to follow.
 
@@ -234,7 +236,7 @@ which will give us the topic string under which to publish messages.
 
 It is important to note at this point that a JSON configuration is going to be
 used for the publisher, however, this is not required of an application using
-the Python binding. The EII Message Bus Python API requires that a Python
+the Python binding. The Message Bus Python API requires that a Python
 `dict` object be used to configure the bus. For ease of use, JSON has been
 used in this example.
 
@@ -329,8 +331,7 @@ finally:
         publisher.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/publisher.py` in the EII
-> Message Bus source code.
+> **Note:** This code is provided in `python/examples/publisher.py` in the Message Bus source code.
 
 #### Request/Response
 
@@ -345,7 +346,7 @@ import argparse
 import eii.msgbus as mb
 ```
 
-The last line of the imports above is where we import the EII Message Bus
+The last line of the imports above is where we import the Message Bus
 Python binding, which for sake of clarity will be referenced as `mb` in all
 of the code to follow.
 
@@ -368,7 +369,7 @@ which will give us the topic string under which to publish messages.
 
 It is important to note at this point that a JSON configuration is going to be
 used for the publisher, however, this is not required of an application using
-the Python binding. The EII Message Bus Python API requires that a Python
+the Python binding. The Message Bus Python API requires that a Python
 `dict` object be used to configure the bus. For ease of use, JSON has been
 used in this example.
 
@@ -463,8 +464,7 @@ finally:
         publisher.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/publisher.py` in the EII
-> Message Bus source code.
+> **Note:** This code is provided in `python/examples/publisher.py` in the Message Bus source code.
 
 Now that the publisher script is finished, we will create the subscriber script
 called `subscriber.py`. The script will essentially be the same as the publiser
@@ -510,8 +510,7 @@ finally:
         subscriber.close()
 ```
 
-> **NOTE:** This code is provided in `python/examples/subscriber.py` in the EII
-> Message Bus source code.
+> **Note:** This code is provided in `python/examples/subscriber.py` in the Message Bus source code.
 
 As can be seen in the code above, the `msgbus.new_publisher()` call has now
 been replace with: `msgbus.new_subscriber()`. This call connects to the given
@@ -566,40 +565,40 @@ Once this configuration is saved to the file `ipc_config.json`, start the
 publisher in one Terminal window with the following command:
 
 ```sh
-$ python3 publisher.py ipc_config.json
+python3 publisher.py ipc_config.json
 ```
 
 Next, start the subscriber in a different Terminal window with the command
 shown below.
 
 ```sh
-$ python3 subscriber.py ipc_config.json
+python3 subscriber.py ipc_config.json
 ```
 
 At this point you should see the messages being published by the publisher
 being printed to the console by the subscriber.
 
-#### Request/Response
+#### Request and Response
 
 ### Go Tutorial
 
-#### Publish/Subscribe
+#### Publish and Subscribe
 
-#### Request/Response
+#### Request/Response (TBD)
 
-## EII Message Bus Development
+## Message Bus Development
 
 This section covers various instructions and tutorials for developing new
-features for the EII Message Bus library. It does not cover how to use the
+features for the Message Bus library. It does not cover how to use the
 message bus or its APIs, that is covered in previous sections.
 
 ### Developing Protocols
 
-#### Overview
+#### Protocols Overview
 
-Protocols are at the bottom most layer of the EII Message Bus stack. They
+Protocols are at the bottom most layer of the Message Bus stack. They
 provide the implementation for the messaging primitives supported by the
-EII Message Bus. The main tasks expected of a protocol are as follows:
+Message Bus. The main tasks expected of a protocol are as follows:
 
 1. Initialize the state of the underlying message library (i.e. ZeroMQ, DDS, etc.)
 2. Implement methods for initializing contexts for publishers, subscribers,
@@ -609,15 +608,15 @@ EII Message Bus. The main tasks expected of a protocol are as follows:
 4. Implement base methods for receiving messages as blocking, non-blocking, and
     time out base function calls
 5. Provide the translation between the underlying messaging library's messsage
-    structure to the EII Message Bus's `msg_envelope_t` structure
+    structure to the Message Bus's `msg_envelope_t` structure
 
-All protocols must have a unique protocol name which the EII Message Bus can
+All protocols must have a unique protocol name which the Message Bus can
 use to load the protocol based on the `type` configuration value it is provided.
 For example, the ZeroMQ TCP protocol uses the identifier `zmq_tcp`. Using this
-type name, the EII Message Bus knows how to load the protocol in the
+type name, the Message Bus knows how to load the protocol in the
 `msgbus_initialize()` method.
 
-The EII Message Bus has the ability to dynamically load protocol plugins. It
+The Message Bus has the ability to dynamically load protocol plugins. It
 does this by searching the system's `LD_LIBRARY_PATH` environmental variable
 for a library following the naming scheme, "lib{TYPE}.so", where, "{TYPE}", is
 the value retrieved from the `type` configuration key.
@@ -678,13 +677,13 @@ For more information on the purpose of each of the function pointers in the
 `protocol_t` structure see the [`protocol_t` Function Definition](#protocol_t-function-definition).
 
 The rest of this section will cover the initial setup of a project to add a new
-protocol to the EII Message Bus, including the ideal code structure for the C
+protocol to the Message Bus, including the ideal code structure for the C
 source code file.
 
 The code will be split into a single header and C source file, `example.h` and
 `example.c` respectively.
 
-The header file is shown below. The `protocol.h` header file in the EII Message
+The header file is shown below. The `protocol.h` header file in the Message
 Bus includes a helpful macro for generating all of the function prototypes
 needed for a protocol. The usage of this is shown in the code below.
 
@@ -720,7 +719,7 @@ EII_MSGBUS_PROTO(example)
 The `EII_MSGBUS_PROTO()` macro in the code above creates function prototypes of
 the structure:
 
-```
+```sh
 proto_<NAME>_<METHOD>()
 ```
 
@@ -916,8 +915,7 @@ msgbus_ret_t proto_example_response(
 
 #### Adding a New Protocol
 
-This section will cover how to add an example dummy protcol to the EII
-Message Bus.
+This section will cover how to add an example dummy protcol to the Message Bus.
 
 #### `protocol_t` Function Definition
 

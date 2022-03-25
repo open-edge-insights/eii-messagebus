@@ -79,10 +79,20 @@ configure_package_config_file(
 )
 
 # Install the config, configversion and custom find modules
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/EIIMessageBusConfigVersion.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/EIIMessageBusConfig.cmake
-    DESTINATION ${INSTALL_CONFIGDIR}
+install(
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/EIIMessageBusConfigVersion.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/EIIMessageBusConfig.cmake
+    DESTINATION
+        ${INSTALL_CONFIGDIR}
+)
+
+# Install ZeroMQ so that other applications do not have to include it
+install(
+    FILES
+        cmake/FindZMQ.cmake
+    DESTINATION
+        ${INSTALL_CONFIGDIR}/../
 )
 
 export(EXPORT eiimsgbus-targets

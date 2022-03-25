@@ -26,11 +26,11 @@
 #include "eii/msgbus/linkedlist.h"
 
 #define ASSERT_NULL(val) { \
-    if(val != NULL) FAIL() << "Value should be NULL"; \
+    if (val != NULL) FAIL() << "Value should be NULL"; \
 }
 
 #define ASSERT_NOT_NULL(val) { \
-    if(val == NULL) FAIL() << "Value shoud not be NULL"; \
+    if (val == NULL) FAIL() << "Value shoud not be NULL"; \
 }
 
 TEST(linkedlist_tests, simple_init) {
@@ -45,7 +45,7 @@ TEST(linkedlist_tests, remove_single) {
     ASSERT_NOT_NULL(ll);
 
     // Add 10 items to the linked list
-    for(int i = 0; i < 1; i++) {
+    for (int i = 0; i < 1; i++) {
         char* data = (char*) malloc(sizeof(char) * 8);
         ASSERT_NOT_NULL(data);
         sprintf(data, "test-%02d", i);
@@ -87,7 +87,7 @@ TEST(linkedlist_tests, simple_add_get_remove) {
     ASSERT_NOT_NULL(ll);
 
     // Add 10 items to the linked list
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         char* data = (char*) malloc(sizeof(char) * 8);
         ASSERT_NOT_NULL(data);
         sprintf(data, "test-%02d", i);

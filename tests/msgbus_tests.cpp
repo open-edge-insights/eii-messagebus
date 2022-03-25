@@ -26,13 +26,14 @@
 // Enable use of timeit utility
 #define WITH_TIMEIT
 
+#include <eii/utils/logger.h>
+#include <eii/utils/string.h>
 #include <limits.h>
 #include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
-#include <eii/utils/logger.h>
-#include <eii/utils/string.h>
 #include "eii/msgbus/msgbus.h"
+#include "eii/msgbus/msgbus.hpp"
 #include "eii/utils/timeit.h"
 #include "eii/utils/logger.h"
 #include "eii/utils/json_config.h"
@@ -41,9 +42,34 @@
 #define SERVICE_NAME  "unittest-service"
 #define LD_PATH_SET   "LD_LIBRARY_PATH="
 #define LD_SEP        ":"
-#define IPC_CONFIG "./ipc_unittest_config.json"
-#define TCP_CONFIG "./tcp_unittest_config.json"
-#define DYN_CONFIG "./dyn_unittest_config.json"
+
+#define IPC_CONFIG \
+"{" \
+    "\"type\": \"zmq_ipc\"," \
+    "\"socket_dir\": \"/tmp\"" \
+"}"
+
+#define TCP_CONFIG \
+"{" \
+    "\"type\": \"zmq_tcp\"," \
+    "\"zmq_tcp_publish\": {" \
+        "\"host\": \"127.0.0.1\"," \
+        "\"port\": 5569" \
+    "}," \
+    "\"unittest-pubsub\": {" \
+        "\"host\": \"127.0.0.1\"," \
+        "\"port\": 5569" \
+    "}," \
+    "\"unittest-service\": {" \
+        "\"host\": \"127.0.0.1\"," \
+        "\"port\": 8675" \
+    "}" \
+"}"
+
+#define DYN_CONFIG \
+"{" \
+    "\"type\": \"test-proto\"" \
+"}"
 
 #define TEST_BLOB "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09"
 
@@ -57,10 +83,10 @@ static char* update_ld_library_path();
  * Helper to create the config_t object.
  */
 static config_t* create_config() {
-    if(g_use_tcp)
-        return json_config_new(TCP_CONFIG);
+    if (g_use_tcp)
+        return json_config_new_from_buffer(TCP_CONFIG);
     else
-        return json_config_new(IPC_CONFIG);
+        return json_config_new_from_buffer(IPC_CONFIG);
 }
 
 /**
@@ -69,7 +95,7 @@ static config_t* create_config() {
 TEST(msgbus_test, msgbus_init_test) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
     msgbus_destroy(ctx);
@@ -81,7 +107,7 @@ TEST(msgbus_test, msgbus_init_test) {
 TEST(msgbus_test, msgbus_publish_blob) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -126,7 +152,7 @@ TEST(msgbus_test, msgbus_publish_blob) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -144,7 +170,7 @@ TEST(msgbus_test, msgbus_publish_blob) {
 TEST(msgbus_test, msgbus_publish_json) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -216,7 +242,7 @@ TEST(msgbus_test, msgbus_publish_json) {
     ASSERT_EQ(data_get->type, MSG_ENV_DT_BLOB) << "Incorrect data type";
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -234,7 +260,7 @@ TEST(msgbus_test, msgbus_publish_json) {
 TEST(msgbus_test, msgbus_publish_blob_timedwait) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -279,7 +305,7 @@ TEST(msgbus_test, msgbus_publish_blob_timedwait) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -298,7 +324,7 @@ TEST(msgbus_test, msgbus_publish_blob_timedwait) {
 TEST(msgbus_test, msgbus_publish_blob_timedwait_timeout) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -329,7 +355,7 @@ TEST(msgbus_test, msgbus_publish_blob_timedwait_timeout) {
 TEST(msgbus_test, msgbus_request_response) {
     config_t* config = create_config();
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL) {
+    if (ctx == NULL) {
         FAIL() << "Init failed";
     }
 
@@ -374,7 +400,7 @@ TEST(msgbus_test, msgbus_request_response) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -396,7 +422,7 @@ TEST(msgbus_test, msgbus_request_response) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], TEST_BLOB[i]);
     }
 
@@ -416,9 +442,9 @@ TEST(msgbus_test, msgbus_load_proto) {
     char* ld_lib_path = update_ld_library_path();
 
     // Load JSON configuration
-    config_t* config = json_config_new(DYN_CONFIG);
+    config_t* config = json_config_new_from_buffer(DYN_CONFIG);
     void* ctx = msgbus_initialize(config);
-    if(ctx == NULL)
+    if (ctx == NULL)
         FAIL() << "Failed to initlize msgbus";
 
     recv_ctx_t* recv_ctx;
@@ -447,6 +473,147 @@ TEST(msgbus_test, msgbus_load_proto) {
 
     msgbus_destroy(ctx);
     free(ld_lib_path);
+}
+
+TEST(msgbus_test, cpp_pubsub_recv) {
+    config_t* config = create_config();
+    eii::msgbus::MsgbusContext* ctx = new eii::msgbus::MsgbusContext(config);
+    eii::msgbus::Publisher* pub = ctx->new_publisher(PUB_SUB_TOPIC);
+    eii::msgbus::Subscriber* sub = ctx->new_subscriber(PUB_SUB_TOPIC);
+
+    // Allow subscriber time to initialize and connect
+    sleep(1);
+
+    eii::msgbus::MsgEnvelope* msg = new eii::msgbus::MsgEnvelope(CT_JSON);
+    msg->put_float("floating", 55.5);
+    msg->put_integer("integer", 42);
+    msg->put_string("string", "hello, world");
+
+    pub->publish(msg);
+
+    eii::msgbus::MsgEnvelope* recv = sub->recv_wait();
+
+    // TODO(kmidkiff): Verify message envelope...
+
+    delete msg;
+    delete recv;
+    delete sub;
+    delete pub;
+    delete ctx;
+}
+
+TEST(msgbus_test, cpp_pubsub_recv_nowait) {
+    config_t* config = create_config();
+    eii::msgbus::MsgbusContext* ctx = new eii::msgbus::MsgbusContext(config);
+    eii::msgbus::Publisher* pub = ctx->new_publisher(PUB_SUB_TOPIC);
+    eii::msgbus::Subscriber* sub = ctx->new_subscriber(PUB_SUB_TOPIC);
+
+    // Allow subscriber time to initialize and connect
+    sleep(1);
+
+    eii::msgbus::MsgEnvelope* msg = new eii::msgbus::MsgEnvelope(CT_JSON);
+    msg->put_float("floating", 55.5);
+    msg->put_integer("integer", 42);
+    msg->put_string("string", "hello, world");
+
+    pub->publish(msg);
+
+    // Give ample time for the message to arrrive
+    sleep(1);
+
+    eii::msgbus::MsgEnvelope* recv = sub->recv_nowait();
+    if (recv == NULL) {
+        FAIL() << "Received NULL message";
+    }
+
+    // TODO(kmidkiff): Verify message envelope...
+
+    delete msg;
+    delete recv;
+    delete sub;
+    delete pub;
+    delete ctx;
+}
+
+TEST(msgbus_test, cpp_pubsub_recv_timedwait) {
+    auto timeout = std::chrono::milliseconds(500);
+    config_t* config = create_config();
+    eii::msgbus::MsgbusContext* ctx = new eii::msgbus::MsgbusContext(config);
+    eii::msgbus::Publisher* pub = ctx->new_publisher(PUB_SUB_TOPIC);
+    eii::msgbus::Subscriber* sub = ctx->new_subscriber(PUB_SUB_TOPIC);
+
+    // Allow subscriber time to initialize and connect
+    sleep(1);
+
+    eii::msgbus::MsgEnvelope* msg = new eii::msgbus::MsgEnvelope(CT_JSON);
+    msg->put_float("floating", 55.5);
+    msg->put_integer("integer", 42);
+    msg->put_string("string", "hello, world");
+
+    pub->publish(msg);
+
+    eii::msgbus::MsgEnvelope* recv = sub->recv_timedwait(timeout);
+    if (recv == NULL) {
+        FAIL() << "Received NULL message";
+    }
+
+    // TODO(kmidkiff): Verify message envelope...
+
+    delete recv;
+
+    // Verify that a timeout works correctly
+    recv = sub->recv_timedwait(timeout);
+    if (recv != NULL) {
+        delete recv;
+        FAIL() << "Timeout did not occur when it should have";
+    }
+
+    delete msg;
+    delete sub;
+    delete pub;
+    delete ctx;
+}
+
+TEST(msgbus_test, cpp_reqresp) {
+    auto timeout = std::chrono::milliseconds(500);
+    config_t* config = create_config();
+    eii::msgbus::MsgbusContext* ctx = new eii::msgbus::MsgbusContext(config);
+    eii::msgbus::Service* service = ctx->new_service(SERVICE_NAME);
+    eii::msgbus::ServiceRequester* requester = ctx->get_service(SERVICE_NAME);
+
+    // Allow time for the sockets to initialize (this is probably too long)
+    sleep(1);
+
+    eii::msgbus::MsgEnvelope* msg = new eii::msgbus::MsgEnvelope(CT_JSON);
+    msg->put_float("floating", 55.5);
+    msg->put_integer("integer", 42);
+    msg->put_string("string", "hello, world");
+
+    requester->request(msg);
+
+    eii::msgbus::MsgEnvelope* request = service->recv_timedwait(timeout);
+    if (request == NULL) {
+        FAIL() << "Receive of request timed out";
+    }
+
+    // TODO(kmidkiff): Verify message envelope...
+
+    service->response(request);
+
+    eii::msgbus::MsgEnvelope* response = requester->recv_timedwait(timeout);
+    if (response == NULL) {
+        FAIL() << "Receive of response timed out";
+    }
+
+    // TODO(kmidkiff): Verify message envelope...
+
+    delete msg;
+    delete request;
+    delete response;
+
+    delete service;
+    delete requester;
+    delete ctx;
 }
 
 
@@ -509,7 +676,7 @@ TEST(msgbus_test, msgbus_load_proto) {
 //     msg_envelope_t* received = NULL;
 //     config_t* config = create_config();
 //     void* ctx = msgbus_initialize(config);
-//     if(ctx == NULL) {
+//     if (ctx == NULL) {
 //         FAIL() << "Init failed";
 //     }
 //
@@ -542,21 +709,20 @@ TEST(msgbus_test, msgbus_load_proto) {
 GTEST_API_ int main(int argc, char** argv) {
     // Parse out gTest command line parameters
     ::testing::InitGoogleTest(&argc, argv);
-    // set_log_level(LOG_LVL_DEBUG);
 
-    log_lvl_t log_lvl = LOG_LVL_INFO;
+    log_lvl_t log_lvl = LOG_LVL_ERROR;
 
-    if(argc > 1) {
+    if (argc > 1) {
         int idx = 1;
 
-        while(argc != 1) {
-            if(strcmp(argv[idx], "--tcp") == 0) {
+        while (argc != 1) {
+            if (strcmp(argv[idx], "--tcp") == 0) {
                 LOG_INFO_0("Running msgbus tests over TCP");
                 g_use_tcp = true;
                 idx++;
                 argc--;
-            } else if(strcmp(argv[idx], "--log-level") == 0) {
-                if(argc < 3) {
+            } else if (strcmp(argv[idx], "--log-level") == 0) {
+                if (argc < 3) {
                     LOG_ERROR_0("Too few arguments");
                     return -1;
                 }
@@ -571,7 +737,7 @@ GTEST_API_ int main(int argc, char** argv) {
                 } else if (strcmp(log_level, "WARN") == 0) {
                     log_lvl = LOG_LVL_WARN;
                 } else {
-                    LOG_ERROR("Unknown log level: %s", log_lvl);
+                    LOG_ERROR("Unknown log level: %s", log_level);
                     return -1;
                 }
 
@@ -588,7 +754,7 @@ GTEST_API_ int main(int argc, char** argv) {
 
     set_log_level(log_lvl);
 
-    if(g_use_tcp) {
+    if (g_use_tcp) {
         LOG_INFO_0("Running msgbus tests over TCP");
     } else {
         LOG_INFO_0("Running msgbus tests over IPC");
@@ -611,25 +777,25 @@ static char* update_ld_library_path() {
     size_t len = (ld_library_path != NULL) ? strlen(ld_library_path) : 0;
 
     // Get current working directory
-   char cwd[PATH_MAX];
-   char* result = getcwd(cwd, PATH_MAX);
-   assert(result != NULL);
+    char cwd[PATH_MAX];
+    char* result = getcwd(cwd, PATH_MAX);
+    assert(result != NULL);
 
-   size_t dest_len = strlen(LD_PATH_SET) + strlen(cwd) + len + 2;
-   char* env_str = NULL;
+    size_t dest_len = strlen(LD_PATH_SET) + strlen(cwd) + len + 2;
+    char* env_str = NULL;
 
-   if(ld_library_path == NULL) {
-       // Setting the environmental variable from scratch
-       env_str = concat_s(dest_len, 3, LD_PATH_SET, LD_SEP, cwd);
-   } else {
-       // Setting the environmental variable with existing path
-       env_str = concat_s(
-               dest_len, 4, LD_PATH_SET, ld_library_path, LD_SEP, cwd);
-   }
-   assert(env_str != NULL);
+    if (ld_library_path == NULL) {
+        // Setting the environmental variable from scratch
+        env_str = concat_s(dest_len, 3, LD_PATH_SET, LD_SEP, cwd);
+    } else {
+        // Setting the environmental variable with existing path
+        env_str = concat_s(
+                dest_len, 4, LD_PATH_SET, ld_library_path, LD_SEP, cwd);
+    }
+    assert(env_str != NULL);
 
-   // Put the new LD_LIBRARY_PATH into the environment
-   putenv(env_str);
+    // Put the new LD_LIBRARY_PATH into the environment
+    putenv(env_str);
 
-   return env_str;
+    return env_str;
 }

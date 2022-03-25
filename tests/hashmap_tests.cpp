@@ -48,7 +48,7 @@ TEST(hashmap_tests, simple_put_get_remove) {
     ASSERT_EQ(ret, MAP_SUCCESS);
 
     void* get = hashmap_get(map, "test");
-    if(get == NULL)
+    if (get == NULL)
         FAIL() << "Failed to get \"test\" key";
     ASSERT_STREQ((char*) get, data);
 
@@ -57,7 +57,7 @@ TEST(hashmap_tests, simple_put_get_remove) {
 
     // Verify that the remove worked
     get = hashmap_get(map, "test");
-    if(get != NULL)
+    if (get != NULL)
         FAIL() << "Removal of \"test\" failed";
 
     hashmap_destroy(map);
@@ -88,7 +88,7 @@ TEST(hashmap_tests, rehash) {
     hashmap_t* map = hashmap_new(256);
     char** keys = (char**) malloc(sizeof(char*) * 260);
 
-    for(int i = 0; i < 260; i++) {
+    for (int i = 0; i < 260; i++) {
         char* key = (char*) malloc(sizeof(char) * 12);
         sprintf(key, "testing-%03d", i);
         keys[i] = key;

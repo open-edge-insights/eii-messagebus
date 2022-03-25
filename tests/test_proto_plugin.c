@@ -38,7 +38,7 @@ protocol_t* proto_test_initialize(const char* type, config_t* config) {
 
     // Initialize the protocol_t structure
     protocol_t* proto_ctx = (protocol_t*) malloc(sizeof(protocol_t));
-    if(proto_ctx == NULL) {
+    if (proto_ctx == NULL) {
         LOG_ERROR_0("Ran out of memory allocating the protocol_t struct");
         goto err;
     }

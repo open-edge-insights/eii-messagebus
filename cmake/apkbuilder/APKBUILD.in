@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Intel Corporation.
+# Copyright (c) 2021 Intel Corporation.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -18,14 +18,48 @@
 # FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-get_filename_component(EIIMsgEnv_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-include(CMakeFindDependencyMacro)
+# Contributor:
+# Maintainer:
 
-list(APPEND CMAKE_MODULE_PATH ${EIIMsgEnv_CMAKE_DIR})
+pkgname=${PROJECT_NAME}
+pkgver=${PROJECT_VERSION}
+pkgrel=${APKBUILD_PKGREL}
+pkgdesc="${CMAKE_PROJECT_DESCRIPTION}"
+url="${PROJECT_HOMEPAGE_URL}"
+arch="all"
+license="${PROJECT_LICENSE}"
+depends="${APKBUILD_DEPENDS}"
+depends_dev="${APKBUILD_DEPENDS_DEV}"
+makedepends="${APKBUILD_DEPENDS_MAKE}"
+install=""
+# subpackages="$pkgname-dev $pkgname-doc"
+subpackages=""
+source="apkbuild_source.tar.gz"
+builddir="$srcdir/$pkgname-$pkgver"
 
-if(NOT TARGET EIIMsgEnv)
-    include("${EIIMsgEnv_CMAKE_DIR}/EIIMsgEnvTargets.cmake")
-endif()
+prepare() {
+    default_prepare
+}
 
-set(EIIMsgEnv_LIBRARIES EIIMsgEnv)
-set(EIIMsgEnv_INCLUDE "@CMAKE_INSTALL_FULL_INCLUDEDIR@")
+build() {
+	if [ "$CBUILD" != "$CHOST" ]; then
+		CMAKE_CROSSOPTS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_HOST_SYSTEM_NAME=Linux"
+	fi
+	cmake -B build \
+            ${APKBUILD_CMAKE_FLAGS_STR} \
+            -DPACKAGING=OFF \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
+            $CMAKE_CROSSOPTS .
+	cmake --build build
+}
+
+check() {
+    :
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install src/build
+}
+

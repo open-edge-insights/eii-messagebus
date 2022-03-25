@@ -1,6 +1,6 @@
 {
     "type": "zmq_ipc",
-    "socket_dir": "${CMAKE_CURRENT_BINARY_DIR}/.socks",
+    "socket_dir": "/tmp",
     "pub-0": {
         "socket_file": "multi-topics"
     },

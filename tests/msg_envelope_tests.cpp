@@ -29,6 +29,10 @@
 #include <stdlib.h>
 #include <gtest/gtest.h>
 #include <cjson/cJSON.h>
+#include <cstring>
+#include <csignal>
+#include <vector>
+#include "eii/msgbus/msg_envelope.hpp"
 #include "eii/msgbus/msg_envelope.h"
 
 #define TEST_NAME "topic-or-service-name"
@@ -39,24 +43,26 @@
     "\"bool\":true,"\
     "\"str\":\"Hello, World!\""\
     "\"obj\":{\"test\":65},"\
-    "\"none\":null",\
+    "\"none\":null", \
     "\"arr\":[\"test\",65]"\
     "}"
 
 #define ASSERT_NULL(val) { \
-    if(val != NULL) FAIL() << "Value should be NULL"; \
+    if (val != NULL) FAIL() << "Value should be NULL"; \
 }
 
 #define ASSERT_NOT_NULL(val) { \
-    if(val == NULL) FAIL() << "Value shoud not be NULL"; \
+    if (val == NULL) FAIL() << "Value shoud not be NULL"; \
 }
+
+using namespace eii::msgbus;
 
 /**
  * Simple initialization and destroy case with no data.
  */
 TEST(msg_envelope_tests, simple_init) {
     msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
-    if(msg == NULL)
+    if (msg == NULL)
         FAIL() << "NULL";
     msgbus_msg_envelope_destroy(msg);
 }
@@ -66,7 +72,7 @@ TEST(msg_envelope_tests, simple_init) {
  */
 TEST(msg_envelope_tests, topic_envelope) {
     msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
-    if(msg == NULL)
+    if (msg == NULL)
         FAIL() << "NULL";
 
     msg_envelope_elem_body_t* data = msgbus_msg_envelope_new_integer(42);
@@ -148,7 +154,7 @@ TEST(msg_envelope_tests, ct_blob_put) {
     ASSERT_EQ(data_get->body.blob->len, 10) << "Incorrect length";
 
     // Verify that each byte is correct
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], data[i]);
     }
 
@@ -185,7 +191,7 @@ TEST(msg_envelope_tests, ct_blob_serialize) {
     char* data = (char*) malloc(sizeof(char) * 10);
     memcpy(data, "\x01\x01\x02\x03\x04\x05\x06\x07\x08\x09", 10);
     msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 10);
-    if(blob == NULL)
+    if (blob == NULL)
         FAIL() << "Failed to initialize blob";
 
     msgbus_ret_t ret = msgbus_msg_envelope_put(msg, NULL, blob);
@@ -195,7 +201,7 @@ TEST(msg_envelope_tests, ct_blob_serialize) {
     int num_parts = msgbus_msg_envelope_serialize(msg, &parts);
     ASSERT_EQ(parts[0].len, 10) << "Incorrect serialized length";
 
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(parts[0].bytes[i], data[i]);
     }
 
@@ -211,7 +217,7 @@ TEST(msg_envelope_tests, ct_blob_serialize) {
     ASSERT_EQ(ret, MSG_SUCCESS) << "Failed to retrieve 'testing' from body";
     ASSERT_EQ(data_get->type, MSG_ENV_DT_BLOB) << "Value of data type wrong";
 
-    for(int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         ASSERT_EQ(data_get->body.blob->data[i], data[i]);
     }
 
@@ -313,7 +319,7 @@ TEST(msg_envelope_tests, ct_json_serialize) {
     //     ASSERT_EQ(parts[0].bytes[i], EXPECTED_JSON[i]);
     // }
 
-    for(int i = 0; i < parts[1].len; i++) {
+    for (int i = 0; i < parts[1].len; i++) {
         ASSERT_EQ(parts[1].bytes[i], blob->body.blob->data[i]);
     }
 
@@ -382,19 +388,19 @@ TEST(msg_envelope_tests, ct_multi_blob_serialize) {
     char* data = (char*) malloc(sizeof(char) * 10);
     memcpy(data, "\x01\x01\x02\x03\x04\x05\x06\x07\x08\x09", 10);
     msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 10);
-    if(blob == NULL)
+    if (blob == NULL)
         FAIL() << "Failed to initialize blob";
 
     char* data_two = (char*) malloc(sizeof(char) * 10);
     memcpy(data_two, "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19", 10);
     msg_envelope_elem_body_t* blob_two = msgbus_msg_envelope_new_blob(data_two, 10);
-    if(blob_two == NULL)
+    if (blob_two == NULL)
         FAIL() << "Failed to initialize blob_two";
 
     char* data_three = (char*) malloc(sizeof(char) * 10);
     memcpy(data_three, "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29", 10);
     msg_envelope_elem_body_t* blob_three = msgbus_msg_envelope_new_blob(data_three, 10);
-    if(blob_three == NULL)
+    if (blob_three == NULL)
         FAIL() << "Failed to initialize blob_three";
 
     msgbus_ret_t ret = msgbus_msg_envelope_put(msg, NULL, blob);
@@ -508,19 +514,19 @@ TEST(msg_envelope_tests, ct_multi_json_serialize) {
     char* data = (char*) malloc(sizeof(char) * 10);
     memcpy(data, "\x01\x01\x02\x03\x04\x05\x06\x07\x08\x09", 10);
     msg_envelope_elem_body_t* blob = msgbus_msg_envelope_new_blob(data, 10);
-    if(blob == NULL)
+    if (blob == NULL)
         FAIL() << "Failed to initialize blob";
 
     char* data_two = (char*) malloc(sizeof(char) * 10);
     memcpy(data_two, "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19", 10);
     msg_envelope_elem_body_t* blob_two = msgbus_msg_envelope_new_blob(data_two, 10);
-    if(blob_two == NULL)
+    if (blob_two == NULL)
         FAIL() << "Failed to initialize blob_two";
 
     char* data_three = (char*) malloc(sizeof(char) * 10);
     memcpy(data_three, "\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29", 10);
     msg_envelope_elem_body_t* blob_three = msgbus_msg_envelope_new_blob(data_three, 10);
-    if(blob_three == NULL)
+    if (blob_three == NULL)
         FAIL() << "Failed to initialize blob_three";
 
     ret = msgbus_msg_envelope_put(msg, NULL, blob);
@@ -707,4 +713,160 @@ TEST(msg_envelope_tests, array_put_get_remove) {
     ASSERT_EQ(ret, MSG_SUCCESS);
 
     msgbus_msg_envelope_elem_destroy(arr);
+}
+
+/**
+ * Simple initialization and destroy case with no data.
+ */
+TEST(msg_envelope_tests, cpp_simple_init) {
+    try {
+        // Create MsgEnvelope
+        MsgEnvelope* msgEnv = new MsgEnvelope(CT_JSON);
+        ASSERT_NOT_NULL(msgEnv);
+        delete msgEnv;
+    } catch(const std::exception& MsgbusException) {
+        FAIL() << "Exception thrown: " << MsgbusException.what();
+    } catch(...) {
+        FAIL() << "Exception thrown";
+    }
+}
+
+/**
+ * Simple initialization, addition and destroy case for MsgEnvelope
+ */
+TEST(msg_envelope_tests, cpp_msg_envelope_test) {
+    try {
+        // Create MsgEnvelope
+        MsgEnvelope* msgEnv = new MsgEnvelope(CT_JSON);
+        ASSERT_NOT_NULL(msgEnv);
+
+        // Add test (key, value) pairs to MsgEnvelope
+        msgEnv->put_bool("Bool", true);
+        msgEnv->put_string("Strng", "string_test");
+        msgEnv->put_integer("Int", 3);
+        msgEnv->put_float("Float", 3.45);
+
+        // put_vector example
+        std::vector<int> nums;
+        nums.push_back(1);
+        nums.push_back(2);
+        nums.push_back(3);
+        msgEnv->put_vector("IntVector", nums);
+
+        // put_vector example
+        std::vector<double> floats;
+        floats.push_back(1.4);
+        floats.push_back(2.5);
+        floats.push_back(3.6);
+        msgEnv->put_vector("FloatVector", floats);
+
+        // put_vector example
+        std::vector<bool> bools;
+        bools.push_back(true);
+        bools.push_back(false);
+        msgEnv->put_vector("BoolVector", bools);
+
+        // Verify data put into MsgEnvelope matches with
+        // the fetched data
+        ASSERT_EQ(msgEnv->get_int("Int"), 3);
+        ASSERT_EQ(msgEnv->get_float("Float"), 3.45);
+        ASSERT_EQ(msgEnv->get_bool("Bool"), true);
+
+        // This test case will fail since the string
+        // is converted to a c string internally which changes the
+        // address of the variable but the content remains the same
+        // since a strcpy is performed on the string
+        // ASSERT_EQ(msgEnv->get_string("Strng"), "string_test");
+
+        msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);
+        delete msgEnv;
+    } catch(const std::exception& MsgbusException) {
+        FAIL() << "Exception thrown: " << MsgbusException.what();
+    } catch(...) {
+        FAIL() << "Exception thrown";
+    }
+}
+
+/**
+ * Simple initialization, addition and destroy case for MsgEnvelopeObject
+ */
+TEST(msg_envelope_tests, cpp_msg_envelope_object_test) {
+    try {
+        // Create MsgEnvelope
+        MsgEnvelope* msgEnv = new MsgEnvelope(CT_JSON);
+        ASSERT_NOT_NULL(msgEnv);
+
+        // Create MsgEnvelopeObject
+        MsgEnvelopeObject* msgEnvObj = new MsgEnvelopeObject();
+        ASSERT_NOT_NULL(msgEnvObj);
+
+        // Add test (key, value) pairs to MsgEnvelopeObject
+        msgEnvObj->put_bool("objBool", true);
+        msgEnvObj->put_string("objStrng", "msgEnvObj_string_test");
+        msgEnvObj->put_integer("objInt", 1);
+        msgEnvObj->put_float("objFloat", 1.45);
+
+        msgEnv->put_object("msg_envelope_object", msgEnvObj);
+
+        // Verify data put into MsgEnvelopeObject matches with
+        // the fetched data after putting it into MsgEnvelope
+        ASSERT_EQ(msgEnvObj->get_int("objInt"), 1);
+        ASSERT_EQ(msgEnvObj->get_float("objFloat"), 1.45);
+        ASSERT_EQ(msgEnvObj->get_bool("objBool"), true);
+
+        // This test case will fail since the string
+        // is converted to a c string internally which changes the
+        // address of the variable but the content remains the same
+        // since a strcpy is performed on the string
+        // ASSERT_EQ(msgEnvObj->get_string("objStrng"), "msgEnvObj_string_test");
+
+        msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);
+        delete msgEnv;
+    } catch(const std::exception& MsgbusException) {
+        FAIL() << "Exception thrown: " << MsgbusException.what();
+    } catch(...) {
+        FAIL() << "Exception thrown";
+    }
+}
+
+/**
+ * Simple initialization, addition and destroy case for MsgEnvelopeList
+ */
+TEST(msg_envelope_tests, cpp_msg_envelope_array_test) {
+    try {
+        // Create MsgEnvelope
+        MsgEnvelope* msgEnv = new MsgEnvelope(CT_JSON);
+        ASSERT_NOT_NULL(msgEnv);
+
+        // Create MsgEnvelopeList
+        MsgEnvelopeList* msgEnvArr = new MsgEnvelopeList();
+        ASSERT_NOT_NULL(msgEnvArr);
+
+        // Add test (key, value) pairs to MsgEnvelopeList
+        msgEnvArr->put_bool(true);
+        msgEnvArr->put_string("msgEnvArr_string_test");
+        msgEnvArr->put_integer(2);
+        msgEnvArr->put_float(2.45);
+
+        msgEnv->put_array("msg_envelope_array", msgEnvArr);
+
+        // Verify data put into MsgEnvelopeList matches with
+        // the fetched data after putting it into MsgEnvelope
+        ASSERT_EQ(msgEnvArr->get_bool(0), true);
+        ASSERT_EQ(msgEnvArr->get_int(2), 2);
+        ASSERT_EQ(msgEnvArr->get_float(3), 2.45);
+
+        // This test case will fail since the string
+        // is converted to a c string internally which changes the
+        // address of the variable but the content remains the same
+        // since a strcpy is performed on the string
+        // ASSERT_EQ(msgEnvArr->get_string(1), "msgEnvArr_string_test");
+
+        msgbus_msg_envelope_print(msgEnv->get_msg_envelope(), true, false);
+        delete msgEnv;
+    } catch(const std::exception& MsgbusException) {
+        FAIL() << "Exception thrown: " << MsgbusException.what();
+    } catch(...) {
+        FAIL() << "Exception thrown";
+    }
 }
