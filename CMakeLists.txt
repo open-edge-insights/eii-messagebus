@@ -56,6 +56,7 @@ find_package(IntelSafeString REQUIRED)
 # Include header directories
 include_directories(
     include/
+    ${CMAKE_INSTALL_PREFIX}/include/
     ${EIIUtils_INCLUDE}
     ${ZMQ_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
